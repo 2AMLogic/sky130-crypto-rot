@@ -10,7 +10,7 @@ toward DRC/LVS-clean GDS by AI agents driving
 open-source digital flow: cocotb + Icarus for verification, Yosys for
 synthesis, OpenROAD for place-and-route.
 
-**Status: just opened, specification phase.** Nothing is designed yet.
+**Status: specification phase.** The v1 spec is written; no RTL exists yet.
 
 **Built agent-native.** Every specification, decision record, testbench, and
 line of documentation here is produced by AI agents working from a ratified
@@ -53,23 +53,29 @@ with an open flow is the reason the block exists.
   resistance. Known-answer tests show the algorithms are implemented
   correctly; they say nothing about leakage.
 
-## Target specification (DRAFT — engineering to ratify, see issue #1)
+## Target specification (ratified for v1)
+
+The full spec is [`spec/target-spec.md`](spec/target-spec.md); each choice has
+a record in [`spec/decision-records/`](spec/decision-records/). Summary:
 
 | Parameter | Target | Fallback | Stretch |
 |---|---|---|---|
-| AES | AES-128, encrypt + decrypt, iterative round datapath | encrypt only | AES-256 |
-| Hash / MAC | SHA-256 + HMAC-SHA-256 | SHA-256 only | — |
-| Key ladder | SP 800-108 counter-mode KDF on HMAC-SHA-256, ≥ 4 derived slots | 1 derived slot | AES-CMAC KDF variant |
-| DRBG | CTR_DRBG (AES-128), seeded and reseeded from `sky130-trng` | — | prediction-resistance mode |
-| Clock (all sky130_fd_sc_hd corners) | 50 MHz | 25 MHz | 100 MHz |
-| Key confidentiality | formal property: no bus read returns key material, post-synthesis netlist | RTL-level property | post-P&R netlist |
-| Signoff | DRC + LVS clean | — | — |
+| AES | AES-128, encrypt + decrypt, one round per cycle | encrypt only | AES-256 |
+| Hash / MAC | SHA-256 + HMAC-SHA-256 | SHA-256 only | - |
+| Key ladder | SP 800-108 counter-mode KDF on HMAC-SHA-256, 4 derived slots | 1 derived slot | AES-CMAC KDF variant |
+| DRBG | CTR_DRBG (AES-128, derivation function), seeded and reseeded from `sky130-trng`'s conditioned output | - | prediction-resistance mode |
+| Clock (all sky130_fd_sc_hd corners; setup binds at `ss_100C_1v60`) | 50 MHz, target unmeasured | 25 MHz | 100 MHz |
+| Key confidentiality | numbered properties in [`spec/key-isolation-properties.md`](spec/key-isolation-properties.md), re-proven on the synthesized netlist where marked | RTL-level property | post-P&R netlist |
+| Signoff | DRC + LVS clean | - | - |
+
+The `sky130-trng` interface is in [`spec/trng-interface.md`](spec/trng-interface.md),
+pinned in [`reuse.lock.json`](reuse.lock.json).
 
 Maturity ladder: spec ratified → algorithm cores pass the published
 known-answer vectors → key-isolation properties proven on the synthesized
 netlist → TRNG interface verified against the sibling's RTL → layout
 DRC/LVS-clean → timing closed across corners → shuttle seat → measured
-silicon. **Current position: pre-spec.**
+silicon. **Current position: spec drafted (ratifies when its pull request merges).**
 
 ## Repo layout
 
