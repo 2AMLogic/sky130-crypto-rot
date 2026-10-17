@@ -1,0 +1,8 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": ["adder.v"],
+  "hdl_toplevel": "adder",
+  "testbench": { "module": "test_adder", "testcase": null },
+  "options": { "coverage": false, "timescale": ["1ns", "1ps"], "random_seed": 1 }
+}

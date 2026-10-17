@@ -1,0 +1,7 @@
+{
+  "description": "NIST CAVP SHA-256 ShortMsg (byte-oriented) response file, stored verbatim from the archive member",
+  "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip",
+  "archive_sha256": "929ef80b7b3418aca026643f6f248815913b60e01741a44bba9e118067f4c9b8",
+  "archive_member": "shabytetestvectors/SHA256ShortMsg.rsp",
+  "sha256": "75e1cb83994638481808e225b9eb0c1ebd0c232d952ac42b61abce6363be283c"
+}
