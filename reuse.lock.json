@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "imports": [
+    {
+      "from": "2AMLogic/sky130-modexp",
+      "commit": "18f4d8fd5e104f64550817a5468f262c159f734f",
+      "mode": "vendored",
+      "files": [
+        { "upstream": "flow/tie_constants.py",
+          "local": "flow/common/tie_constants.py",
+          "sha256": "ed02a26d6ffc357bd36bc76461004797bf34d1b69bbb0fca5a3a873f92eb5b17" },
+        { "upstream": "layout/lvs/expand_concat_assigns.py",
+          "local": "layout/lvs/common/expand_concat_assigns.py",
+          "sha256": "38aac69cac92b8444b9d15f6d09cf0fb12efc24cee98b03989575351c2d45cc1" },
+        { "upstream": "verification/gate-level/sky130_fd_sc_hd_sim_defines.v",
+          "local": "verification/gate-level/common/sky130_fd_sc_hd_sim_defines.v",
+          "sha256": "77dea4c4aa8230209c29f1157f136e9f529ec8536bceec917e6cdc065806a9cb" }
+      ]
+    }
+  ]
+}
