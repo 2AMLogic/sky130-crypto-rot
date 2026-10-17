@@ -2,6 +2,15 @@
   "schema": 1,
   "imports": [
     {
+      "from": "2AMLogic/sky130-trng",
+      "commit": "f44ee72d42056fa2ab531f3100d4a4f4dca318e8",
+      "mode": "fetched",
+      "files": [
+        { "upstream": "digital/rtl/trng_digital.v",
+          "sha256": "219738aae7c5fd3bfede92ae20bebe38e843f7341690eed151d1545a93db90ef" }
+      ]
+    },
+    {
       "from": "2AMLogic/sky130-modexp",
       "commit": "18f4d8fd5e104f64550817a5468f262c159f734f",
       "mode": "vendored",
