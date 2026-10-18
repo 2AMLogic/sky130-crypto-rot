@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-18
 
+- **PR #20**: feat(verification): add FIPS 197 AES-128 golden model with vectors
+- **Issue #11** (closed): Golden model: AES block (FIPS 197 vectors)
 - **PR #15**: docs(spec): fix HMAC cost, P-number citations and bus-fault list
 - **Issue #14** (closed): spec: fix three small inconsistencies found reviewing the v1 spec (PR #10)
 - **Issue #5** (closed): Golden reference model and known-answer vectors for AES-128, SHA-256/HMAC, KDF and CTR_DRBG
