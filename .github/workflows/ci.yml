@@ -1,0 +1,58 @@
+# CI for sky130-crypto-rot. Tool-light: no PDK, no Docker.
+#
+# What runs here: format and known-answer correctness only -- Python/shell
+# syntax, the golden models against the committed published vectors, and the
+# reuse.lock.json hashes. It makes no security claim.
+# What stays local: synthesis, place-and-route, DRC, LVS, signoff (PDK-heavy).
+# See README.md "Reproduce" and verification/README.md "What CI runs vs. what
+# stays local"; change those documents together with this file if a heavy leg
+# moves into CI.
+#
+# Each job calls an `npm run` script so a developer runs exactly what CI runs.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: npm run lint
+
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python3 -m pip install pytest
+      - run: npm run test
+
+  reuse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python3 -m pip install pytest
+      - run: npm run check:reuse

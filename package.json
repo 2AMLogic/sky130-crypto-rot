@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "worktree:return": "./.loom/scripts/worktree-return.sh",
-    "check:ci": "echo 'No CI checks configured. Customize this script for your project.' && exit 0",
-    "check:all": "echo 'No checks configured. Customize this script for your project.' && exit 0",
-    "test": "echo 'No tests configured. Customize this script for your project.' && exit 0",
-    "lint": "echo 'No linter configured. Customize this script for your project.' && exit 0"
+    "check:ci": "npm run lint && npm run test && npm run check:reuse",
+    "check:all": "npm run check:ci",
+    "test": "python3 -m pytest verification/model",
+    "lint": "python3 -m compileall -q verification flow && bash -n scripts/*.sh flow/smoke/run.sh",
+    "check:reuse": "python3 verification/check_reuse.py && python3 -m pytest verification/test_check_reuse.py"
   }
 }
