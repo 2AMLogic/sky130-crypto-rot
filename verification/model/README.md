@@ -7,6 +7,7 @@ Pure-Python, standard-library-only models used to score DUT output.
 | `sha256.py` | SHA-256 (FIPS 180-4) | NIST CAVP SHA-256 ShortMsg and LongMsg (byte-oriented), plus padding-boundary lengths 0/55/56/63/64 |
 | `hmac_sha256.py` | HMAC-SHA-256 (RFC 2104) | RFC 4231 test cases 1-7 (case 5 compares the published 128-bit truncation) |
 | `aes.py` | AES-128 block encrypt/decrypt and key schedule (FIPS 197); 32-byte keys are accepted but have no committed vector | FIPS 197 Appendix A.1 round keys, Appendix B example, Appendix C.1 (transcribed to `fips197.txt`; the sidecar records the PDF URL and hash) |
+| `ctr_drbg.py` | CTR_DRBG (SP 800-90A) over AES-128/256, with and without the derivation function; no prediction resistance; `use_df`, `key_bits`, `reseed_interval` are required keywords | NIST CAVP `CTR_DRBG.rsp` (PredictionResistance = False): all AES-128/256 df and no-df records; 3KeyTDEA and AES-192 sets are listed as unsupported in the sidecar |
 
 Run: `python3 -m pytest verification/model` from the repo root.
 
