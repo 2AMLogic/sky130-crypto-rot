@@ -8,19 +8,19 @@ The region between the markers is machine-generated and overwritten wholesale.
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
 
-_None._
+- **#18**: ci: add lint, model and reuse CI jobs with real npm check scripts
 
 ## Very Important
 
 `loom:very-important` (one counts per workspace); every stage takes these first.
 
-- **#11**: Golden model: AES block (FIPS 197 vectors)
+_None._
 
 ## Important
 
 `loom:important`; taken before unlabelled work.
 
-_None._
+- **#16**: Golden model: CTR_DRBG (SP 800-90A) with CAVP DRBG vectors
 
 ## Ready
 
@@ -32,7 +32,8 @@ _None._
 
 Issues currently being built (`loom:building`).
 
-_None._
+- **#7**: CI skeleton: lint, reference-model tests and evidence-format checks on every PR
+- **#16**: Golden model: CTR_DRBG (SP 800-90A) with CAVP DRBG vectors
 
 ## PRs Awaiting Review
 
@@ -44,15 +45,15 @@ _None._
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-_None._
+- **#18**: ci: add lint, model and reuse CI jobs with real npm check scripts
+- **#22**: feat(verification): add CTR_DRBG golden model with CAVP vectors
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
 - **#7**: CI skeleton: lint, reference-model tests and evidence-format checks on every PR *(curated)*
-- **#11**: Golden model: AES block (FIPS 197 vectors) *(curated)*
-- **#12**: Golden model: SP 800-108 counter-mode KDF over HMAC-SHA-256 (CAVP KBKDF vectors) *(curated)*
+- **#16**: Golden model: CTR_DRBG (SP 800-90A) with CAVP DRBG vectors *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -66,14 +67,14 @@ _None._
 
 | Bucket | Count |
 |------|-------|
-| Operator merge-risk holds | 0 |
-| Very important | 1 |
-| Important | 0 |
+| Operator merge-risk holds | 1 |
+| Very important | 0 |
+| Important | 1 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 0 |
+| In Progress (`loom:building`) | 2 |
 | PRs awaiting review | 0 |
-| Approved PRs awaiting merge | 0 |
-| Curated | 3 |
+| Approved PRs awaiting merge | 2 |
+| Curated | 2 |
 | Architect / Hermit proposals | 0 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
