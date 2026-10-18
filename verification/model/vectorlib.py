@@ -73,3 +73,47 @@ def parse_rfc4231(path):
         for c, v in cases.items()
         if {"Key", "Data", "HMAC-SHA-256"} <= set(v)
     }
+
+
+def parse_cavp_kbkdf(path):
+    """Parse a CAVP KBKDF counter-mode .rsp file.
+
+    Return [(prf, ctrlocation, rlen_bits, fields)] where ``fields`` maps each
+    record key (L, KI, FixedInputData, DataBeforeCtrData, ..., KO) to its text.
+    """
+    records = []
+    prf = loc = rlen = None
+    cur = None
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        m = re.fullmatch(r"\[(PRF|CTRLOCATION|RLEN)=(\w+)\]", line)
+        if m:
+            if m.group(1) == "PRF":
+                prf = m.group(2)
+            elif m.group(1) == "CTRLOCATION":
+                loc = m.group(2)
+            else:
+                rlen = int(m.group(2).split("_")[0])
+            continue
+        if re.fullmatch(r"COUNT=\d+", line):
+            cur = {}
+            continue
+        m = re.fullmatch(r"(\w+) ?= ?(\w*)", line)
+        if m and cur is not None:
+            cur[m.group(1)] = m.group(2)
+            if m.group(1) == "KO":
+                records.append((prf, loc, rlen, cur))
+                cur = None
+    return records
+
+
+def count_cavp_kbkdf_records(path):
+    """Independent count of records per PRF: number of 'KO =' lines under each [PRF=]."""
+    counts = {}
+    prf = None
+    for line in path.read_text().splitlines():
+        if line.startswith("[PRF="):
+            prf = line[5:].rstrip("]")
+        elif line.startswith("KO ="):
+            counts[prf] = counts.get(prf, 0) + 1
+    return counts

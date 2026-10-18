@@ -1,0 +1,37 @@
+{
+  "description": "NIST CAVP KBKDF (SP 800-108) counter-mode response file KDFCTR_gen.rsp, stored verbatim from the archive member",
+  "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/KBKDF800-108/CounterMode.zip",
+  "archive_sha256": "7252501f27bf108be6eb8f1c8451879a1883dce14853aec48cf23613d62b58d0",
+  "archive_member": "KDFCTR_gen.rsp",
+  "sha256": "d3f568ad2a034b6b5b0bf0c7944170aa1a39c140b20d172a716b497792e8f713",
+  "layout_notes": "Sections are keyed by [PRF=], [CTRLOCATION=BEFORE_FIXED|AFTER_FIXED|MIDDLE_FIXED] and [RLEN=8|16|24|32_BITS]. BEFORE_FIXED/AFTER_FIXED records carry one opaque FixedInputData field; MIDDLE_FIXED records carry DataBeforeCtrData and DataAfterCtrData instead. FixedInputData is not split into label/separator/context/[L], so the file does not exercise any particular label/context layout. KO is the leftmost L bits of the iteration output.",
+  "supported_sections": {
+    "prf": "HMAC_SHA256",
+    "ctrlocation": [
+      "BEFORE_FIXED",
+      "AFTER_FIXED",
+      "MIDDLE_FIXED"
+    ],
+    "rlen_bits": [
+      8,
+      16,
+      24,
+      32
+    ],
+    "records": 480
+  },
+  "unsupported_prfs": {
+    "records_per_prf": {
+      "CMAC_AES128": 480,
+      "CMAC_AES192": 480,
+      "CMAC_AES256": 480,
+      "CMAC_TDES2": 480,
+      "CMAC_TDES3": 480,
+      "HMAC_SHA1": 480,
+      "HMAC_SHA224": 480,
+      "HMAC_SHA384": 480,
+      "HMAC_SHA512": 480
+    },
+    "reason": "out of scope for this model (AES-CMAC and TDES-CMAC PRFs, HMAC over a hash other than SHA-256); no model exists here, so these records are not run"
+  }
+}
