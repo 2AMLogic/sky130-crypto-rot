@@ -73,3 +73,25 @@ def parse_rfc4231(path):
         for c, v in cases.items()
         if {"Key", "Data", "HMAC-SHA-256"} <= set(v)
     }
+
+
+def parse_fips197(path):
+    """Parse vectors/fips197.txt into [(section, {FIELD: bytes})], one per [section] block."""
+    sections = []
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = re.fullmatch(r"\[(\w+)\].*", line)
+        if m:
+            sections.append((m.group(1), {}))
+            continue
+        m = re.fullmatch(r"([A-Z]+\d*) = ([0-9a-f]+)", line)
+        assert m and sections, f"unparsed line: {line!r}"
+        sections[-1][1][m.group(1)] = bytes.fromhex(m.group(2))
+    return sections
+
+
+def count_fips197_records(path):
+    """Independent count of vectors: number of 'CIPHERTEXT =' lines."""
+    return sum(1 for line in path.read_text().splitlines() if line.startswith("CIPHERTEXT ="))
