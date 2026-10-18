@@ -30,3 +30,15 @@ protocol violations observable and to attach the fault policy.
 The bus front end is the only path from host to key logic and is the unit
 P-1/P-11 are stated against. The sibling's register bus is a different,
 internal-only bus (`trng-interface.md`).
+
+## Errata
+
+2026-10-18: `target-spec.md` section 5 listed "unaligned/partial access" as a
+bus-protocol violation, which this record did not. The bus is word-addressed
+with no byte-select signal, so a partial or unaligned access cannot be
+issued or observed and is not a violation. The target-spec list is now the
+four violations in the Decision section (undefined address, write to a
+read-only register, write while the addressed engine is busy, read of a
+write-only location); the read of a write-only location is added to
+the target-spec list, so it now also counts toward the escalation in section 5.
+The Decision text above is unchanged.

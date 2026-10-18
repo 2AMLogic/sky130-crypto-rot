@@ -23,10 +23,10 @@ KDF-parent. The mask is part of the derivation context, so a key derived
 with one permission set is a different key from the same slot index derived
 with another (key separation by permission).
 
-HMAC cost: ipad/opad key blocks (2 compressions) + inner message
-(64 + 52 = 116 bytes -> 2 compressions) + outer (64 + 32 = 96 bytes -> 2
-compressions) ~ 6 compressions x 65 cycles = 390 cycles ~ 7.8 us at 50 MHz
-(target, unmeasured). The ipad/opad precomputation may be reused when the
+HMAC cost: inner hash (64-byte ipad block + 52-byte message = 116 bytes
+-> 2 compressions) + outer hash (64-byte opad block + 32-byte inner digest
+= 96 bytes -> 2 compressions) = 4 compressions x 65 cycles = 260 cycles
+~ 5.2 us at 50 MHz (target, unmeasured). The ipad/opad precomputation may be reused when the
 same `K_IN` derives several slots; an optimisation, not required by the spec.
 
 Derived-slot count: 4, parent chain depth at most 2 (root -> slot ->
@@ -46,3 +46,11 @@ layout above, `L = 256`. KAT: published HMAC-SHA-256 counter-mode vectors
 where they exist (the CAVP KDF vectors use fixed-input-data in a different
 layout, so the layout above is cross-checked against the golden model, and
 the HMAC-SHA-256 primitive is checked against RFC 4231).
+
+## Errata
+
+2026-10-18: the HMAC cost estimate in the Decision section counted the
+ipad/opad key blocks twice (once separately, once inside the 116- and
+96-byte lengths). Corrected from 6 compressions / 390 cycles / 7.8 us to 4
+compressions / 260 cycles / 5.2 us. The construction itself is unchanged; the
+figure remains a target, unmeasured.

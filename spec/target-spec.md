@@ -63,8 +63,8 @@ GCM and CBC-MAC modes are not in hardware.
 | Seed | 16 conditioned 32-bit words (512 bits), df-compressed to 256 bits | same | - | TB vs golden model |
 | Reseed | 8 conditioned words (256 bits) | same | - | TB |
 | Reseed interval | 2^16 generate requests; max 1024 bits per request | 2^12 requests | - | TB, FORMAL P-8 |
-| TRNG gated / alarm | seeding and reseeding **stall** while `gated`; on `alarm` the seed buffer and DRBG state are zeroized; generate refused until reseeded (details: `trng-interface.md`) | same | - | FORMAL P-7, P-9; TB |
-| Output before seed | never; `generate` returns an error status and no data until instantiated | same | - | FORMAL P-8 |
+| TRNG gated / alarm | seeding and reseeding **stall** while `gated`; on `alarm` the seed buffer and DRBG state are zeroized; generate refused until reseeded (details: `trng-interface.md`) | same | - | FORMAL P-9; TB (the `gated` stall has no formal property) |
+| Output before seed | never; `generate` returns an error status and no data until instantiated | same | - | FORMAL P-7 |
 | Seeding claim | "seeded from the sibling's conditioned output at its stated operating point". Entropy is provisional until silicon. | | | - |
 
 ## 5. Lifecycle and faults
@@ -78,7 +78,7 @@ protocol violation.
 |---|---|---|---|
 | Reset (`rst_n`) | all key slots, DRBG `Key`/`V`, seed buffer, AES/HMAC working registers, KDF scratch | `RESET` -> `UNSEEDED` | FORMAL P-10 |
 | TRNG `alarm` (synchronized) | **every** key slot, DRBG state, seed buffer, working registers | `ALARM_ZEROIZED` | FORMAL P-9 |
-| Bus protocol violation (access to an undefined address, write to a read-only register, unaligned/partial access, write during busy) | none of the key slots by default; the offending operation is refused and `FAULT` status is set. A second violation within one operation, or any violation during key load, zeroizes all slots | `FAULT_ZEROIZED` when it zeroizes | TB, FORMAL P-11 |
+| Bus protocol violation (access to an undefined address, write to a read-only register, write while the addressed engine is busy, read of a write-only location) | none of the key slots by default; the offending operation is refused and `FAULT` status is set. A second violation within one operation, or any violation during key load, zeroizes all slots | `FAULT_ZEROIZED` when it zeroizes | TB, FORMAL P-11 |
 | TRNG `gated` (no alarm) | seed buffer only; keys and DRBG state kept | stall; `RESEED_REQUIRED` if it persists | TB |
 | Software `ZEROIZE` command | all of the above | `UNSEEDED` | TB, P-10 |
 
