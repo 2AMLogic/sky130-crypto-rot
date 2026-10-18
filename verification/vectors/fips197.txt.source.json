@@ -1,0 +1,6 @@
+{
+  "description": "FIPS 197 example values (Appendix A.1 key expansion, Appendix B, Appendix C.1 AES-128), transcribed to text from the NIST PDF; the PDF is not stored here",
+  "url": "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf",
+  "sha256": "a4101ff7ba68b14d863b257e03ea205133fac5088013e56a4347837963fea846",
+  "source_pdf_sha256": "251dfe0b5dc283abaf364adf586f7ec6dc4e495335d48dd5ee0fee6c5961da8a"
+}
