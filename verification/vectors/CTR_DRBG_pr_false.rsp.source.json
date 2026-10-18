@@ -1,0 +1,15 @@
+{
+  "description": "NIST CAVP SP 800-90A DRBG response file CTR_DRBG.rsp for PredictionResistance = False, stored verbatim from the nested archive member (CRLF line endings preserved)",
+  "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/drbgtestvectors.zip",
+  "archive_sha256": "5f7e5658ebd5b4e6785a7b12fa32333511d2acc2f2d9c5ae1ffa16b699377769",
+  "archive_member": "drbgvectors_pr_false.zip/CTR_DRBG.rsp",
+  "inner_archive_sha256": "73f9965ca0675bc74673aaba0733283a9874f74db1fd4c15bb707a8ab446d32c",
+  "sha256": "53570f503b4de7fcfc3b26abee7288759c1e4e62f9830f2a2bb364c7eb0b3508",
+  "unsupported_sections": {
+    "3KeyTDEA use df": "Triple-DES block cipher; the model is AES only",
+    "3KeyTDEA no df": "Triple-DES block cipher; the model is AES only",
+    "AES-192 use df": "aes.py implements 128- and 256-bit keys only",
+    "AES-192 no df": "aes.py implements 128- and 256-bit keys only"
+  },
+  "unsupported_other": "Prediction-resistance files (drbgvectors_pr_true.zip) are not stored: prediction resistance is out of scope. drbgvectors_no_reseed.zip is not stored: the pr_false file covers the same sets with a reseed step."
+}

@@ -139,3 +139,42 @@ def parse_fips197(path):
 def count_fips197_records(path):
     """Independent count of vectors: number of 'CIPHERTEXT =' lines."""
     return sum(1 for line in path.read_text().splitlines() if line.startswith("CIPHERTEXT ="))
+
+
+def parse_cavp_drbg(path):
+    """Parse a CAVP CTR_DRBG .rsp into [(section, {field: bytes}, second_additional, returned_bits)].
+
+    Each record is Instantiate(EntropyInput, Nonce, PersonalizationString), Reseed
+    (EntropyInputReseed, AdditionalInputReseed), Generate(AdditionalInput) discarded,
+    Generate(AdditionalInput) -> ReturnedBits. `section` is e.g. "AES-128 use df".
+    """
+    records = []
+    section = None
+    cur = None
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        m = re.fullmatch(r"\[((?:AES-\d+|3KeyTDEA) (?:use|no) df)\]", line)
+        if m:
+            section = m.group(1)
+            continue
+        if re.fullmatch(r"COUNT = \d+", line):
+            cur = {"section": section, "additional": []}
+            continue
+        m = re.fullmatch(r"(\w+) =\s*([0-9a-f]*)", line)
+        if not m or cur is None:
+            continue
+        name, value = m.groups()
+        if name == "AdditionalInput":
+            cur["additional"].append(bytes.fromhex(value))
+        else:
+            cur[name] = bytes.fromhex(value)
+        if name == "ReturnedBits":
+            assert len(cur["additional"]) == 2, f"record needs two AdditionalInput lines: {cur}"
+            records.append(cur)
+            cur = None
+    return records
+
+
+def count_cavp_drbg_records(path):
+    """Independent count of vectors: number of 'ReturnedBits =' lines."""
+    return sum(1 for line in path.read_text().splitlines() if line.startswith("ReturnedBits ="))
