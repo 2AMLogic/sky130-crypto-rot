@@ -5,6 +5,10 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-18
 
+- **PR #22**: feat(verification): add CTR_DRBG golden model with CAVP vectors
+- **Issue #16** (closed): Golden model: CTR_DRBG (SP 800-90A) with CAVP DRBG vectors
+- **PR #19**: feat(verification): SP 800-108 counter-mode HMAC-SHA-256 KDF model with CAVP vectors
+- **Issue #12** (closed): Golden model: SP 800-108 counter-mode KDF over HMAC-SHA-256 (CAVP KBKDF vectors)
 - **PR #20**: feat(verification): add FIPS 197 AES-128 golden model with vectors
 - **Issue #11** (closed): Golden model: AES block (FIPS 197 vectors)
 - **PR #15**: docs(spec): fix HMAC cost, P-number citations and bus-fault list

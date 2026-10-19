@@ -20,7 +20,7 @@ _None._
 
 `loom:important`; taken before unlabelled work.
 
-- **#16**: Golden model: CTR_DRBG (SP 800-90A) with CAVP DRBG vectors
+_None._
 
 ## Ready
 
@@ -33,7 +33,6 @@ _None._
 Issues currently being built (`loom:building`).
 
 - **#7**: CI skeleton: lint, reference-model tests and evidence-format checks on every PR
-- **#16**: Golden model: CTR_DRBG (SP 800-90A) with CAVP DRBG vectors
 
 ## PRs Awaiting Review
 
@@ -46,14 +45,12 @@ _None._
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
 - **#18**: ci: add lint, model and reuse CI jobs with real npm check scripts
-- **#22**: feat(verification): add CTR_DRBG golden model with CAVP vectors
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
 - **#7**: CI skeleton: lint, reference-model tests and evidence-format checks on every PR *(curated)*
-- **#16**: Golden model: CTR_DRBG (SP 800-90A) with CAVP DRBG vectors *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -69,12 +66,12 @@ _None._
 |------|-------|
 | Operator merge-risk holds | 1 |
 | Very important | 0 |
-| Important | 1 |
+| Important | 0 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 2 |
+| In Progress (`loom:building`) | 1 |
 | PRs awaiting review | 0 |
-| Approved PRs awaiting merge | 2 |
-| Curated | 2 |
+| Approved PRs awaiting merge | 1 |
+| Curated | 1 |
 | Architect / Hermit proposals | 0 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
