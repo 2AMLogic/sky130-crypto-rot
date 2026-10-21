@@ -32,13 +32,13 @@ _None._
 
 Issues currently being built (`loom:building`).
 
-_None._
+- **#7**: CI skeleton: lint, reference-model tests and evidence-format checks on every PR
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-- **#27**: Bump Repo Skills 0.24.3 -> 0.24.7
+_None._
 
 ## Approved (Awaiting Merge)
 
@@ -69,8 +69,8 @@ _None._
 | Very important | 0 |
 | Important | 0 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 0 |
-| PRs awaiting review | 1 |
+| In Progress (`loom:building`) | 1 |
+| PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 1 |
 | Curated | 2 |
 | Architect / Hermit proposals | 0 |
