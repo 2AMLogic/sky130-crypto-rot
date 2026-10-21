@@ -3,6 +3,10 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-21
+
+- **PR #27**: Bump Repo Skills 0.24.3 -> 0.24.7
+
 ### 2026-10-18
 
 - **PR #22**: feat(verification): add CTR_DRBG golden model with CAVP vectors
