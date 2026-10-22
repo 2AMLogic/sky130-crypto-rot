@@ -3,6 +3,11 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-22
+
+- **PR #18**: ci: add lint, model and reuse CI jobs with real npm check scripts
+- **Issue #7** (closed): CI skeleton: lint, reference-model tests and evidence-format checks on every PR
+
 ### 2026-10-21
 
 - **PR #27**: Bump Repo Skills 0.24.3 -> 0.24.7
