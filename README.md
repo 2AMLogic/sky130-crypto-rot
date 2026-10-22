@@ -87,6 +87,34 @@ layout/        GDS + DRC/LVS reports (klayout-tools driven)
 measurements/  silicon characterization (empty until tape-out)
 ```
 
+## Reproduce
+
+CI (`.github/workflows/ci.yml`) needs no PDK and no Docker. Each job calls an
+`npm run` script, so a developer runs exactly what CI runs (Python 3.13 and
+`pytest` for the model and reuse checks):
+
+```
+npm run lint          # compileall on verification/ and flow/, bash -n on scripts
+npm run test          # pytest verification/model against the committed vectors
+npm run check:reuse   # re-hash reuse.lock.json files; self-test of the checker
+npm run check:ci      # all three
+```
+
+The PDK-heavy legs stay local:
+
+```
+./scripts/setup-env.sh       # provision .venv, pinned yosys, PDK
+./flow/smoke/run.sh          # cocotb + Icarus, then klt synthesize
+klt synthesize               # synthesis
+klt place-and-route          # OpenROAD place-and-route
+klt drc                      # DRC
+klt lvs                      # LVS
+klt signoff --manifest       # signoff manifest
+```
+
+CI proves format and known-answer correctness only; it makes no security
+claim. See [`verification/README.md`](verification/README.md).
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
