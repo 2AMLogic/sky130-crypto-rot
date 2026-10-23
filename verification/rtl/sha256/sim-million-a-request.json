@@ -1,0 +1,8 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": ["../../../rtl/sha256/sha256_core.v"],
+  "hdl_toplevel": "sha256_core",
+  "testbench": { "module": "test_sha256_core", "testcase": "test_million_a" },
+  "options": { "coverage": false, "timescale": ["1ns", "1ps"], "random_seed": 1 }
+}
