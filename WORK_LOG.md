@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-23
 
+- **PR #34**: ci: grade T1 evidence tier with a committed klt signoff record
+- **Issue #32** (closed): T1 item 10: commit a klt signoff block manifest, vendored checklist and signoff CI job as the verdict of record
 - **PR #35**: feat(rtl): SHA-256 hash core with KAT bench, negative control and synthesis record
 - **Issue #33** (closed): RTL: SHA-256 core (one round per cycle, hardware padding, 32-bit byte counter) with a cocotb KAT bench against verification/model/sha256.py
 
