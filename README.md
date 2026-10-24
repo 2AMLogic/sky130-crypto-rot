@@ -104,7 +104,7 @@ The PDK-heavy legs stay local:
 
 ```
 ./scripts/setup-env.sh       # provision .venv, pinned yosys, PDK
-./flow/smoke/run.sh          # cocotb + Icarus, then klt synthesize
+./verification/rtl/sha256/run.sh   # cocotb + Icarus, then klt synthesize
 klt synthesize               # synthesis
 klt place-and-route          # OpenROAD place-and-route
 klt drc                      # DRC
