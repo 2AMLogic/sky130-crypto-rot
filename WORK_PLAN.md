@@ -26,13 +26,13 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-- **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow
+_None._
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
-_None._
+- **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow
 
 ## PRs Awaiting Review
 
@@ -44,7 +44,7 @@ _None._
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-_None._
+- **#40**: chore: retire the adder smoke flow in favour of the SHA-256 core flow
 
 ## Proposed
 
@@ -67,10 +67,10 @@ _None._
 | Operator merge-risk holds | 0 |
 | Very important | 0 |
 | Important | 0 |
-| Ready (`loom:issue`) | 1 |
-| In Progress (`loom:building`) | 0 |
+| Ready (`loom:issue`) | 0 |
+| In Progress (`loom:building`) | 1 |
 | PRs awaiting review | 0 |
-| Approved PRs awaiting merge | 0 |
+| Approved PRs awaiting merge | 1 |
 | Curated | 1 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
