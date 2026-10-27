@@ -23,7 +23,7 @@ _None._
 
 `loom:important`; taken before unlabelled work.
 
-- **#44**: T1 item 1 (design sources): HMAC-SHA-256, SP 800-108 key ladder and key-slot RTL, with KATs and FORMAL
+_None._
 
 ## Ready
 
@@ -78,7 +78,7 @@ _None._
 |------|-------|
 | Operator merge-risk holds | 4 |
 | Very important | 0 |
-| Important | 1 |
+| Important | 0 |
 | Ready (`loom:issue`) | 0 |
 | In Progress (`loom:building`) | 4 |
 | PRs awaiting review | 0 |
