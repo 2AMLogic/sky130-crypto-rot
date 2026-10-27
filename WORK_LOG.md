@@ -5,6 +5,9 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-27
 
+- **PR #73**: feat(manifests): record signoff item 6 as not_applicable
+- **Issue #51** (closed): T1 item 6 (statistical claims): hash-bound not_applicable statement covering every ratified spec row
+- **Issue #44** (closed): T1 item 1 (design sources): HMAC-SHA-256, SP 800-108 key ladder and key-slot RTL, with KATs and FORMAL
 - **PR #71**: feat(verification): formal P-5, P-6, P-2 and module-boundary P-1 for the key ladder
 - **Issue #56** (closed): T1 item 1 (design sources): SymbiYosys properties P-5, P-6, P-2 and module-boundary P-1 for the key ladder
 - **PR #57**: docs(manifests): pin klayout-tools 0.8.0 and attest T1 item 10
