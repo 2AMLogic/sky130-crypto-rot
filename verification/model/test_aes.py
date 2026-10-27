@@ -54,3 +54,14 @@ def test_invalid_block_length_raises(n):
         aes.encrypt_block(bytes(16), bytes(n))
     with pytest.raises(ValueError):
         aes.decrypt_block(bytes(16), bytes(n))
+
+
+def test_sp800_38a_ecb():
+    # NIST SP 800-38A F.1.1 (encrypt) and F.1.2 (decrypt), AES-128.
+    path = check_provenance("sp800-38a-ecb.txt")
+    vectors = parse_fips197(path)
+    assert len(vectors) == count_fips197_records(path) == 4
+    for section, v in vectors:
+        key, pt, ct = v["KEY"], v["PLAINTEXT"], v["CIPHERTEXT"]
+        assert aes.encrypt_block(key, pt) == ct, section
+        assert aes.decrypt_block(key, ct) == pt, section
