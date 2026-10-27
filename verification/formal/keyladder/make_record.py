@@ -311,7 +311,7 @@ The netlist negative controls are separate `klt synthesize` runs of the mutated 
 - Known limitation carried from the issue #55 record: `hmac_sha256` `clear` does not clear the SHA-256 datapath registers; this record neither depends on nor changes that.
 - Nothing here is a certification, validation or side-channel claim.
 
-- **Tool versions**: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}); SymbiYosys and `yosys-smtbmc` from the same wheel; {versions['z3']} (z3-solver {versions['z3_solver_wheel']}, binary {versions['z3_binary']}); klt revision `{versions['klt_revision']}` (synthesis); {versions['icarus']}; Python {versions['python']}.
+- **Tool versions**: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}); SymbiYosys and `yosys-smtbmc` from the same wheel; {versions['z3']} (z3-solver {versions['z3_solver_wheel']}, binary {versions['z3_binary']}); klt pinned at `{versions['klt_pin']}` (synthesis); {versions['icarus']}; Python {versions['python']}.
 - **Links**: `{HERE}/`, `rtl/keyladder/keyladder.v`, `spec/key-isolation-properties.md` (P-1, P-2, P-5, P-6, Open questions 1-3), `verification/records/keyladder-sim-synth/`.
 - **Timestamp / author**: {now:%Y-%m-%dT%H:%M:%SZ}, Loom builder agent (issue #56).
 - **Supersedes**: none
