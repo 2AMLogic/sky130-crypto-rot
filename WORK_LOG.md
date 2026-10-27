@@ -5,6 +5,10 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-27
 
+- **PR #71**: feat(verification): formal P-5, P-6, P-2 and module-boundary P-1 for the key ladder
+- **Issue #56** (closed): T1 item 1 (design sources): SymbiYosys properties P-5, P-6, P-2 and module-boundary P-1 for the key ladder
+- **PR #57**: docs(manifests): pin klayout-tools 0.8.0 and attest T1 item 10
+- **Issue #42** (closed): T1 item 10 (repo hygiene): bump the signoff klt pin to one with --attest, fix README status, attest item 10
 - **PR #68**: feat(rtl): key ladder with use-mask, lock, KDF sequencer and zeroize
 - **Issue #55** (closed): T1 item 1 (design sources): key ladder RTL — SP 800-108 KDF sequencer, 4 slots, use-masks, locks, zeroize
 - **PR #62**: feat(rtl): AES-128 encrypt/decrypt core with cocotb bench, vectors and record
