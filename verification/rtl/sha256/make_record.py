@@ -34,6 +34,7 @@ INPUTS = (
     "verification/model/vectorlib.py",
     "verification/vectors/SHA256ShortMsg.rsp",
     "verification/vectors/SHA256LongMsg.rsp",
+    "flow/common/core_flow.sh",
     "flow/common/record_lib.py",
     "scripts/setup-env.sh",
 )
