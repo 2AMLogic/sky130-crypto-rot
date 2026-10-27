@@ -3,6 +3,13 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-27
+
+- **PR #62**: feat(rtl): AES-128 encrypt/decrypt core with cocotb bench, vectors and record
+- **Issue #43** (closed): T1 item 1 (design sources): AES-128 encrypt/decrypt core RTL, one round per cycle, with FIPS 197 KAT bench
+- **PR #58**: feat(rtl): add HMAC-SHA-256 sequencer around sha256_core
+- **Issue #54** (closed): T1 item 1 (design sources): HMAC-SHA-256 RTL around sha256_core, RFC 4231 KATs (incl. long keys)
+
 ### 2026-10-23
 
 - **PR #34**: ci: grade T1 evidence tier with a committed klt signoff record
