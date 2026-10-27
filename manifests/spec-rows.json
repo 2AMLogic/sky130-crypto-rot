@@ -1,0 +1,200 @@
+{
+  "status": "ratified",
+  "rows": [
+    {
+      "id": "1.1",
+      "section": 1,
+      "item": "Key size"
+    },
+    {
+      "id": "1.2",
+      "section": 1,
+      "item": "Direction"
+    },
+    {
+      "id": "1.3",
+      "section": 1,
+      "item": "Datapath"
+    },
+    {
+      "id": "1.4",
+      "section": 1,
+      "item": "Modes in hardware"
+    },
+    {
+      "id": "1.5",
+      "section": 1,
+      "item": "Key schedule"
+    },
+    {
+      "id": "1.6",
+      "section": 1,
+      "item": "Latency per block"
+    },
+    {
+      "id": "2.1",
+      "section": 2,
+      "item": "Hash core"
+    },
+    {
+      "id": "2.2",
+      "section": 2,
+      "item": "Message length"
+    },
+    {
+      "id": "2.3",
+      "section": 2,
+      "item": "Padding"
+    },
+    {
+      "id": "2.4",
+      "section": 2,
+      "item": "HMAC"
+    },
+    {
+      "id": "2.5",
+      "section": 2,
+      "item": "HMAC key handling"
+    },
+    {
+      "id": "2.6",
+      "section": 2,
+      "item": "Latency per block"
+    },
+    {
+      "id": "3.1",
+      "section": 3,
+      "item": "Root key"
+    },
+    {
+      "id": "3.2",
+      "section": 3,
+      "item": "KDF"
+    },
+    {
+      "id": "3.3",
+      "section": 3,
+      "item": "Derived slots"
+    },
+    {
+      "id": "3.4",
+      "section": 3,
+      "item": "Slot permissions"
+    },
+    {
+      "id": "3.5",
+      "section": 3,
+      "item": "Lock bits"
+    },
+    {
+      "id": "3.6",
+      "section": 3,
+      "item": "Slot visibility"
+    },
+    {
+      "id": "4.1",
+      "section": 4,
+      "item": "Construction"
+    },
+    {
+      "id": "4.2",
+      "section": 4,
+      "item": "Seed"
+    },
+    {
+      "id": "4.3",
+      "section": 4,
+      "item": "Reseed"
+    },
+    {
+      "id": "4.4",
+      "section": 4,
+      "item": "Reseed interval"
+    },
+    {
+      "id": "4.5",
+      "section": 4,
+      "item": "TRNG gated / alarm"
+    },
+    {
+      "id": "4.6",
+      "section": 4,
+      "item": "Output before seed"
+    },
+    {
+      "id": "4.7",
+      "section": 4,
+      "item": "Seeding claim"
+    },
+    {
+      "id": "5.1",
+      "section": 5,
+      "item": "Reset (`rst_n`)"
+    },
+    {
+      "id": "5.2",
+      "section": 5,
+      "item": "TRNG `alarm` (synchronized)"
+    },
+    {
+      "id": "5.3",
+      "section": 5,
+      "item": "Bus protocol violation (access to an undefined address, write to a read-only register, write while the addressed engine is busy, read of a write-only location)"
+    },
+    {
+      "id": "5.4",
+      "section": 5,
+      "item": "TRNG `gated` (no alarm)"
+    },
+    {
+      "id": "5.5",
+      "section": 5,
+      "item": "Software `ZEROIZE` command"
+    },
+    {
+      "id": "6.1",
+      "section": 6,
+      "item": "Bus"
+    },
+    {
+      "id": "6.2",
+      "section": 6,
+      "item": "Width"
+    },
+    {
+      "id": "6.3",
+      "section": 6,
+      "item": "Status model"
+    },
+    {
+      "id": "6.4",
+      "section": 6,
+      "item": "Key data"
+    },
+    {
+      "id": "7.1",
+      "section": 7,
+      "item": "Core clock"
+    },
+    {
+      "id": "7.2",
+      "section": 7,
+      "item": "AES-128 block latency"
+    },
+    {
+      "id": "7.3",
+      "section": 7,
+      "item": "SHA-256 block latency"
+    },
+    {
+      "id": "7.4",
+      "section": 7,
+      "item": "Area budget"
+    },
+    {
+      "id": "7.5",
+      "section": 7,
+      "item": "Signoff"
+    }
+  ]
+}
