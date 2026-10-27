@@ -10,3 +10,8 @@
   per block), one round per cycle, round keys generated on the fly from a key
   input sampled at `start`; no key-bearing output. Run and verify it with
   `verification/rtl/aes/run.sh`.
+- `keyladder/keyladder.v` -- key ladder: 4 derived 256-bit slots with per-slot
+  use-mask, lock and chain depth, SP 800-108 derivation over `hmac_sha256`
+  (decision record 0003), write-only software load, engine key release gated
+  on the use-mask, `zeroize` input; slot contents reach only the engine key
+  outputs. Run and verify it with `verification/rtl/keyladder/run.sh`.
