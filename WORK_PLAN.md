@@ -14,13 +14,13 @@ _None._
 
 `loom:very-important` (one counts per workspace); every stage takes these first.
 
-_None._
+- **#43**: T1 item 1 (design sources): AES-128 encrypt/decrypt core RTL, one round per cycle, with FIPS 197 KAT bench
 
 ## Important
 
 `loom:important`; taken before unlabelled work.
 
-_None._
+- **#54**: T1 item 1 (design sources): HMAC-SHA-256 RTL around sha256_core, RFC 4231 KATs (incl. long keys)
 
 ## Ready
 
@@ -33,12 +33,15 @@ _None._
 Issues currently being built (`loom:building`).
 
 - **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow
+- **#42**: T1 item 10 (repo hygiene): bump the signoff klt pin to one with --attest, fix README status, attest item 10
+- **#54**: T1 item 1 (design sources): HMAC-SHA-256 RTL around sha256_core, RFC 4231 KATs (incl. long keys)
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-_None._
+- **#57**: docs(manifests): pin klayout-tools 0.8.0 and attest T1 item 10
+- **#58**: feat(rtl): add HMAC-SHA-256 sequencer around sha256_core
 
 ## Approved (Awaiting Merge)
 
@@ -51,6 +54,10 @@ PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
+- **#42**: T1 item 10 (repo hygiene): bump the signoff klt pin to one with --attest, fix README status, attest item 10 *(curated)*
+- **#43**: T1 item 1 (design sources): AES-128 encrypt/decrypt core RTL, one round per cycle, with FIPS 197 KAT bench *(curated)*
+- **#52**: T1 item 9 (testbenches shipped): testbench inventory and klt signoff --attest 9 *(curated)*
+- **#54**: T1 item 1 (design sources): HMAC-SHA-256 RTL around sha256_core, RFC 4231 KATs (incl. long keys) *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -65,13 +72,13 @@ _None._
 | Bucket | Count |
 |------|-------|
 | Operator merge-risk holds | 0 |
-| Very important | 0 |
-| Important | 0 |
+| Very important | 1 |
+| Important | 1 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 1 |
-| PRs awaiting review | 0 |
+| In Progress (`loom:building`) | 3 |
+| PRs awaiting review | 2 |
 | Approved PRs awaiting merge | 1 |
-| Curated | 1 |
+| Curated | 5 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
