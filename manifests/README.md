@@ -7,8 +7,12 @@ rather than from prose.
 ## Files
 
 - **`sky130-crypto-rot.json`** — the block manifest: `block`,
-  `kind: digital`, and an `evidence` map. It cites item 10 and a
+  `kind: digital`, and an `evidence` map. It cites items 9 and 10 and a
   `not_applicable` outcome for item 6.
+- **`inventories/item-9.json`** — the item-9 attestation inventory (the benches
+  behind the recorded results, their pins, and the cold-start command
+  `scripts/cold-start-benches.sh`); **`inventories/item-9.envelope.json`** is the
+  tool-produced envelope the manifest cites. Never hand-edit it.
 - **`inventories/item-10.json`** — the item-10 attestation inventory
   (hygiene files and the commands CI runs); **`inventories/item-10.envelope.json`**
   is the tool-produced envelope the manifest cites. Never hand-edit it.
@@ -50,6 +54,22 @@ The command exits `3` when at least one T1 item is `unmet` (a valid, clean
 run) and `0` when every item is `met`. Any change that affects the verdict
 — new evidence, a manifest edit, a vendored-doc bump, a version-pin bump —
 regenerates and commits the record in the same PR.
+
+## Attest item 9
+
+```console
+uvx --from "klayout-tools==0.8.0" klt signoff --attest 9 \
+    --inventory manifests/inventories/item-9.json \
+    -o manifests/inventories/item-9.envelope.json
+```
+
+Runs `scripts/cold-start-benches.sh` (about 12 minutes: setup, model KATs, the
+smoke flow, and the SHA-256 (with million-`a`), AES, HMAC and key-ladder RTL
+benches with their negative controls). `klt` allows one command 1800 s, so the
+FORMAL key-ladder bench (`verification/formal/keyladder/run.sh`) is not in the
+inventory and the `keyladder-formal` record is not covered by this attestation.
+Re-attest when a listed bench changes, then put the inventory's
+`provenance.input.content_hash` in the manifest and regenerate the record.
 
 ## Attest item 10
 

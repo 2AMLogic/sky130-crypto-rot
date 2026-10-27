@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "kind": "t1-attestation-inventory",
+  "t1_item": 9,
+  "description": "T1 item 9 (testbenches shipped): the model KAT, reuse-check, smoke-flow, and SHA-256, AES, HMAC and key-ladder RTL benches (with their negative controls) that back the results in verification/records/, and the one cold-start command that reproduces them. The FORMAL key-ladder bench is not covered: its bounded runs exceed the 1800 s per-command limit of klt signoff --attest. Correctness and format only; no security claim.",
+  "testbenches": [
+    "flow/smoke/run.sh",
+    "flow/smoke/sim-request.json",
+    "flow/smoke/test_adder.py",
+    "verification/model/test_aes.py",
+    "verification/model/test_ctr_drbg.py",
+    "verification/model/test_hmac_rfc4231.py",
+    "verification/model/test_kdf.py",
+    "verification/model/test_sha256_long.py",
+    "verification/model/test_sha256_padding.py",
+    "verification/model/test_sha256_short.py",
+    "verification/model/test_stdlib_only.py",
+    "verification/rtl/aes/run.sh",
+    "verification/rtl/aes/sim-negctl-request.json",
+    "verification/rtl/aes/sim-request.json",
+    "verification/rtl/aes/test_aes_core.py",
+    "verification/rtl/hmac/run.sh",
+    "verification/rtl/hmac/sim-negctl-request.json",
+    "verification/rtl/hmac/sim-request.json",
+    "verification/rtl/hmac/test_hmac_sha256.py",
+    "verification/rtl/keyladder/run.sh",
+    "verification/rtl/keyladder/sim-negctl-lock-request.json",
+    "verification/rtl/keyladder/sim-negctl-mask-request.json",
+    "verification/rtl/keyladder/sim-negctl-zeroize-request.json",
+    "verification/rtl/keyladder/sim-request.json",
+    "verification/rtl/keyladder/test_keyladder.py",
+    "verification/rtl/sha256/run.sh",
+    "verification/rtl/sha256/sim-million-a-request.json",
+    "verification/rtl/sha256/sim-negctl-request.json",
+    "verification/rtl/sha256/sim-request.json",
+    "verification/rtl/sha256/test_sha256_core.py",
+    "verification/test_check_reuse.py"
+  ],
+  "cold_start": {
+    "argv": [
+      "scripts/cold-start-benches.sh"
+    ]
+  },
+  "pins": {
+    "pdk": {
+      "name": "sky130A",
+      "revision": "f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7"
+    },
+    "tools": {
+      "klayout-tools": "dac2b5daceb69a2068d9d2ee190d7afe37b29af7",
+      "yowasp-yosys": "0.68.0.0.post1208",
+      "icarus-verilog": "13.0",
+      "cocotb": "2.1.0",
+      "ciel": "2.6.1"
+    }
+  }
+}
