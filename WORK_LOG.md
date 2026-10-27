@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-27
 
+- **PR #68**: feat(rtl): key ladder with use-mask, lock, KDF sequencer and zeroize
+- **Issue #55** (closed): T1 item 1 (design sources): key ladder RTL — SP 800-108 KDF sequencer, 4 slots, use-masks, locks, zeroize
 - **PR #62**: feat(rtl): AES-128 encrypt/decrypt core with cocotb bench, vectors and record
 - **Issue #43** (closed): T1 item 1 (design sources): AES-128 encrypt/decrypt core RTL, one round per cycle, with FIPS 197 KAT bench
 - **PR #58**: feat(rtl): add HMAC-SHA-256 sequencer around sha256_core

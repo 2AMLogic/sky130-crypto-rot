@@ -10,6 +10,7 @@ Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a h
 
 - **#65**: feat(rtl): add scrub input to sha256_core clearing w, hh and a-h
 - **#66**: refactor(verification): share record and driver scaffolding across core flows
+- **#69**: feat(rtl): CTR_DRBG core and TRNG interface with benches and P-7/P-8/P-9 formal
 
 ## Very Important
 
@@ -35,6 +36,8 @@ Issues currently being built (`loom:building`).
 
 - **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow
 - **#42**: T1 item 10 (repo hygiene): bump the signoff klt pin to one with --attest, fix README status, attest item 10
+- **#45**: T1 item 1 (design sources): CTR_DRBG (AES-128, df) and sky130-trng interface RTL, with SP 800-90A KATs
+- **#56**: T1 item 1 (design sources): SymbiYosys properties P-5, P-6, P-2 and module-boundary P-1 for the key ladder
 - **#61**: sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state
 - **#64**: Dedupe record-generation scaffolding shared by the aes and sha256 verification flows
 
@@ -52,6 +55,7 @@ PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 - **#57**: docs(manifests): pin klayout-tools 0.8.0 and attest T1 item 10
 - **#65**: feat(rtl): add scrub input to sha256_core clearing w, hh and a-h
 - **#66**: refactor(verification): share record and driver scaffolding across core flows
+- **#69**: feat(rtl): CTR_DRBG core and TRNG interface with benches and P-7/P-8/P-9 formal
 
 ## Proposed
 
@@ -59,7 +63,9 @@ Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#42**: T1 item 10 (repo hygiene): bump the signoff klt pin to one with --attest, fix README status, attest item 10 *(curated)*
+- **#45**: T1 item 1 (design sources): CTR_DRBG (AES-128, df) and sky130-trng interface RTL, with SP 800-90A KATs *(curated)*
 - **#52**: T1 item 9 (testbenches shipped): testbench inventory and klt signoff --attest 9 *(curated)*
+- **#56**: T1 item 1 (design sources): SymbiYosys properties P-5, P-6, P-2 and module-boundary P-1 for the key ladder *(curated)*
 - **#61**: sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state *(curated)*
 
 ## Proposed (Architect / Hermit)
@@ -74,14 +80,14 @@ _None._
 
 | Bucket | Count |
 |------|-------|
-| Operator merge-risk holds | 2 |
+| Operator merge-risk holds | 3 |
 | Very important | 0 |
 | Important | 0 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 4 |
+| In Progress (`loom:building`) | 6 |
 | PRs awaiting review | 0 |
-| Approved PRs awaiting merge | 4 |
-| Curated | 4 |
+| Approved PRs awaiting merge | 5 |
+| Curated | 6 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
