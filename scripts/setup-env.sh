@@ -60,6 +60,14 @@ CIEL_SKY130_VERSION="f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7"
 # checked by CONTENT (the wasm sha256), not by version string.
 YOWASP_YOSYS_VERSION="0.68.0.0.post1208"
 YOWASP_YOSYS_WASM_SHA256="e37a7e65e3fa4efbbd64a9c1b0e906be16cdc6c4d5273109d17537f78449f38c"
+# Formal flow (issue #56). SymbiYosys (`sby`), `yosys-smtbmc` and `yosys-witness`
+# ship inside the pinned YoWASP wheel above (entry points yowasp-sby,
+# yowasp-yosys-smtbmc, yowasp-yosys-witness), so they are pinned by the same
+# wasm digest. The SMT solver is the PyPI `z3-solver` wheel, which carries a
+# native `z3` binary; it is pinned by version and checked by the sha256 of that
+# binary (the solver identity `z3 --version` does not fully name).
+Z3_SOLVER_VERSION="5.3.2.0"
+Z3_BIN_SHA256="c45e787b5d1a3d94079d1e83b98e23bbc884ccaf542ea38c3814f31ac2f79197"
 # ----------------------------------------------------------------------------
 
 PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"
@@ -260,6 +268,28 @@ if ! ln -sfn "yowasp-yosys" "${VENV_DIR}/bin/yosys"; then
 fi
 echo "linked:     ${VENV_DIR}/bin/yosys -> yowasp-yosys"
 echo "reports:    $("${VENV_DIR}/bin/yosys" -V 2>&1 | head -1)"
+# SymbiYosys and its helpers come from the same pinned wheel (see pin block).
+for pair in "sby:yowasp-sby" "yosys-smtbmc:yowasp-yosys-smtbmc" "yosys-witness:yowasp-yosys-witness"; do
+  if ! ln -sfn "${pair#*:}" "${VENV_DIR}/bin/${pair%%:*}"; then
+    echo "FATAL: could not link ${VENV_DIR}/bin/${pair%%:*} -> ${pair#*:}."
+    exit 1
+  fi
+done
+echo "linked:     sby, yosys-smtbmc, yosys-witness (from the same wheel)"
+if ! "${VENV_PIP}" install --quiet "z3-solver==${Z3_SOLVER_VERSION}"; then
+  echo "FATAL: failed to install z3-solver==${Z3_SOLVER_VERSION} into ${VENV_DIR}."
+  exit 1
+fi
+Z3_SHA="$(sha256sum "${VENV_DIR}/bin/z3" 2>/dev/null | cut -d' ' -f1)"
+if [ "${Z3_SHA}" != "${Z3_BIN_SHA256}" ]; then
+  echo "FATAL: pinned z3 binary identity does NOT match."
+  echo "  expected: sha256:${Z3_BIN_SHA256}"
+  echo "  actual:   sha256:${Z3_SHA:-(missing)}"
+  echo "  -> do NOT mint formal records from this environment; re-pin"
+  echo "     Z3_SOLVER_VERSION/Z3_BIN_SHA256 here and in docs/environment.md together."
+  exit 1
+fi
+echo "z3:         $("${VENV_DIR}/bin/z3" --version 2>&1 | head -1) (sha256:${Z3_SHA:0:12}... matches pin)"
 if command -v yosys >/dev/null 2>&1; then
   echo "note: a host 'yosys' is also on \$PATH ($(command -v yosys)). It is NOT"
   echo "  the pinned build unless it resolves to the link above -- activate the"

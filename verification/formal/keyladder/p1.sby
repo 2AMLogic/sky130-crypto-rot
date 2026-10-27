@@ -1,0 +1,49 @@
+# Module-boundary P-1 on the key ladder (issue #56): 2-trace non-interference.
+#   rtl      real keyladder + hmac_sha256 + sha256_core, BMC to @DEPTH_RTL@     (expected PASS to that depth)
+#   net      the synthesized netlist, BMC to @DEPTH_NET@                        (expected PASS to that depth)
+#   neg_rtl  RTL with one slot -> `busy` path added                            (expected FAIL)
+#   neg_net  netlist synthesized from that mutant                              (expected FAIL)
+#   cover    reachability of the interesting states (copies' key outputs differ)
+# BMC only: no induction claim (the product needs the equality of every control
+# register of both copies as a strengthening invariant; not attempted).
+[tasks]
+rtl
+net
+neg_rtl
+neg_net
+cover
+
+[options]
+rtl: mode bmc
+net: mode bmc
+neg_rtl: mode bmc
+neg_net: mode bmc
+cover: mode cover
+rtl: depth @DEPTH_RTL@
+net: depth @DEPTH_NET@
+neg_rtl: depth 32
+neg_net: depth 32
+cover: depth 32
+
+[engines]
+smtbmc z3
+
+[script]
+net: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+neg_net: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+rtl: read_verilog -formal -DP1 p1_product.v keyladder.v hmac_sha256.v sha256_core.v
+neg_rtl: read_verilog -formal -DP1 p1_product.v mut_slotpath.v hmac_sha256.v sha256_core.v
+net: read_verilog -formal -DP1 p1_product.v net_clean.v
+neg_net: read_verilog -formal -DP1 p1_product.v net_slotpath.v
+cover: read_verilog -formal -DCOVER p1_product.v keyladder.v hmac_sha256.v sha256_core.v
+prep -flatten -top p1_top
+
+[files]
+p1_product.v
+keyladder.v
+mut_slotpath.v
+hmac_sha256.v
+sha256_core.v
+net_clean.v
+net_slotpath.v
+sky130_fd_sc_hd.lib @LIB@
