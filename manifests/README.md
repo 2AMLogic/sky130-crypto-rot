@@ -7,10 +7,20 @@ rather than from prose.
 ## Files
 
 - **`sky130-crypto-rot.json`** — the block manifest: `block`,
-  `kind: digital`, and an `evidence` map. It cites only item 10 so far.
+  `kind: digital`, and an `evidence` map. It cites item 10 and a
+  `not_applicable` outcome for item 6.
 - **`inventories/item-10.json`** — the item-10 attestation inventory
   (hygiene files and the commands CI runs); **`inventories/item-10.envelope.json`**
   is the tool-produced envelope the manifest cites. Never hand-edit it.
+- **`spec-rows.json`** and **`item6-na-statement.json`** — the item-6
+  `not_applicable` evidence: the ratified spec row list (one entry per table
+  row of `spec/target-spec.md` §1-§7, 39 rows) and a hand-written statement
+  giving each row's class and why it is deterministic or corner-bounded. The
+  spec stays the source of truth; if a row changes (via a decision record),
+  update both files. The manifest binds each by `content_hash`; after editing
+  either, refresh the hash (`sha256sum`, prefixed `sha256:`) in
+  `evidence."6".not_applicable` and regenerate the record. This says the spec
+  has no statistical row; it is not an entropy or side-channel claim.
 - **`design-evidence-tiers.md`** — the T1-T4 checklist the grader parses.
   Vendored **byte-identical** from
   [`2AMLogic/klayout-tools@c572046`](https://github.com/2AMLogic/klayout-tools/blob/c572046be644e0407f693f2410f3abb799d68a3a/docs/design-evidence-tiers.md)

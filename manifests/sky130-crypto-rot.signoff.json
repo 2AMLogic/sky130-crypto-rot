@@ -6,6 +6,7 @@
   "t1_item_count": 11,
   "build_t1_item_count": 11,
   "t1_met_count": 1,
+  "t1_not_applicable_count": 1,
   "source_doc": "manifests/design-evidence-tiers.md",
   "source_doc_content_hash": "sha256:a26b90262320d0fbd32b3f549a02b6300832706041797a559d8bf6bdb62efdc7",
   "build": {
@@ -87,10 +88,219 @@
       "partition": null,
       "text": "any accuracy, offset, or matching spec row is statistical; a corner matrix (or STA corner sweep) cannot validate it. This applies to whichever spec rows are actually statistical, regardless of block kind \u2014 most digital spec rows (functional correctness, Fmax, timing closure) are not, and a block whose spec has no statistical row must say so explicitly rather than omit the item. Where it does apply, MC runs need a recorded seed, sample count, a deterministic negative control, and results combined with (not instead of) process corners (#344). A `klt yield` JSON report \u2014 a yield estimate with its confidence interval, sample-size verdict, and Cpk/sigma-to-spec against the row's own limits \u2014 is the machine-checkable evidence for this item (`klt signoff`'s tier-verdict mode grades it the same way it grades the deterministic items above). **The campaign's own self-report is a grading input, not just a footnote** (issue #2467): a cited report whose `sample_size.verdict` is `insufficient` on any measurement renders `unmet` with `reason: \"undersized_sample\"`, and one whose declared negative control did not show the seeded degradation renders `unmet` with `reason: \"negative_control_not_detected\"` \u2014 the report's passing `status` answers only \"did every declared `target_yield` hold\", which a campaign declaring none can never fail. A campaign that declared **no** negative control at all is still `met`, but says so: `citation.yield_campaign.negative_control` reads `\"not_declared\"`, since `klt yield` itself treats that as a warning rather than a failure and whether it is acceptable for a given spec row is the claimant's call. See [`cli/signoff.md`](cli/signoff.md)'s \"Campaign discipline on item 6\". **This item's evidence verb needs the `yield` extra.** Unlike every other T1 item's evidence verb (`drc`, `lvs`, `extract`, `sim`, `pex`, `sta`, `functional-verification`, `erc`, `place-and-route`), `klt yield` requires the `klt_yield_native` Rust extension. It is published as the prebuilt `klt-yield-native` wheel (Linux x86_64, macOS arm64), reached by `pip install 'klayout-tools[yield]'`; a bare `pip install klayout-tools` and the git-pinned form do not include it. A consumer pinning a release that predates the first `klt-yield-native` publication, or on another platform, still needs a repo checkout with a Rust toolchain; see `docs/cli/yield.md`'s \"What the extra does and does not reach\" callout and `docs/releasing-native.md`. **When \"not applicable\" is legitimate** (issue #2865): a block whose ratified spec has *no* statistical row passes this item by a recorded \"not applicable\", not by a waiver at grant time and not by inventing a statistical claim. That holds only when the spec is ratified, a committed statement accounts for every spec row with the reason its row class is not statistical (for example \"timing rows are corner-bounded by STA at the PDK's characterised corners\"), and both are bound by content hash so editing either invalidates the claim. Any accuracy, offset, matching or yield row is statistical by definition: a spec carrying one \u2014 or a sigma, yield, Cpk or `3\u03c3`-style bound \u2014 cannot use the outcome and needs `klt yield` evidence for that row. The outcome is available to a digital partition only; an analog partition (including the analog half of a mixed-signal block) always requires Monte Carlo evidence. `klt signoff` reports it as `not_applicable`, never as `met`. **Several statistical rows, only some evidenced** (issue #2908): item 6 is a claim about *every* statistical row, so a manifest may declare the row set under `spec_rows.\"6\"` and cite one `klt yield` report per row set (`rows` on each citation). Item 6 grades `met` only when every declared row is covered by a passing citation against a ratified target. A row with no citation (`uncovered_rows`), a row declared a `gap` because no evidence can exist yet (`declared_gaps`), or a row declared `ratified: false` (`unratified_rows`, evidence against a proposed limit is provisional) grades `unmet` / `partial_coverage`, never `met`. Without a declaration the item grades as before; a `not_applicable` entry contradicts a declared row set and is `invalid_evidence`.",
       "notes": [],
-      "status": "unmet",
-      "reason": "no_evidence",
+      "status": "not_applicable",
+      "reason": null,
       "graded_by_build": true,
-      "citation": null
+      "citation": null,
+      "not_applicable": {
+        "spec": {
+          "file": "manifests/spec-rows.json",
+          "content_hash": "sha256:ac58692881c57c8846ed68911b30c7f8a4ce1689237b451627b0b55441b24185",
+          "status": "ratified",
+          "row_count": 39
+        },
+        "statement": {
+          "file": "manifests/item6-na-statement.json",
+          "content_hash": "sha256:2a9f4e1a2ec80da7316e930e7aadafdf4c20fde90fbbc523aa2065b726456689",
+          "rows": [
+            {
+              "id": "1.1",
+              "class": "KAT",
+              "reason": "Key size is a fixed parameter; the FIPS 197 App. B/C.1 (C.3 for the AES-256 stretch) known-answer vectors give a pass/fail verdict, not a distribution."
+            },
+            {
+              "id": "1.2",
+              "class": "KAT",
+              "reason": "Encrypt and decrypt directions are checked against fixed FIPS 197 vectors in both directions; the verdict is deterministic."
+            },
+            {
+              "id": "1.3",
+              "class": "TB",
+              "reason": "Datapath equivalence is a deterministic testbench comparison against the golden model for every vector, plus STA at the named corners; no random sampling."
+            },
+            {
+              "id": "1.4",
+              "class": "KAT",
+              "reason": "ECB-only scope is checked against the fixed SP 800-38A F.1 ECB vectors; the verdict is exact match or mismatch."
+            },
+            {
+              "id": "1.5",
+              "class": "FORMAL",
+              "reason": "Key-schedule correctness is a KAT; round keys never reaching the bus is a formal property proven over all paths, which is a proof, not a sampled estimate."
+            },
+            {
+              "id": "1.6",
+              "class": "TB",
+              "reason": "Latency is an exact cycle count from the testbench; the 220 ns figure is that count times the 20 ns period and is unmeasured on silicon."
+            },
+            {
+              "id": "2.1",
+              "class": "KAT",
+              "reason": "SHA-256 core is checked against fixed FIPS 180-4 vectors (abc, 448-bit, million-a); exact digest match."
+            },
+            {
+              "id": "2.2",
+              "class": "TB",
+              "reason": "Message-length limit is a 32-bit counter width; the testbench exercises named boundary lengths 55, 56, 63, 64 and 119 with exact expected digests."
+            },
+            {
+              "id": "2.3",
+              "class": "KAT",
+              "reason": "Padding is checked by KATs at the padding boundary lengths; the verdict is exact digest match."
+            },
+            {
+              "id": "2.4",
+              "class": "KAT",
+              "reason": "HMAC-SHA-256 is checked against RFC 4231 cases 1-4, 6 and 7; exact tag match."
+            },
+            {
+              "id": "2.5",
+              "class": "FORMAL",
+              "reason": "Key handling is stated as formal properties P-3 and P-5, proven over all paths on RTL and the synthesized netlist; a proof outcome, not a statistic."
+            },
+            {
+              "id": "2.6",
+              "class": "TB",
+              "reason": "Latency is an exact testbench cycle count; the 1.3 us figure is that count times the clock period, with STA at the named corner as the timing verdict."
+            },
+            {
+              "id": "3.1",
+              "class": "FORMAL",
+              "reason": "Root key input handling is a testbench check plus formal property P-1 over all paths; no distribution is involved."
+            },
+            {
+              "id": "3.2",
+              "class": "KAT",
+              "reason": "KDF is checked against published SP 800-108 counter-mode vectors where available, else a golden-model cross-check; exact output match."
+            },
+            {
+              "id": "3.3",
+              "class": "FORMAL",
+              "reason": "Slot count is a fixed design parameter; testbench behavior plus formal property P-2 give a deterministic verdict."
+            },
+            {
+              "id": "3.4",
+              "class": "FORMAL",
+              "reason": "Slot permissions are a per-slot mask checked by testbench and formal properties P-5; deterministic proof outcome."
+            },
+            {
+              "id": "3.5",
+              "class": "FORMAL",
+              "reason": "Lock-bit behavior is stated as formal property P-6, proven over all paths; a proof outcome, not a sampled estimate."
+            },
+            {
+              "id": "3.6",
+              "class": "FORMAL",
+              "reason": "Slot visibility is stated as formal properties P-1 and P-2, proven over all paths; there is no sampled or probabilistic evidence."
+            },
+            {
+              "id": "4.1",
+              "class": "KAT",
+              "reason": "CTR_DRBG construction is checked against the SP 800-90A AES-128 with derivation-function example vectors; exact output match. No entropy quantity is measured."
+            },
+            {
+              "id": "4.2",
+              "class": "TB",
+              "reason": "Seed handling is a deterministic testbench comparison against the golden model for a fixed seed input; the word counts are design parameters."
+            },
+            {
+              "id": "4.3",
+              "class": "TB",
+              "reason": "Reseed handling is a deterministic testbench comparison against the golden model for a fixed input; the word count is a design parameter."
+            },
+            {
+              "id": "4.4",
+              "class": "FORMAL",
+              "reason": "Reseed interval and request size are fixed counter limits, checked by testbench and formal property P-8; a deterministic proof outcome."
+            },
+            {
+              "id": "4.5",
+              "class": "FORMAL",
+              "reason": "Stall and zeroize behavior on gated and alarm is a control-path property: formal P-9 for alarm, testbench for the gated stall; no statistical quantity."
+            },
+            {
+              "id": "4.6",
+              "class": "FORMAL",
+              "reason": "No output before seeding is formal property P-7, proven over all paths; a proof outcome."
+            },
+            {
+              "id": "4.7",
+              "class": "TB",
+              "reason": "This row states a claim wording and claims no entropy figure; entropy stays provisional until silicon and is the sibling TRNG's. Nothing here is measured, so no statistical evidence exists or is required."
+            },
+            {
+              "id": "5.1",
+              "class": "FORMAL",
+              "reason": "Reset zeroization is formal property P-10, proven over all paths; a proof outcome."
+            },
+            {
+              "id": "5.2",
+              "class": "FORMAL",
+              "reason": "Alarm zeroization of every key slot is formal property P-9, proven over all paths; a proof outcome."
+            },
+            {
+              "id": "5.3",
+              "class": "FORMAL",
+              "reason": "Bus-violation handling is a testbench check plus formal property P-11; deterministic proof outcome."
+            },
+            {
+              "id": "5.4",
+              "class": "TB",
+              "reason": "The gated stall transition is a deterministic testbench check of state-machine behavior; no statistical quantity."
+            },
+            {
+              "id": "5.5",
+              "class": "TB",
+              "reason": "Software ZEROIZE is a deterministic testbench check of the resulting state and register contents, with P-10 covering the zeroized state."
+            },
+            {
+              "id": "6.1",
+              "class": "TB",
+              "reason": "Bus protocol conformance is a deterministic testbench protocol-checker verdict."
+            },
+            {
+              "id": "6.2",
+              "class": "TB",
+              "reason": "Bus width is a fixed design parameter confirmed by testbench; exact pass/fail."
+            },
+            {
+              "id": "6.3",
+              "class": "TB",
+              "reason": "Status register and irq behavior are checked by deterministic testbench assertions."
+            },
+            {
+              "id": "6.4",
+              "class": "FORMAL",
+              "reason": "No register returning key, seed or DRBG state is formal properties P-1 through P-4, proven over all paths; a proof outcome."
+            },
+            {
+              "id": "7.1",
+              "class": "STA",
+              "reason": "Clock closure is a static timing verdict per liberty corner: setup at ss_100C_1v60, hold at ff_n40C_1v95, and all other sky130_fd_sc_hd corners via klt sta. Corner-bounded, not a distribution."
+            },
+            {
+              "id": "7.2",
+              "class": "STA",
+              "reason": "AES block latency is an exact testbench cycle count, with STA at the named corner ss_100C_1v60 as the timing verdict."
+            },
+            {
+              "id": "7.3",
+              "class": "STA",
+              "reason": "SHA-256 block latency is an exact testbench cycle count, with STA at the named corner ss_100C_1v60 as the timing verdict."
+            },
+            {
+              "id": "7.4",
+              "class": "SYNTH",
+              "reason": "Area is a single synthesized cell-area figure at corner tt_025C_1v80 from the SYNTH and P&R reports; a point value against a placeholder budget, not a distribution."
+            },
+            {
+              "id": "7.5",
+              "class": "DRC/LVS",
+              "reason": "Signoff is the klt drc and klt lvs verdicts, each clean or not; deterministic."
+            }
+          ]
+        }
+      }
     },
     {
       "tier": "T1",
