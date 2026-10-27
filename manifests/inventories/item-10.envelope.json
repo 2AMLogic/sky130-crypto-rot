@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "kind": "generic",
+  "status": "pass",
+  "t1_item": 10,
+  "summary": "T1 item 10 (Repo hygiene): 7/7 attestation checks passed (klt signoff --attest)",
+  "source": "manifests/inventories/item-10.json",
+  "attestation": {
+    "producer": "klt signoff --attest",
+    "inventory_schema_version": 1,
+    "hash_algorithm": "sha256-raw-bytes",
+    "check_count": 7,
+    "passed_count": 7,
+    "checks": [
+      {
+        "check": "present",
+        "role": "hygiene",
+        "path": ".github/workflows/ci.yml",
+        "passed": true,
+        "content_hash": "sha256:32b13e8937d64bef5ce11648e699dac739cb6f96e8b213f10a436e3e8123e079"
+      },
+      {
+        "check": "present",
+        "role": "hygiene",
+        "path": ".github/workflows/signoff.yml",
+        "passed": true,
+        "content_hash": "sha256:54a586129b4bf379e88fb6ab214dd1488a51ad6f45a41141016fbc6c81365f9f"
+      },
+      {
+        "check": "present",
+        "role": "hygiene",
+        "path": "LICENSE",
+        "passed": true,
+        "content_hash": "sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      {
+        "check": "present",
+        "role": "hygiene",
+        "path": "README.md",
+        "passed": true,
+        "content_hash": "sha256:ac12d07042063faf04fe57ef124a6e6ae5a3a40cdac15b0918690bc908c28495"
+      },
+      {
+        "check": "command",
+        "role": "audit",
+        "name": "lint",
+        "argv": [
+          "npm",
+          "run",
+          "lint"
+        ],
+        "cwd": ".",
+        "exit_status": 0,
+        "passed": true
+      },
+      {
+        "check": "command",
+        "role": "audit",
+        "name": "model-kats",
+        "argv": [
+          "npm",
+          "run",
+          "test"
+        ],
+        "cwd": ".",
+        "exit_status": 0,
+        "passed": true
+      },
+      {
+        "check": "command",
+        "role": "audit",
+        "name": "reuse",
+        "argv": [
+          "npm",
+          "run",
+          "check:reuse"
+        ],
+        "cwd": ".",
+        "exit_status": 0,
+        "passed": true
+      }
+    ]
+  },
+  "provenance": {
+    "klt_version": "0.8.0",
+    "klayout_version": null,
+    "pdk": null,
+    "deck": null,
+    "input": {
+      "path": {
+        "path": "manifests/inventories/item-10.json",
+        "scope": "repo"
+      },
+      "content_hash": "sha256:17c59b46f7f709974e31752491b9759188ac3f3059e015547d7135152da30837"
+    }
+  }
+}

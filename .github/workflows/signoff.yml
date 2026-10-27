@@ -27,7 +27,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install pinned klt
-        run: pip install klayout-tools==0.7.0
+        run: pip install klayout-tools==0.8.0
 
       - name: Re-run klt signoff and compare against the committed record
         run: |
