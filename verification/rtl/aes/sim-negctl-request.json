@@ -1,0 +1,23 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "../../../rtl/aes/aes_core.v"
+  ],
+  "hdl_toplevel": "aes_core",
+  "testbench": {
+    "module": "test_aes_core",
+    "testcase": "test_aes_core"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": [
+      "1ns",
+      "1ps"
+    ],
+    "random_seed": 1,
+    "defines": {
+      "AES_NEG_CTRL": null
+    }
+  }
+}
