@@ -264,7 +264,7 @@ def main() -> int:
 |---|---|---|---|---|
 {chr(10).join(rows)}
 
-"Induction closed (smtbmc tried steps N..M)" is the solver's own report: it tries induction from the configured depth downward and stops at the first success; the base case of the same run covers steps 0..N-1 (N is the configured depth). The P-6 netlist run is configured at depth {args.p6_net_depth} because its BMC base case grows steeply beyond about 11 steps on the mapped design (a run at depth 16 was stopped by hand at step 12 after more than five minutes in that step); its proof rests on the induction, which closes with the invariants below. P-6 on RTL also closes at induction depth 1 (checked by hand at depths 1, 2, 3).
+"Induction closed (smtbmc tried steps N..M)" is the solver's own log line (the last "Trying induction in step" before "Temporal induction successful"); the BMC base case of the same run is configured to the depth in the Depth column. The P-6 netlist run is configured at depth {args.p6_net_depth} because its BMC base case grows steeply beyond about 11 steps on the mapped design (a run at depth 16 was stopped by hand at step 12 after more than five minutes in that step); its proof rests on the induction, which closes with the invariants below. P-6 on RTL also closes at induction depth 1 (checked by hand at depths 1, 2, 3).
 
 ### P-5 (slot used only if the use-mask bit is set at the time of use)
 
