@@ -1,0 +1,26 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "../../../rtl/aes/aes_core.v",
+    "../../../rtl/drbg/ctr_drbg.v",
+    "tb_drbg.v"
+  ],
+  "hdl_toplevel": "tb_drbg",
+  "testbench": {
+    "module": "test_drbg",
+    "testcase": "test_drbg"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": [
+      "1ns",
+      "1ps"
+    ],
+    "random_seed": 1,
+    "defines": {
+      "DRBG_CAVP": null,
+      "DRBG_NEG_UPD": null
+    }
+  }
+}
