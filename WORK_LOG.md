@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-27
 
+- **PR #75**: feat(manifests): attest T1 item 9 with a bench inventory and cold-start script
+- **Issue #52** (closed): T1 item 9 (testbenches shipped): testbench inventory and klt signoff --attest 9
 - **PR #73**: feat(manifests): record signoff item 6 as not_applicable
 - **Issue #51** (closed): T1 item 6 (statistical claims): hash-bound not_applicable statement covering every ratified spec row
 - **Issue #44** (closed): T1 item 1 (design sources): HMAC-SHA-256, SP 800-108 key ladder and key-slot RTL, with KATs and FORMAL

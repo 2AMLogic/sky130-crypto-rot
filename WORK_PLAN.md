@@ -61,7 +61,6 @@ Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#45**: T1 item 1 (design sources): CTR_DRBG (AES-128, df) and sky130-trng interface RTL, with SP 800-90A KATs *(curated)*
-- **#52**: T1 item 9 (testbenches shipped): testbench inventory and klt signoff --attest 9 *(curated)*
 - **#61**: sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state *(curated)*
 
 ## Proposed (Architect / Hermit)
@@ -83,7 +82,7 @@ _None._
 | In Progress (`loom:building`) | 4 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 4 |
-| Curated | 4 |
+| Curated | 3 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
