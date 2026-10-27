@@ -188,7 +188,7 @@ def main() -> int:
         "z3": run(str(REPO / ".venv/bin/z3"), "--version"),
         "z3_solver_wheel": pin("Z3_SOLVER_VERSION"),
         "z3_binary": "sha256:" + z3_sha,
-        "klt_revision": pin("KLT_REV"),
+        "klt_pin": pin("KLT_VERSION"),
         "icarus": run("iverilog", "-V"),
         "python": platform.python_version(),
     }

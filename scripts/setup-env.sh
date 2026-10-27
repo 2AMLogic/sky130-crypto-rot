@@ -43,8 +43,7 @@ cd "${REPO_ROOT}" || exit 1
 # lint by issue #7):
 # every constant in this block must appear in that doc's "Pinned versions"
 # table. Keep assignments in plain NAME="value" form so it can parse them.
-KLT_REPO="https://github.com/2AMLogic/klayout-tools"
-KLT_REV="dac2b5daceb69a2068d9d2ee190d7afe37b29af7"
+KLT_VERSION="0.8.0"
 CIEL_VERSION="2.6.1"
 COCOTB_VERSION="2.1.0"
 CIEL_PDK_FAMILY="sky130"
@@ -160,7 +159,7 @@ if [ ! -x "${VENV_PY}" ]; then
 fi
 
 echo
-echo "== 2/4 klayout-tools (klt) @ ${KLT_REV:0:12} =="
+echo "== 2/4 klayout-tools (klt) ${KLT_VERSION} =="
 if ! "${VENV_PY}" -m pip --version >/dev/null 2>&1; then
   echo "FATAL: pip is not available inside ${VENV_DIR}."
   echo "  -> remove ${VENV_DIR} and re-run this script (venv bootstrap likely"
@@ -174,19 +173,19 @@ if ! "${VENV_PIP}" install --quiet --upgrade pip; then
 fi
 
 if ! "${VENV_PIP}" install --quiet \
-    "klayout-tools @ git+${KLT_REPO}@${KLT_REV}" "cocotb==${COCOTB_VERSION}" "ciel==${CIEL_VERSION}"; then
+    "klayout-tools==${KLT_VERSION}" "cocotb==${COCOTB_VERSION}" "ciel==${CIEL_VERSION}"; then
   echo "FATAL: failed to install klayout-tools/cocotb/ciel into ${VENV_DIR}."
-  echo "  -> common causes: no network access to ${KLT_REPO}, or no C/C++"
+  echo "  -> common causes: no network access to PyPI, or no C/C++"
   echo "     toolchain for a dependency's native build (install Xcode CLI"
   echo "     tools on macOS: 'xcode-select --install'; build-essential on"
   echo "     Debian/Ubuntu)."
   echo "  -> re-run with the venv's own pip for a full traceback:"
-  echo "       ${VENV_PIP} install \"klayout-tools @ git+${KLT_REPO}@${KLT_REV}\" cocotb==${COCOTB_VERSION} ciel==${CIEL_VERSION}"
+  echo "       ${VENV_PIP} install \"klayout-tools==${KLT_VERSION}\" cocotb==${COCOTB_VERSION} ciel==${CIEL_VERSION}"
   exit 1
 fi
 INSTALLED_KLT_VERSION="$("${VENV_PY}" -m klayout_tools.cli --version 2>/dev/null || true)"
 INSTALLED_KLT_VERSION="${INSTALLED_KLT_VERSION#klt }"
-echo "installed: klt ${INSTALLED_KLT_VERSION:-(version unknown)} from ${KLT_REPO}@${KLT_REV:0:12}"
+echo "installed: klt ${INSTALLED_KLT_VERSION:-(version unknown)} (pinned ${KLT_VERSION})"
 echo "activate with: source ${VENV_DIR}/bin/activate"
 
 echo

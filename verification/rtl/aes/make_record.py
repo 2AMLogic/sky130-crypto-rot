@@ -89,7 +89,7 @@ def main() -> int:
                "import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha256(open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
     versions = {
         "klt": prov["klt_version"],
-        "klt_revision": pin("KLT_REV"),
+        "klt_pin": pin("KLT_VERSION"),
         "yosys": syn["engine_version"],
         "yowasp_yosys": pin("YOWASP_YOSYS_VERSION"),
         "yosys_wasm": wasm,
@@ -126,7 +126,7 @@ def main() -> int:
 - **Run configuration**: `./scripts/setup-env.sh` then `./verification/rtl/aes/run.sh --record`. Simulation: `klt functional-verification verification/rtl/aes/sim-request.json` (engine icarus, `random_seed` 1, one DUT instance). Synthesis: `klt synthesize verification/rtl/aes/synth-request.json --pdk sky130A --pdk-root {args.pdk_root}`, liberty corner `tt_025C_1v80`, single corner, pre-P&R, cell area only, no clock target. No STA was run.
 - **Statistical convention**: deterministic; zero-mismatch pass/fail. Vectors: FIPS 197 Appendix B and C.1 and SP 800-38A F.1.1/F.1.2 (provenance sidecars checked), each in both directions; 100 random key/block pairs in both directions against `verification/model/aes.py`; start while busy ignored; `block_out` zero while busy; `zeroize` mid-block (encrypt and decrypt) clearing the state, round-key and round-counter registers; round-key register clear at completion.
 - **Result**: PASS. Simulation: {sim['passed_count']}/{sim['test_count']} tests passed ({summary}). Latency is measured in the bench as rising edges from the edge that accepts `start` through the edge after which `done` is seen high. Negative control: `./verification/rtl/aes/run.sh --negative-control` flips one S-box output bit (`AES_NEG_CTRL`) and the bench fails, naming the first failing vector. Synthesis: status `{syn['status']}`, {syn['instance_count']} instances, {syn['area_um2']} um2 ({syn['sequential_area_um2']} um2 sequential), no latches, combinational loops or multi-driven nets. Timing is `null`, so this record makes no timing claim; the spec figures remain target, unmeasured against STA.
-- **klt provenance**: klt `{prov['klt_version']}` from revision `{versions['klt_revision']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}), Icarus Verilog {versions['icarus']}, cocotb {versions['cocotb']}, ciel {versions['ciel']}, Python {versions['python']}.
+- **klt provenance**: klt `{prov['klt_version']}` pinned at `{versions['klt_pin']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}), Icarus Verilog {versions['icarus']}, cocotb {versions['cocotb']}, ciel {versions['ciel']}, Python {versions['python']}.
 - **Links**: `rtl/aes/aes_core.v`, `verification/rtl/aes/`, `docs/environment.md`, `spec/target-spec.md` section 1, `spec/decision-records/0004-aes-datapath-width.md`.
 - **Timestamp / author**: {now:%Y-%m-%dT%H:%M:%SZ}, Loom builder agent (issue #43).
 - **Supersedes**: none

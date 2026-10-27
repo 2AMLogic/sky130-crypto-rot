@@ -38,8 +38,8 @@ rather than from prose.
 ## Pinned tool
 
 `klayout-tools==0.8.0` (the first release with `klt signoff --attest`).
-CI and the committed record use the same pin. This pin is independent of the
-`KLT_REV` flow pin in `scripts/setup-env.sh`; the two need not match.
+CI, the committed record and the `KLT_VERSION` flow pin in
+`scripts/setup-env.sh` all use the same release.
 
 ## Regenerate
 
