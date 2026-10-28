@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-10-27
 
+- **PR #78**: build(env): pin klayout-tools to PyPI 0.8.0 instead of a git revision
+- **Issue #77** (closed): Bump klayout-tools pin dac2b5daceb6 → 0.8.0
 - **PR #75**: feat(manifests): attest T1 item 9 with a bench inventory and cold-start script
 - **Issue #52** (closed): T1 item 9 (testbenches shipped): testbench inventory and klt signoff --attest 9
 - **PR #73**: feat(manifests): record signoff item 6 as not_applicable
