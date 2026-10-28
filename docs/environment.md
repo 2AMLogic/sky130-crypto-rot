@@ -54,9 +54,8 @@ stops with a pointer.
 | Python | <= 3.13 (cocotb 2.x refuses to build on 3.14+) | `scripts/setup-env.sh` picks the newest of `python3.13` ... `python3.10`, `python3` on `$PATH` |
 
 `scripts/setup-env.sh`'s pin block and this table must change together.
-`verification/check_pins.py` (modexp's checker, vendored by issue #6 and wired
-into lint by issue #7) fails when they disagree; until then it can be run from
-a temporary copy of modexp's file. The Re-verification and not-pinned notes
+`verification/check_pins.py` (run by `npm run lint`) fails when a value in the
+script's pin block does not appear in the table above. The Re-verification and not-pinned notes
 below name versions on purpose and are not checked.
 
 ## Tools not pinned by `setup-env.sh`
