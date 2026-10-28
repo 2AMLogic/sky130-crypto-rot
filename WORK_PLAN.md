@@ -23,7 +23,7 @@ _None._
 
 `loom:important`; taken before unlabelled work.
 
-_None._
+- **#46**: T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
 
 ## Ready
 
@@ -77,7 +77,7 @@ _None._
 |------|-------|
 | Operator merge-risk holds | 4 |
 | Very important | 0 |
-| Important | 0 |
+| Important | 1 |
 | Ready (`loom:issue`) | 0 |
 | In Progress (`loom:building`) | 4 |
 | PRs awaiting review | 0 |
