@@ -8,7 +8,7 @@
 # Docker fallback is dropped: openroad is only checked here, not provisioned.
 #
 #   1. Creates a local .venv (Python) and installs `klayout-tools` (`klt`)
-#      into it at the pinned git revision below.
+#      into it, PyPI-pinned as `klayout-tools==${KLT_VERSION}` below.
 #   2. Installs the pinned Yosys build (YoWASP wheel) into that .venv and
 #      verifies its WebAssembly module's sha256 -- the mapper identity that
 #      `yosys -V` does NOT report (issue #143) -- then exposes it as
@@ -39,10 +39,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}" || exit 1
 
 # --- pinned versions -- keep in sync with docs/environment.md -------------
-# Enforced by verification/check_pins.py (vendored by issue #6, wired into
-# lint by issue #7):
-# every constant in this block must appear in that doc's "Pinned versions"
-# table. Keep assignments in plain NAME="value" form so it can parse them.
+# Enforced by verification/check_pins.py (run by `npm run lint`): every
+# constant in this block must appear in that doc's "Pinned versions" table.
+# Keep assignments in plain NAME="value" form so it can parse them.
 KLT_VERSION="0.8.0"
 CIEL_VERSION="2.6.1"
 COCOTB_VERSION="2.1.0"
