@@ -1,0 +1,25 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "../../../rtl/sha256/sha256_core.v",
+    "../../../rtl/hmac/hmac_sha256.v",
+    "../../../rtl/keyladder/keyladder.v"
+  ],
+  "hdl_toplevel": "keyladder",
+  "testbench": {
+    "module": "test_keyladder",
+    "testcase": "test_keyladder"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": [
+      "1ns",
+      "1ps"
+    ],
+    "random_seed": 1,
+    "defines": {
+      "KL_NEG_LOCK": null
+    }
+  }
+}

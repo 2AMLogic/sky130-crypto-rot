@@ -89,7 +89,7 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
     wasm = run(str(REPO / ".venv/bin/python3"), "-c", _WASM_HASH)
     versions = {
         "klt": prov["klt_version"],
-        "klt_revision": pin("KLT_REV"),
+        "klt_pin": pin("KLT_VERSION"),
         "yosys": syn["engine_version"],
         "yowasp_yosys": pin("YOWASP_YOSYS_VERSION"),
         "yosys_wasm": wasm,

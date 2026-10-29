@@ -1,0 +1,19 @@
+# Non-vacuity of the P-5 / P-6 runs (issue #56): the interesting states are reachable
+# on the RTL with the abstract HMAC (props_slots.vh, -DCOVER): a root derivation and a
+# slot-parent derivation start, a derivation is captured, a lock is set, a write to a
+# locked slot is refused (E_LOCKED_DST), a mask change is refused (E_MASK_CHANGE), HMAC
+# and AES (enc and dec) releases are granted, a release is denied.
+[options]
+mode cover
+depth 80
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -formal -DCOVER dut_rtl.v hmac_abstract.v
+prep -flatten -top keyladder
+
+[files]
+dut_rtl.v
+hmac_abstract.v

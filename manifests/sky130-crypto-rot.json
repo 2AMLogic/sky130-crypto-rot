@@ -1,5 +1,26 @@
 {
   "block": "sky130-crypto-rot",
   "kind": "digital",
-  "evidence": {}
+  "evidence": {
+    "9": {
+      "file": "manifests/inventories/item-9.envelope.json",
+      "content_hash": "sha256:a8e27890afd88f6f5a9b5ec2ef56f6ff7cead4209d75045bc7e46cf3e3a9eb92"
+    },
+    "10": {
+      "file": "manifests/inventories/item-10.envelope.json",
+      "content_hash": "sha256:17c59b46f7f709974e31752491b9759188ac3f3059e015547d7135152da30837"
+    },
+    "6": {
+      "not_applicable": {
+        "spec": {
+          "file": "manifests/spec-rows.json",
+          "content_hash": "sha256:ac58692881c57c8846ed68911b30c7f8a4ce1689237b451627b0b55441b24185"
+        },
+        "statement": {
+          "file": "manifests/item6-na-statement.json",
+          "content_hash": "sha256:2a9f4e1a2ec80da7316e930e7aadafdf4c20fde90fbbc523aa2065b726456689"
+        }
+      }
+    }
+  }
 }

@@ -1,0 +1,24 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "../../../rtl/aes/aes_core.v",
+    "../../../rtl/drbg/ctr_drbg.v",
+    "../../../rtl/trng_if/trng_if.v",
+    "../../../rtl/drbg/drbg_top.v",
+    "tb_sys.v"
+  ],
+  "hdl_toplevel": "tb_sys",
+  "testbench": {
+    "module": "test_sys",
+    "testcase": "test_sys"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": [
+      "1ns",
+      "1ps"
+    ],
+    "random_seed": 1
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "../../../rtl/sha256/sha256_core.v",
+    "../../../rtl/hmac/hmac_sha256.v"
+  ],
+  "hdl_toplevel": "hmac_sha256",
+  "testbench": {
+    "module": "test_hmac_sha256",
+    "testcase": "test_hmac_sha256"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": [
+      "1ns",
+      "1ps"
+    ],
+    "random_seed": 1,
+    "defines": {
+      "HMAC_NEG_CTRL": null
+    }
+  }
+}
