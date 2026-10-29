@@ -1,0 +1,56 @@
+# P-7 (no output before seeded / while reseed required) and P-8 (no output after
+# the reseed interval until a reseed completes; counter bounded by induction).
+# The assertions are in rtl/drbg/ctr_drbg.v under `ifdef FORMAL.
+#   prove          unbounded proof (abc pdr), shipped interval 65536
+#   reach_valid    must FAIL: blk_valid is reachable (vacuity check)
+#   reach_over     must FAIL: reseed_required is reachable (vacuity check), interval 1
+#   neg_seeded     must FAIL: the RTL with generate allowed before instantiate (DRBG_NEG_SEEDED) -> P-7
+#   neg_interval   must FAIL: the RTL with one request too many allowed (DRBG_NEG_INTERVAL), interval 1
+[tasks]
+prove
+reach_valid
+reach_over
+neg_interval
+neg_seeded
+
+[options]
+aigsmt none
+prove: mode prove
+reach_valid: mode bmc
+reach_valid: depth 90
+reach_valid: expect fail
+reach_over: mode bmc
+reach_over: depth 160
+reach_over: expect fail
+neg_interval: mode bmc
+neg_interval: depth 200
+neg_interval: expect fail
+neg_seeded: mode bmc
+neg_seeded: depth 40
+neg_seeded: expect fail
+
+[engines]
+prove: abc pdr
+reach_valid: abc bmc3
+reach_over: abc bmc3
+neg_interval: abc bmc3
+neg_seeded: abc bmc3
+
+[script]
+prove: read -formal -DFORMAL ctr_drbg.v
+reach_valid: read -formal -DFORMAL ctr_drbg.v
+reach_over: read -formal -DFORMAL ctr_drbg.v
+neg_interval: read -formal -DFORMAL -DDRBG_NEG_INTERVAL ctr_drbg.v
+neg_seeded: read -formal -DFORMAL -DDRBG_NEG_SEEDED ctr_drbg.v
+reach_valid: read -formal -DFORMAL -DREACH_VALID fv_drbg.v
+reach_over: read -formal -DFORMAL -DREACH_OVER -DREACH_INTERVAL fv_drbg.v
+prove: read -formal -DFORMAL fv_drbg.v
+neg_interval: read -formal -DFORMAL -DREACH_INTERVAL fv_drbg.v
+neg_seeded: read -formal -DFORMAL fv_drbg.v
+prep -top fv_drbg
+async2sync
+dffunmap
+
+[files]
+../../rtl/drbg/ctr_drbg.v
+fv_drbg.v
