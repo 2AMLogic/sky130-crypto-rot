@@ -1,6 +1,6 @@
 {
-  "loom_version": "0.19.1220",
-  "loom_commit": "6e7b5c8261cff20ce6e4225631dbc8148bfddfd3",
+  "loom_version": "0.19.1227",
+  "loom_commit": "3f8d69bdce593a6d9fdb798414fa4453cc018c6b",
   "requires_daemon": "0.19.1146",
   "install_date": "2026-10-17",
   "loom_source_remote": "git@github.com:rjwalters/loom.git",
@@ -787,7 +787,10 @@
     ".loom/scripts/tests/test-repo-root-alias.sh",
     ".loom/scripts/tests/test-worktree-stale-local-branch-reuse.sh",
     ".loom/hooks/guard-background-subagents.sh",
-    ".loom/hooks/tests/test-guard-background-subagents.sh"
+    ".loom/hooks/tests/test-guard-background-subagents.sh",
+    ".loom/hooks/guard-destructive-generic.sh",
+    ".loom/hooks/guard-worktree-paths.sh",
+    ".loom/hooks/tests/test-guard-worktree-paths.sh"
   ],
-  "last_resync": "2026-10-24"
+  "last_resync": "2026-10-26"
 }

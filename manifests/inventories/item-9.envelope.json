@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "kind": "generic",
+  "status": "pass",
+  "t1_item": 9,
+  "summary": "T1 item 9 (Testbenches shipped): 34/34 attestation checks passed (klt signoff --attest)",
+  "source": "manifests/inventories/item-9.json",
+  "attestation": {
+    "producer": "klt signoff --attest",
+    "inventory_schema_version": 1,
+    "hash_algorithm": "sha256-raw-bytes",
+    "check_count": 34,
+    "passed_count": 34,
+    "checks": [
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "flow/smoke/run.sh",
+        "passed": true,
+        "content_hash": "sha256:4d782bd0795d60fdae48b3a762741d6dd834e75f02415467173fa9d31326c0ea"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "flow/smoke/sim-request.json",
+        "passed": true,
+        "content_hash": "sha256:ed6118eafcedacd089bf358080a398e54a878a872555f062693b9582e239dc6a"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "flow/smoke/test_adder.py",
+        "passed": true,
+        "content_hash": "sha256:d321061a9795fb52dbae9814014ac2ebfe6a2674352fc943fb8be708b7565b46"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_aes.py",
+        "passed": true,
+        "content_hash": "sha256:24b4015b2cfb2429f4ec6f935522e6bfcd8f77783d05985cab3d2ef57676e30d"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_ctr_drbg.py",
+        "passed": true,
+        "content_hash": "sha256:8138c70ade7d9ccac03f5c8f6c26e5595c36c3e1413bbef9427ef26b1394fc64"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_hmac_rfc4231.py",
+        "passed": true,
+        "content_hash": "sha256:1e19082572ae182bbe5680dfd4f744743ae48c5471bac5c4af506fac5eb439ef"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_kdf.py",
+        "passed": true,
+        "content_hash": "sha256:4deeb79ce2ec54b51d9e78d7676d5a68a5027ed2ae728f339f4cbd4df6158b58"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_sha256_long.py",
+        "passed": true,
+        "content_hash": "sha256:a2a37995631cf00702f1e4972638b25d108b7110dc53ce3172731ce2bedfdb85"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_sha256_padding.py",
+        "passed": true,
+        "content_hash": "sha256:a20b6f6b74fa94dc4d7d1ea3adf56363b567d52091eea389b8d99b2ac211019c"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_sha256_short.py",
+        "passed": true,
+        "content_hash": "sha256:6e3a214e9d307791f835acb4e3ee8c3ac88abb7dff73a375ef3cd1814e3a695d"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/model/test_stdlib_only.py",
+        "passed": true,
+        "content_hash": "sha256:d2ad3d1f1634058a0556a65be7f161d93571ebf0c94a77a5ea5a32dc84cec3ca"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/aes/run.sh",
+        "passed": true,
+        "content_hash": "sha256:2650fd7244faaf83747f082a6aec5c7f8effa2661683c86d0f6a83d12b830c59"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/aes/sim-negctl-request.json",
+        "passed": true,
+        "content_hash": "sha256:37dbbb0b839800951c260c2ce8fa713d648568cdf334e88ff2837e4cf95de5b1"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/aes/sim-request.json",
+        "passed": true,
+        "content_hash": "sha256:c273d5c07ddf7b4b219609ddabb5b01c1a2897d3aaa0a586d972d7ff2412fd7c"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/aes/test_aes_core.py",
+        "passed": true,
+        "content_hash": "sha256:bae19df0fd3413822264d3d6dba075c245565ce9410a87a6e3fdfb01caaa4b7d"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/hmac/run.sh",
+        "passed": true,
+        "content_hash": "sha256:63a266f69cc7cf5bf11407ecb4080264de64f89c0041eae30518d881aa7365ca"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/hmac/sim-negctl-request.json",
+        "passed": true,
+        "content_hash": "sha256:cd38590df355bda086f5d876d9188085698ec459c7aa74eb6e30bbbc343bad03"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/hmac/sim-request.json",
+        "passed": true,
+        "content_hash": "sha256:2835e5d16f187e8027beab3b58ee00ea53dded658cb2583c6c751bd647082228"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/hmac/test_hmac_sha256.py",
+        "passed": true,
+        "content_hash": "sha256:993f4e4e9b61c3e24db5553bba37f42ec6eb4fdc4ecc7822ccc410701bb797d7"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/keyladder/run.sh",
+        "passed": true,
+        "content_hash": "sha256:bf8e10c0e74d76568e49e869c4f8b8e324fc3c05caecd04d030be27c2fcc3e67"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/keyladder/sim-negctl-lock-request.json",
+        "passed": true,
+        "content_hash": "sha256:f55b8e9ae57c9c9fe3a1ca0d9854347abc58c0247f55031687f825e57ef51d77"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/keyladder/sim-negctl-mask-request.json",
+        "passed": true,
+        "content_hash": "sha256:49011de996d72f27b4fec69cda541d9885c89dfbf787990179dffee0d6606317"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/keyladder/sim-negctl-zeroize-request.json",
+        "passed": true,
+        "content_hash": "sha256:9ea5c8fed3292a247a8b968f3b19400d5a514785ce5d6c358dc7e3559fe716f9"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/keyladder/sim-request.json",
+        "passed": true,
+        "content_hash": "sha256:4b473286700bd5e1adaa86a19840ad2ad28e0224117300054fa5c3e5c0e13404"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/keyladder/test_keyladder.py",
+        "passed": true,
+        "content_hash": "sha256:b0b62b8ffcc5025ec765018bec7f652528ac350f6bafde770353340327a15525"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/run.sh",
+        "passed": true,
+        "content_hash": "sha256:7c6a19855f281339c624dc08a118927741f72f0c52be5ec368d16c3126843841"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/sim-million-a-request.json",
+        "passed": true,
+        "content_hash": "sha256:7195ba09edfab0a4fc5a4da22f322c13bc01a6c342df0014a895b23a11363144"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/sim-negctl-request.json",
+        "passed": true,
+        "content_hash": "sha256:dbc203ecfd950185622cc440fc1cefa8250a8651349ecda4efb16b42e0ccf440"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/sim-request.json",
+        "passed": true,
+        "content_hash": "sha256:f464516408fb80a77969b9f7529baca84ebafa7922546067694b5ba497243202"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/test_sha256_core.py",
+        "passed": true,
+        "content_hash": "sha256:737b5e807f9c647e6731c098c693eb89e78a4f4aceafee1fe0df5b6deabd33bf"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/test_check_reuse.py",
+        "passed": true,
+        "content_hash": "sha256:5c0f842dae5c54b743ca1f0345cf4590f900742d754e71001ff04358c26bbdff"
+      },
+      {
+        "check": "command",
+        "role": "cold_start",
+        "argv": [
+          "scripts/cold-start-benches.sh"
+        ],
+        "cwd": ".",
+        "exit_status": 0,
+        "passed": true
+      },
+      {
+        "check": "pin",
+        "role": "pdk",
+        "passed": true,
+        "value": {
+          "name": "sky130A",
+          "revision": "f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7"
+        }
+      },
+      {
+        "check": "pin",
+        "role": "tools",
+        "passed": true,
+        "value": {
+          "ciel": "2.6.1",
+          "cocotb": "2.1.0",
+          "icarus-verilog": "13.0",
+          "klayout-tools": "dac2b5daceb69a2068d9d2ee190d7afe37b29af7",
+          "yowasp-yosys": "0.68.0.0.post1208"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "klt_version": "0.8.0",
+    "klayout_version": null,
+    "pdk": null,
+    "deck": null,
+    "input": {
+      "path": {
+        "path": "manifests/inventories/item-9.json",
+        "scope": "repo"
+      },
+      "content_hash": "sha256:a8e27890afd88f6f5a9b5ec2ef56f6ff7cead4209d75045bc7e46cf3e3a9eb92"
+    }
+  }
+}

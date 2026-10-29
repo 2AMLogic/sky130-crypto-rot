@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "worktree:return": "./.loom/scripts/worktree-return.sh",
-    "check:ci": "npm run lint && npm run test && npm run check:reuse",
+    "check:ci": "npm run lint && npm run test && npm run check:reuse && npm run check:pins",
     "check:all": "npm run check:ci",
     "test": "python3 -m pytest verification/model",
-    "lint": "python3 -m compileall -q verification flow && bash -n scripts/*.sh verification/rtl/sha256/run.sh",
-    "check:reuse": "python3 verification/check_reuse.py && python3 -m pytest verification/test_check_reuse.py"
+    "lint": "python3 -m compileall -q verification flow && bash -n scripts/*.sh verification/rtl/sha256/run.sh && python3 verification/check_pins.py",
+    "check:reuse": "python3 verification/check_reuse.py && python3 -m pytest verification/test_check_reuse.py",
+    "check:pins": "python3 verification/check_pins.py && python3 -m pytest verification/test_check_pins.py"
   }
 }

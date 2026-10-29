@@ -10,7 +10,9 @@ toward DRC/LVS-clean GDS by AI agents driving
 open-source digital flow: cocotb + Icarus for verification, Yosys for
 synthesis, OpenROAD for place-and-route.
 
-**Status: specification phase.** The v1 spec is written; no RTL exists yet.
+**Status: spec ratified; first RTL core in.** The v1 spec is ratified. RTL exists for
+the SHA-256 core only (`rtl/sha256/sha256_core.v`); AES, HMAC, the key ladder, the DRBG
+and the key slots are not yet written.
 
 **Built agent-native.** Every specification, decision record, testbench, and
 line of documentation here is produced by AI agents working from a ratified
@@ -75,7 +77,8 @@ Maturity ladder: spec ratified → algorithm cores pass the published
 known-answer vectors → key-isolation properties proven on the synthesized
 netlist → TRNG interface verified against the sibling's RTL → layout
 DRC/LVS-clean → timing closed across corners → shuttle seat → measured
-silicon. **Current position: spec drafted (ratifies when its pull request merges).**
+silicon. **Current position: spec ratified; the SHA-256 core has a simulation and synthesis
+record (a correctness claim and a pre-P&R cell-area figure, nothing more).**
 
 ## Repo layout
 
@@ -100,17 +103,28 @@ npm run check:reuse   # re-hash reuse.lock.json files; self-test of the checker
 npm run check:ci      # all three
 ```
 
-The PDK-heavy legs stay local:
+The PDK-heavy legs stay local (`./scripts/setup-env.sh` provisions `.venv`,
+the pinned yosys and the PDK first):
 
 ```
-./scripts/setup-env.sh       # provision .venv, pinned yosys, PDK
-./verification/rtl/sha256/run.sh   # cocotb + Icarus, then klt synthesize
-klt synthesize               # synthesis
-klt place-and-route          # OpenROAD place-and-route
-klt drc                      # DRC
-klt lvs                      # LVS
-klt signoff --manifest       # signoff manifest
+./scripts/setup-env.sh                       # provision .venv, pinned yosys, PDK
+./verification/rtl/sha256/run.sh             # SHA-256 core: cocotb + Icarus KATs, then klt synthesize
+./verification/rtl/sha256/run.sh --record    # same, then write a record under verification/records/
 ```
+
+The tier-verdict record is re-graded by `.github/workflows/signoff.yml`; to
+reproduce it (and the item-10 attestation) at the pinned `klayout-tools`:
+
+```
+uvx --from "klayout-tools==0.8.0" klt signoff \
+    --manifest manifests/sky130-crypto-rot.json \
+    --tiers-doc manifests/design-evidence-tiers.md \
+    --format json > manifests/sky130-crypto-rot.signoff.json
+```
+
+Exit `3` is expected while any T1 item is unmet. `manifests/README.md` has the
+item-10 attestation command. Place-and-route, DRC and LVS (`klt place-and-route`,
+`klt drc`, `klt lvs`) have no committed result yet.
 
 CI proves format and known-answer correctness only; it makes no security
 claim. See [`verification/README.md`](verification/README.md).
