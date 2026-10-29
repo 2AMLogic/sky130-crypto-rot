@@ -3,6 +3,11 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-28
+
+- **PR #81**: feat(verification): add pin-sync checker and wire it into lint
+- **Issue #80** (closed): Pin-sync checker is claimed in setup-env.sh and environment.md but does not exist
+
 ### 2026-10-27
 
 - **PR #78**: build(env): pin klayout-tools to PyPI 0.8.0 instead of a git revision
