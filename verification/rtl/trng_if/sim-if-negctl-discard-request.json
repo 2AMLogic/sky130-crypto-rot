@@ -1,0 +1,23 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "../../../rtl/trng_if/trng_if.v",
+    "tb_trng_if.v"
+  ],
+  "hdl_toplevel": "tb_trng_if",
+  "testbench": {
+    "module": "test_trng_if"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": [
+      "1ns",
+      "1ps"
+    ],
+    "random_seed": 1,
+    "defines": {
+      "TRNG_IF_NEG_DISCARD": null
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# P-6 on the key ladder (issue #56). One file, four tasks:
+#   rtl      the property on rtl/keyladder/keyladder.v           (expected PASS)
+#   net      the same text on the synthesized netlist            (expected PASS)
+#   neg_rtl  KL_NEG_LOCK RTL variant                             (expected FAIL)
+#   neg_net  netlist synthesized from that variant               (expected FAIL)
+# The netlist task uses a small depth: its BMC base case grows steeply (see the record);
+# the proof is the induction, which closes at k = 1 with the invariants in props_slots.vh.
+# mode prove = BMC to the stated depth, then k-induction (k = depth). The HMAC core
+# is replaced by hmac_abstract.v (all outputs free); see that file.
+[tasks]
+rtl
+net
+neg_rtl
+neg_net
+
+[options]
+mode prove
+rtl: depth 16
+net: depth @DEPTH_P6_NET@
+neg_rtl: depth 16
+neg_net: depth 16
+
+[engines]
+smtbmc z3
+
+[script]
+net: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+neg_net: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+rtl: read_verilog -formal -DP6 dut_rtl.v hmac_abstract.v
+neg_rtl: read_verilog -formal -DP6 -DKL_NEG_LOCK dut_rtl.v hmac_abstract.v
+net: read_verilog -formal -DP6 dut_net_clean.v hmac_abstract.v
+neg_net: read_verilog -formal -DP6 dut_net_neglock.v hmac_abstract.v
+prep -flatten -top keyladder
+
+[files]
+dut_rtl.v
+dut_net_clean.v
+dut_net_negmask.v
+dut_net_neglock.v
+hmac_abstract.v
+sky130_fd_sc_hd.lib @LIB@

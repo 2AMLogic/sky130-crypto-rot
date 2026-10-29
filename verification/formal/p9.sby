@@ -1,0 +1,50 @@
+# P-9: a synchronized TRNG alarm zeroizes DRBG Key/V + working registers and the
+# seed buffer within 2 core cycles of the synchronizer output, and holds them zero.
+#   bmc            bounded: depth 30 from reset
+#   prove          unbounded (abc pdr)
+#   neg_bound      must FAIL: the same claim one cycle too early (bound is tight)
+#   neg_zeroize    must FAIL: the RTL with V surviving zeroize (DRBG_NEG_ZEROIZE)
+#   reach_nonzero  must FAIL: the registers can be non-zero (vacuity check)
+[tasks]
+bmc
+prove
+neg_bound
+reach_nonzero
+neg_zeroize
+
+[options]
+aigsmt none
+bmc: mode bmc
+bmc: depth 30
+prove: mode prove
+neg_bound: mode bmc
+neg_bound: depth 30
+neg_bound: expect fail
+reach_nonzero: mode bmc
+reach_nonzero: depth 30
+reach_nonzero: expect fail
+neg_zeroize: mode bmc
+neg_zeroize: depth 30
+neg_zeroize: expect fail
+
+[engines]
+bmc: abc bmc3
+prove: abc pdr
+neg_bound: abc bmc3
+reach_nonzero: abc bmc3
+neg_zeroize: abc bmc3
+
+[script]
+bmc: read -formal -DFORMAL ctr_drbg.v trng_if.v fv_p9.v
+prove: read -formal -DFORMAL ctr_drbg.v trng_if.v fv_p9.v
+neg_bound: read -formal -DFORMAL -DP9_NEG_BOUND ctr_drbg.v trng_if.v fv_p9.v
+reach_nonzero: read -formal -DFORMAL -DREACH_NONZERO ctr_drbg.v trng_if.v fv_p9.v
+neg_zeroize: read -formal -DFORMAL -DDRBG_NEG_ZEROIZE ctr_drbg.v trng_if.v fv_p9.v
+prep -top fv_p9
+async2sync
+dffunmap
+
+[files]
+../../rtl/drbg/ctr_drbg.v
+../../rtl/trng_if/trng_if.v
+fv_p9.v

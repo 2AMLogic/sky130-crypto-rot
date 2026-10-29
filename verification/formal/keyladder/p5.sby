@@ -1,0 +1,36 @@
+# P-5 on the key ladder (issue #56). One file, four tasks:
+#   rtl      the property on rtl/keyladder/keyladder.v           (expected PASS)
+#   net      the same text on the synthesized netlist            (expected PASS)
+#   neg_rtl  KL_NEG_MASK RTL variant                             (expected FAIL)
+#   neg_net  netlist synthesized from that variant               (expected FAIL)
+# mode prove = BMC to the stated depth, then k-induction (k = depth). The HMAC core
+# is replaced by hmac_abstract.v (all outputs free); see that file.
+[tasks]
+rtl
+net
+neg_rtl
+neg_net
+
+[options]
+mode prove
+depth @DEPTH@
+
+[engines]
+smtbmc z3
+
+[script]
+net: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+neg_net: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+rtl: read_verilog -formal -DP5 dut_rtl.v hmac_abstract.v
+neg_rtl: read_verilog -formal -DP5 -DKL_NEG_MASK dut_rtl.v hmac_abstract.v
+net: read_verilog -formal -DP5 dut_net_clean.v hmac_abstract.v
+neg_net: read_verilog -formal -DP5 dut_net_negmask.v hmac_abstract.v
+prep -flatten -top keyladder
+
+[files]
+dut_rtl.v
+dut_net_clean.v
+dut_net_negmask.v
+dut_net_neglock.v
+hmac_abstract.v
+sky130_fd_sc_hd.lib @LIB@

@@ -8,7 +8,7 @@
 # Docker fallback is dropped: openroad is only checked here, not provisioned.
 #
 #   1. Creates a local .venv (Python) and installs `klayout-tools` (`klt`)
-#      into it at the pinned git revision below.
+#      into it, PyPI-pinned as `klayout-tools==${KLT_VERSION}` below.
 #   2. Installs the pinned Yosys build (YoWASP wheel) into that .venv and
 #      verifies its WebAssembly module's sha256 -- the mapper identity that
 #      `yosys -V` does NOT report (issue #143) -- then exposes it as
@@ -39,12 +39,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}" || exit 1
 
 # --- pinned versions -- keep in sync with docs/environment.md -------------
-# Enforced by verification/check_pins.py (vendored by issue #6, wired into
-# lint by issue #7):
-# every constant in this block must appear in that doc's "Pinned versions"
-# table. Keep assignments in plain NAME="value" form so it can parse them.
-KLT_REPO="https://github.com/2AMLogic/klayout-tools"
-KLT_REV="dac2b5daceb69a2068d9d2ee190d7afe37b29af7"
+# Enforced by verification/check_pins.py (run by `npm run lint`): every
+# constant in this block must appear in that doc's "Pinned versions" table.
+# Keep assignments in plain NAME="value" form so it can parse them.
+KLT_VERSION="0.8.0"
 CIEL_VERSION="2.6.1"
 COCOTB_VERSION="2.1.0"
 CIEL_PDK_FAMILY="sky130"
@@ -60,6 +58,14 @@ CIEL_SKY130_VERSION="f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7"
 # checked by CONTENT (the wasm sha256), not by version string.
 YOWASP_YOSYS_VERSION="0.68.0.0.post1208"
 YOWASP_YOSYS_WASM_SHA256="e37a7e65e3fa4efbbd64a9c1b0e906be16cdc6c4d5273109d17537f78449f38c"
+# Formal flow (issue #56). SymbiYosys (`sby`), `yosys-smtbmc` and `yosys-witness`
+# ship inside the pinned YoWASP wheel above (entry points yowasp-sby,
+# yowasp-yosys-smtbmc, yowasp-yosys-witness), so they are pinned by the same
+# wasm digest. The SMT solver is the PyPI `z3-solver` wheel, which carries a
+# native `z3` binary; it is pinned by version and checked by the sha256 of that
+# binary (the solver identity `z3 --version` does not fully name).
+Z3_SOLVER_VERSION="5.3.2.0"
+Z3_BIN_SHA256="c45e787b5d1a3d94079d1e83b98e23bbc884ccaf542ea38c3814f31ac2f79197"
 # ----------------------------------------------------------------------------
 
 PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"
@@ -152,7 +158,7 @@ if [ ! -x "${VENV_PY}" ]; then
 fi
 
 echo
-echo "== 2/4 klayout-tools (klt) @ ${KLT_REV:0:12} =="
+echo "== 2/4 klayout-tools (klt) ${KLT_VERSION} =="
 if ! "${VENV_PY}" -m pip --version >/dev/null 2>&1; then
   echo "FATAL: pip is not available inside ${VENV_DIR}."
   echo "  -> remove ${VENV_DIR} and re-run this script (venv bootstrap likely"
@@ -166,19 +172,19 @@ if ! "${VENV_PIP}" install --quiet --upgrade pip; then
 fi
 
 if ! "${VENV_PIP}" install --quiet \
-    "klayout-tools @ git+${KLT_REPO}@${KLT_REV}" "cocotb==${COCOTB_VERSION}" "ciel==${CIEL_VERSION}"; then
+    "klayout-tools==${KLT_VERSION}" "cocotb==${COCOTB_VERSION}" "ciel==${CIEL_VERSION}"; then
   echo "FATAL: failed to install klayout-tools/cocotb/ciel into ${VENV_DIR}."
-  echo "  -> common causes: no network access to ${KLT_REPO}, or no C/C++"
+  echo "  -> common causes: no network access to PyPI, or no C/C++"
   echo "     toolchain for a dependency's native build (install Xcode CLI"
   echo "     tools on macOS: 'xcode-select --install'; build-essential on"
   echo "     Debian/Ubuntu)."
   echo "  -> re-run with the venv's own pip for a full traceback:"
-  echo "       ${VENV_PIP} install \"klayout-tools @ git+${KLT_REPO}@${KLT_REV}\" cocotb==${COCOTB_VERSION} ciel==${CIEL_VERSION}"
+  echo "       ${VENV_PIP} install \"klayout-tools==${KLT_VERSION}\" cocotb==${COCOTB_VERSION} ciel==${CIEL_VERSION}"
   exit 1
 fi
 INSTALLED_KLT_VERSION="$("${VENV_PY}" -m klayout_tools.cli --version 2>/dev/null || true)"
 INSTALLED_KLT_VERSION="${INSTALLED_KLT_VERSION#klt }"
-echo "installed: klt ${INSTALLED_KLT_VERSION:-(version unknown)} from ${KLT_REPO}@${KLT_REV:0:12}"
+echo "installed: klt ${INSTALLED_KLT_VERSION:-(version unknown)} (pinned ${KLT_VERSION})"
 echo "activate with: source ${VENV_DIR}/bin/activate"
 
 echo
@@ -260,6 +266,28 @@ if ! ln -sfn "yowasp-yosys" "${VENV_DIR}/bin/yosys"; then
 fi
 echo "linked:     ${VENV_DIR}/bin/yosys -> yowasp-yosys"
 echo "reports:    $("${VENV_DIR}/bin/yosys" -V 2>&1 | head -1)"
+# SymbiYosys and its helpers come from the same pinned wheel (see pin block).
+for pair in "sby:yowasp-sby" "yosys-smtbmc:yowasp-yosys-smtbmc" "yosys-witness:yowasp-yosys-witness"; do
+  if ! ln -sfn "${pair#*:}" "${VENV_DIR}/bin/${pair%%:*}"; then
+    echo "FATAL: could not link ${VENV_DIR}/bin/${pair%%:*} -> ${pair#*:}."
+    exit 1
+  fi
+done
+echo "linked:     sby, yosys-smtbmc, yosys-witness (from the same wheel)"
+if ! "${VENV_PIP}" install --quiet "z3-solver==${Z3_SOLVER_VERSION}"; then
+  echo "FATAL: failed to install z3-solver==${Z3_SOLVER_VERSION} into ${VENV_DIR}."
+  exit 1
+fi
+Z3_SHA="$(sha256sum "${VENV_DIR}/bin/z3" 2>/dev/null | cut -d' ' -f1)"
+if [ "${Z3_SHA}" != "${Z3_BIN_SHA256}" ]; then
+  echo "FATAL: pinned z3 binary identity does NOT match."
+  echo "  expected: sha256:${Z3_BIN_SHA256}"
+  echo "  actual:   sha256:${Z3_SHA:-(missing)}"
+  echo "  -> do NOT mint formal records from this environment; re-pin"
+  echo "     Z3_SOLVER_VERSION/Z3_BIN_SHA256 here and in docs/environment.md together."
+  exit 1
+fi
+echo "z3:         $("${VENV_DIR}/bin/z3" --version 2>&1 | head -1) (sha256:${Z3_SHA:0:12}... matches pin)"
 if command -v yosys >/dev/null 2>&1; then
   echo "note: a host 'yosys' is also on \$PATH ($(command -v yosys)). It is NOT"
   echo "  the pinned build unless it resolves to the link above -- activate the"

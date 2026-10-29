@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "kind": "t1-attestation-inventory",
+  "t1_item": 10,
+  "description": "T1 item 10 (repo hygiene): README, LICENSE and both CI workflows exist, and the commands CI/ci.yml runs exit 0. Format and known-answer correctness only; no security claim.",
+  "hygiene": [
+    "README.md",
+    "LICENSE",
+    ".github/workflows/ci.yml",
+    ".github/workflows/signoff.yml"
+  ],
+  "checks": [
+    {"name": "lint", "argv": ["npm", "run", "lint"]},
+    {"name": "model-kats", "argv": ["npm", "run", "test"]},
+    {"name": "reuse", "argv": ["npm", "run", "check:reuse"]}
+  ]
+}

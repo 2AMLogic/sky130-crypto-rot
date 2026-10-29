@@ -1,0 +1,13 @@
+{
+  "schema": "klt.synthesize.request/1",
+  "engine": "yosys",
+  "sources": [
+    "../../../rtl/aes/aes_core.v",
+    "../../../rtl/drbg/ctr_drbg.v",
+    "../../../rtl/trng_if/trng_if.v",
+    "../../../rtl/drbg/drbg_top.v"
+  ],
+  "hdl_toplevel": "drbg_top",
+  "pdk": { "cell_library": "sky130_fd_sc_hd", "corner": "tt_025C_1v80" },
+  "constraints": { "clock_period_ns": null }
+}

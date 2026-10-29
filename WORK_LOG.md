@@ -3,6 +3,31 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-28
+
+- **PR #81**: feat(verification): add pin-sync checker and wire it into lint
+- **Issue #80** (closed): Pin-sync checker is claimed in setup-env.sh and environment.md but does not exist
+
+### 2026-10-27
+
+- **PR #78**: build(env): pin klayout-tools to PyPI 0.8.0 instead of a git revision
+- **Issue #77** (closed): Bump klayout-tools pin dac2b5daceb6 → 0.8.0
+- **PR #75**: feat(manifests): attest T1 item 9 with a bench inventory and cold-start script
+- **Issue #52** (closed): T1 item 9 (testbenches shipped): testbench inventory and klt signoff --attest 9
+- **PR #73**: feat(manifests): record signoff item 6 as not_applicable
+- **Issue #51** (closed): T1 item 6 (statistical claims): hash-bound not_applicable statement covering every ratified spec row
+- **Issue #44** (closed): T1 item 1 (design sources): HMAC-SHA-256, SP 800-108 key ladder and key-slot RTL, with KATs and FORMAL
+- **PR #71**: feat(verification): formal P-5, P-6, P-2 and module-boundary P-1 for the key ladder
+- **Issue #56** (closed): T1 item 1 (design sources): SymbiYosys properties P-5, P-6, P-2 and module-boundary P-1 for the key ladder
+- **PR #57**: docs(manifests): pin klayout-tools 0.8.0 and attest T1 item 10
+- **Issue #42** (closed): T1 item 10 (repo hygiene): bump the signoff klt pin to one with --attest, fix README status, attest item 10
+- **PR #68**: feat(rtl): key ladder with use-mask, lock, KDF sequencer and zeroize
+- **Issue #55** (closed): T1 item 1 (design sources): key ladder RTL — SP 800-108 KDF sequencer, 4 slots, use-masks, locks, zeroize
+- **PR #62**: feat(rtl): AES-128 encrypt/decrypt core with cocotb bench, vectors and record
+- **Issue #43** (closed): T1 item 1 (design sources): AES-128 encrypt/decrypt core RTL, one round per cycle, with FIPS 197 KAT bench
+- **PR #58**: feat(rtl): add HMAC-SHA-256 sequencer around sha256_core
+- **Issue #54** (closed): T1 item 1 (design sources): HMAC-SHA-256 RTL around sha256_core, RFC 4231 KATs (incl. long keys)
+
 ### 2026-10-23
 
 - **PR #34**: ci: grade T1 evidence tier with a committed klt signoff record
