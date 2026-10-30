@@ -3,6 +3,17 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-30
+
+- **PR #93**: fix: re-attest item 9 envelope to match benches on main
+- **PR #66**: refactor(verification): share record and driver scaffolding across core flows
+- **PR #65**: feat(rtl): add scrub input to sha256_core clearing w, hh and a-h
+- **PR #40**: chore: retire the adder smoke flow in favour of the SHA-256 core flow
+- **Issue #92** (closed): item-9 attestation envelope hashes for sha256 run.sh/test_sha256_core.py differ from the tree on main
+- **Issue #64** (closed): Dedupe record-generation scaffolding shared by the aes and sha256 verification flows
+- **Issue #61** (closed): sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state
+- **Issue #36** (closed): Retire the adder smoke flow: superseded by the SHA-256 core flow
+
 ### 2026-10-29
 
 - **PR #69**: feat(rtl): CTR_DRBG core and TRNG interface with benches and P-7/P-8/P-9 formal
