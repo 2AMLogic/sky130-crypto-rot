@@ -12,15 +12,17 @@ from __future__ import annotations
 
 import argparse
 import datetime
-import hashlib
 import json
 import re
-import subprocess
 import sys
 import platform
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO / "flow/common"))
+
+import record_lib  # noqa: E402
+from record_lib import pin, sha256  # noqa: E402
 EXPERIMENT = "hmac-sha256-sim-synth"
 INPUTS = (
     "rtl/sha256/sha256_core.v",
@@ -36,23 +38,6 @@ INPUTS = (
     "verification/vectors/rfc4231.txt",
     "scripts/setup-env.sh",
 )
-
-
-def sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def pin(name: str) -> str:
-    for line in (REPO / "scripts/setup-env.sh").read_text().splitlines():
-        if line.startswith(name + '="'):
-            return line.split('"')[1]
-    raise SystemExit(f"pin {name} not found in scripts/setup-env.sh")
-
-
-def run(*cmd: str) -> str:
-    out = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    text = (out.stdout + out.stderr).strip()
-    return text.splitlines()[0] if text else "unknown"
 
 
 def main() -> int:
@@ -74,19 +59,12 @@ def main() -> int:
     if args.check_only:
         return 0
 
-    sources = (args.pdk_root / "sky130A/SOURCES").read_text()
-    if pin("CIEL_SKY130_VERSION") not in sources:
-        raise SystemExit("PDK tree does not name the pinned open_pdks commit; refusing to record")
-    rev = run("git", "-C", str(REPO), "rev-parse", "HEAD")
-    if subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + list(INPUTS[:-1]),
-                      capture_output=True, text=True).stdout.strip():
-        raise SystemExit("an input is modified relative to HEAD; commit it before recording")
+    record_lib.check_pdk(args.pdk_root)
+    rev = record_lib.require_clean_inputs(INPUTS[:-1])
     now = datetime.datetime.now(datetime.timezone.utc)
     rid = f"{now:%Y%m%d-%H%M%S}-{rev[:7]}"
     prov = syn["provenance"]
-    venv_py = REPO / ".venv/bin/python3"
-    wasm = run(str(venv_py), "-c",
-               "import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha256(open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
+    wasm = record_lib.wasm_hash()
     versions = {
         "klt": prov["klt_version"],
         "klt_pin": pin("KLT_VERSION"),

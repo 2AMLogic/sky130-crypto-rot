@@ -127,10 +127,25 @@ module hmac_sha256 (
     assign in_ready  = (state == S_MSG) && c_ready;
 
     // clear and S_LKA return the hash core to its reset state for one cycle.
+`ifdef HMAC_NEG_SCRUB
+    // Negative control: clear reaches the core through neither reset nor scrub.
+    wire core_rst_n = rst_n && (state != S_LKA);
+`else
     wire core_rst_n = rst_n && !clear && (state != S_LKA);
+`endif
+
+    // clear drives the core's scrub port explicitly (the port must not float);
+    // the core clears the same registers on reset and on scrub, so this and
+    // core_rst_n are redundant for the datapath by design. HMAC_NEG_SCRUB
+    // (negative control) ties scrub low and removes clear from core_rst_n.
+`ifdef HMAC_NEG_SCRUB
+    wire core_scrub = 1'b0;
+`else
+    wire core_scrub = clear;
+`endif
 
     sha256_core core (
-        .clk(clk), .rst_n(core_rst_n),
+        .clk(clk), .rst_n(core_rst_n), .scrub(core_scrub),
         .in_valid(c_valid), .in_ready(c_ready), .in_data(c_data),
         .in_last(c_last), .in_empty(c_empty),
         .digest(c_digest), .digest_valid(c_dvalid)

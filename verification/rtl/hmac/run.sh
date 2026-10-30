@@ -9,6 +9,7 @@
 #                                                       # verification/records/hmac-sha256-sim-synth/records/
 #   ./verification/rtl/hmac/run.sh --negative-control   # one opad bit flipped: MUST fail
 #                                                       # (exit 0 only if the bench catches it)
+#                                                       # also: HMAC_NEG_SCRUB: clear reaches the core by neither reset nor scrub
 #
 # Exit 0 only if the simulation passed and the synthesis is ok with no latches.
 # Synthesis is a single corner (tt_025C_1v80), pre-P&R, cell area only; no STA,
@@ -49,6 +50,13 @@ if [ "${NEG}" = 1 ]; then
   fi
   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("negative control:", d["status"], "(expected fail)")' "${OUT}/negctl.json"
   grep -o 'first failing vector: [^&]*' .klt/functional-verification/results_icarus.xml | head -1
+  echo "== negative control: HMAC_NEG_SCRUB keeps clear away from the core; the bench must fail =="
+  if klt functional-verification sim-scrub-negctl-request.json --format json > "${OUT}/scrub-negctl.json"; then
+    echo "FAIL: the bench passed with clear not reaching the core" >&2
+    exit 1
+  fi
+  python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("scrub negative control:", d["status"], "(expected fail)")' "${OUT}/scrub-negctl.json"
+  grep -o 'first failing [a-z ]*: [^&]*' .klt/functional-verification/results_icarus.xml | head -1
   exit 0
 fi
 
