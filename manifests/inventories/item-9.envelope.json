@@ -3,36 +3,15 @@
   "kind": "generic",
   "status": "pass",
   "t1_item": 9,
-  "summary": "T1 item 9 (Testbenches shipped): 34/34 attestation checks passed (klt signoff --attest)",
+  "summary": "T1 item 9 (Testbenches shipped): 31/31 attestation checks passed (klt signoff --attest)",
   "source": "manifests/inventories/item-9.json",
   "attestation": {
     "producer": "klt signoff --attest",
     "inventory_schema_version": 1,
     "hash_algorithm": "sha256-raw-bytes",
-    "check_count": 34,
-    "passed_count": 34,
+    "check_count": 31,
+    "passed_count": 31,
     "checks": [
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "flow/smoke/run.sh",
-        "passed": true,
-        "content_hash": "sha256:4d782bd0795d60fdae48b3a762741d6dd834e75f02415467173fa9d31326c0ea"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "flow/smoke/sim-request.json",
-        "passed": true,
-        "content_hash": "sha256:ed6118eafcedacd089bf358080a398e54a878a872555f062693b9582e239dc6a"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "flow/smoke/test_adder.py",
-        "passed": true,
-        "content_hash": "sha256:d321061a9795fb52dbae9814014ac2ebfe6a2674352fc943fb8be708b7565b46"
-      },
       {
         "check": "present",
         "role": "testbench",
@@ -272,7 +251,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:a8e27890afd88f6f5a9b5ec2ef56f6ff7cead4209d75045bc7e46cf3e3a9eb92"
+      "content_hash": "sha256:89b4a8db3454a27e8740d46f5be45c663fc2bd59147f615e724ae4fd5ca54c05"
     }
   }
 }

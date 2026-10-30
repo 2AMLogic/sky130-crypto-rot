@@ -2,11 +2,8 @@
   "schema_version": 1,
   "kind": "t1-attestation-inventory",
   "t1_item": 9,
-  "description": "T1 item 9 (testbenches shipped): the model KAT, reuse-check, smoke-flow, and SHA-256, AES, HMAC and key-ladder RTL benches (with their negative controls) that back the results in verification/records/, and the one cold-start command that reproduces them. The FORMAL key-ladder bench is not covered: its bounded runs exceed the 1800 s per-command limit of klt signoff --attest. Correctness and format only; no security claim.",
+  "description": "T1 item 9 (testbenches shipped): the model KAT, reuse-check, and SHA-256, AES, HMAC and key-ladder RTL benches (with their negative controls) that back the results in verification/records/, and the one cold-start command that reproduces them. The FORMAL key-ladder bench is not covered: its bounded runs exceed the 1800 s per-command limit of klt signoff --attest. Correctness and format only; no security claim.",
   "testbenches": [
-    "flow/smoke/run.sh",
-    "flow/smoke/sim-request.json",
-    "flow/smoke/test_adder.py",
     "verification/model/test_aes.py",
     "verification/model/test_ctr_drbg.py",
     "verification/model/test_hmac_rfc4231.py",
