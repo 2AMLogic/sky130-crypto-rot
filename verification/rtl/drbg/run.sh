@@ -23,9 +23,8 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${HERE}/../../.." && pwd)"
-OUT="${REPO_ROOT}/flow/build/drbg"
-PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"
+NAME=drbg
+source "${HERE}/../../../flow/common/core_flow.sh"
 
 RECORD=0; NEG=0
 for arg in "$@"; do
@@ -36,15 +35,7 @@ for arg in "$@"; do
   esac
 done
 
-if [ ! -x "${REPO_ROOT}/.venv/bin/klt" ]; then
-  echo "error: ${REPO_ROOT}/.venv is not provisioned." >&2
-  echo "  -> run ./scripts/setup-env.sh first." >&2
-  exit 1
-fi
-export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
-
-mkdir -p "${OUT}"
-cd "${HERE}"
+core_flow_setup
 
 sim() { # sim <request> <mode> <out json>; returns klt's exit status
   DRBG_BENCH_MODE="$2" klt functional-verification "$1" --format json > "$3"
@@ -71,21 +62,13 @@ fi
 
 echo "== RTL simulation, shipped 16/8-word elaboration (klt functional-verification: cocotb + Icarus) =="
 sim sim-request.json shipped "${OUT}/sim.json"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["status"], d["passed_count"], "/", d["test_count"], "tests")' "${OUT}/sim.json"
+_json_line "${OUT}/sim.json" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
 summary_line | tee "${OUT}/summary-shipped.txt"
 
 echo "== RTL simulation, 6/4-word elaboration: CAVP AES-128 use-df replay =="
 sim sim-cavp-request.json cavp "${OUT}/cavp.json"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["status"], d["passed_count"], "/", d["test_count"], "tests")' "${OUT}/cavp.json"
+_json_line "${OUT}/cavp.json" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
 summary_line | tee "${OUT}/summary-cavp.txt"
 
-echo "== synthesis of drbg_top (klt synthesize -> sky130_fd_sc_hd, tt_025C_1v80) =="
-klt synthesize synth-request.json --pdk sky130A --pdk-root "${PDK_ROOT}" \
-  --format json > "${OUT}/synth.json"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["status"], d["instance_count"], "instances", d["area_um2"], "um2")' "${OUT}/synth.json"
-
-if [ "${RECORD}" = 1 ]; then
-  python3 "${HERE}/make_record.py" --out-dir "${OUT}" --pdk-root "${PDK_ROOT}"
-else
-  python3 "${HERE}/make_record.py" --out-dir "${OUT}" --pdk-root "${PDK_ROOT}" --check-only
-fi
+core_flow_synth drbg_top
+core_flow_verdict "${RECORD}"
