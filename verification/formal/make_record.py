@@ -11,8 +11,8 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "rtl"))
-import record_common as rc  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flow/common"))
+import record_lib as rc  # noqa: E402
 
 EXPERIMENT = "drbg-trng-formal"
 INPUTS = (
@@ -24,7 +24,7 @@ INPUTS = (
     "verification/formal/p9.sby",
     "verification/formal/run.sh",
     "verification/formal/make_record.py",
-    "verification/rtl/record_common.py",
+    "flow/common/record_lib.py",
     "spec/key-isolation-properties.md",
     "scripts/setup-env.sh",
 )
@@ -53,7 +53,7 @@ def main() -> int:
         return 1
     rev = rc.require_clean_inputs(INPUTS[:-1])
     v = rc.tool_versions()
-    v["sby"] = rc.first_line(str(rc.REPO / ".venv/bin/yowasp-sby"), "--version")
+    v["sby"] = rc.run(str(rc.REPO / ".venv/bin/yowasp-sby"), "--version")
     table = "\n".join(
         f"  | `{f}` | `{t}` | {s} | {e} | {fr} | {sec} | {NOTES.get((f, t), '')} |"
         for f, t, s, _rc, e, fr, sec in rows)
@@ -68,7 +68,7 @@ def main() -> int:
 
   Tasks named `reach_*` and `neg_*` are expected to FAIL (sby `expect fail`); their failure is the evidence that the passing tasks are not vacuous and that the checks can see a defect.
 - **Tool gap**: the sby in the pinned venv (`yowasp-sby`) ships no SMT solver, so `smtbmc` engines, counterexample waveforms (`aigsmt`) and cover traces are unavailable, and it looks for `yosys-witness`/`yosys-smtbmc` by names the venv does not provide (shimmed under `flow/build/formal-bin/`). Filed on `2AMLogic/klayout-tools` as a generic tool gap.
-- **Tool versions**: {v['sby']}, yowasp-yosys {v['yowasp_yosys']} (`yosys.wasm` {v['yosys_wasm']}), Python {v['python']}, klt revision `{v['klt_revision']}`.
+- **Tool versions**: {v['sby']}, yowasp-yosys {v['yowasp_yosys']} (`yosys.wasm` {v['yosys_wasm']}), Python {v['python']}, klt pinned at `{v['klt_pin']}`.
 - **Links**: `verification/formal/`, `spec/key-isolation-properties.md`, `rtl/drbg/`, `rtl/trng_if/`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 - **Supersedes**: none
