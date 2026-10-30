@@ -10,7 +10,8 @@
 #   ./verification/rtl/sha256/run.sh --million-a        # also run the FIPS 180-4 million-`a` KAT
 #                                                       # (about 2M cycles, ~10 min in Icarus)
 #   ./verification/rtl/sha256/run.sh --negative-control # K[17] flipped by one bit: MUST fail
-#                                                       # (exit 0 only if the bench catches it)
+#                                                       # (exit 0 only if the bench catches it); also
+#                                                       # omits hh from the scrub list: test_scrub MUST fail
 #
 # Exit 0 only if the simulation passed and the synthesis is ok with no latches.
 # Without --million-a that KAT is NOT run and a record says so. Synthesis is a
@@ -33,8 +34,21 @@ for arg in "$@"; do
 done
 
 core_flow_setup
-[ "${NEG}" = 1 ] && core_flow_negctl "SHA256_NEG_CTRL flips one K constant" "constant"
+if [ "${NEG}" = 1 ]; then
+  echo "== negative control: SHA256_NEG_SCRUB omits hh from the scrub list; test_scrub must fail =="
+  if klt functional-verification sim-scrub-negctl-request.json --format json > "${OUT}/scrub-negctl.json"; then
+    echo "FAIL: test_scrub passed with hh left out of the scrub" >&2
+    exit 1
+  fi
+  _json_line "${OUT}/scrub-negctl.json" '"scrub negative control:", d["status"], "(expected fail)"'
+  grep -o 'first failing scrub check: [^&]*' .klt/functional-verification/results_icarus.xml | head -1
+  core_flow_negctl "SHA256_NEG_CTRL flips one K constant" "constant"
+fi
 
+# scrub runs first: make_record.py reads the SUMMARY line from the last klt log
+echo "== scrub (zeroize) test =="
+klt functional-verification sim-scrub-request.json --format json > "${OUT}/scrub.json"
+_json_line "${OUT}/scrub.json" '"scrub:", d["status"], d["passed_count"], "/", d["test_count"], "tests"'
 core_flow_sim
 rm -f "${OUT}/million.json"
 if [ "${MILLION}" = 1 ]; then
