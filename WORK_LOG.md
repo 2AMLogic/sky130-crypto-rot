@@ -3,6 +3,11 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-29
+
+- **PR #69**: feat(rtl): CTR_DRBG core and TRNG interface with benches and P-7/P-8/P-9 formal
+- **Issue #45** (closed): T1 item 1 (design sources): CTR_DRBG (AES-128, df) and sky130-trng interface RTL, with SP 800-90A KATs
+
 ### 2026-10-28
 
 - **PR #81**: feat(verification): add pin-sync checker and wire it into lint
