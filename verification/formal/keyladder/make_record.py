@@ -18,19 +18,17 @@ verification/records/keyladder-formal/records/. Standard library only.
 from __future__ import annotations
 
 import argparse
-import datetime
 import hashlib
 import json
-import platform
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "flow/common"))
 
-from record_lib import pin, run, sha256  # noqa: E402
+import record_lib  # noqa: E402
+from record_lib import pin, run  # noqa: E402
 EXPERIMENT = "keyladder-formal"
 HERE = "verification/formal/keyladder"
 INPUTS = (
@@ -151,36 +149,26 @@ def main() -> int:
         return 0
 
     latency = int(m.group(1))
-    sources = (args.pdk_root / "sky130A/SOURCES").read_text()
-    if pin("CIEL_SKY130_VERSION") not in sources:
-        raise SystemExit("PDK tree does not name the pinned open_pdks commit; refusing to record")
+    record_lib.check_pdk(args.pdk_root)
     z3_sha = hashlib.sha256((REPO / ".venv/bin/z3").read_bytes()).hexdigest()
     if z3_sha != pin("Z3_BIN_SHA256"):
         raise SystemExit("z3 binary does not match the pin; refusing to record")
-    rev = run("git", "-C", str(REPO), "rev-parse", "HEAD")
-    if subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + list(INPUTS),
-                      capture_output=True, text=True).stdout.strip():
-        raise SystemExit("an input is modified relative to HEAD; commit it before recording")
-    now = datetime.datetime.now(datetime.timezone.utc)
-    rid = f"{now:%Y%m%d-%H%M%S}-{rev[:7]}"
-    venv_py = REPO / ".venv/bin/python3"
-    wasm = run(str(venv_py), "-c",
-               "import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha256(open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
+    rev = record_lib.require_clean_inputs(INPUTS)
+    tv = record_lib.tool_versions()
     versions = {
         "yosys": run(str(REPO / ".venv/bin/yosys"), "-V"),
-        "yowasp_yosys": pin("YOWASP_YOSYS_VERSION"),
-        "yosys_wasm": wasm,
+        "yowasp_yosys": tv["yowasp_yosys"],
+        "yosys_wasm": tv["yosys_wasm"],
         "sby": "SymbiYosys from the yowasp-yosys wheel (yowasp-sby)",
         "z3": run(str(REPO / ".venv/bin/z3"), "--version"),
         "z3_solver_wheel": pin("Z3_SOLVER_VERSION"),
         "z3_binary": "sha256:" + z3_sha,
-        "klt_pin": pin("KLT_VERSION"),
-        "icarus": run("iverilog", "-V"),
-        "python": platform.python_version(),
+        "klt_pin": tv["klt_pin"],
+        "icarus": tv["icarus"],
+        "python": tv["python"],
     }
-    meta = {"record_id": rid, "experiment": EXPERIMENT, "supersedes": None, "git_revision": rev,
-            "provenance": {"tool_versions": versions,
-                           "inputs": [{"path": p, "content_hash": sha256(REPO / p)} for p in INPUTS]}}
+    wasm = versions["yosys_wasm"]
+    meta_extra = {"tool_versions": versions}
 
     def row(sby, task, what, mode, depth):
         r = runs[(sby, task)]
@@ -231,14 +219,7 @@ def main() -> int:
         return (f"time limit reached: no difference in steps 0..{r['steps_checked'] - 1}; "
                 f"the configured depth {depth} was NOT reached") if r["steps_checked"] else r["status"]
 
-    body = f"""<!-- record-meta
-{json.dumps(meta, indent=2)}
--->
-
-# Record {rid}
-
-- **Record ID**: {rid}
-- **Claim**: bounded formal results for `rtl/keyladder/keyladder.v` (issue #56), and nothing beyond the depths and abstractions stated here. Rows are labelled with the `spec/key-isolation-properties.md` property they address. No security, certification or side-channel claim is made.
+    body = f"""- **Claim**: bounded formal results for `rtl/keyladder/keyladder.v` (issue #56), and nothing beyond the depths and abstractions stated here. Rows are labelled with the `spec/key-isolation-properties.md` property they address. No security, certification or side-channel claim is made.
 - **Design provenance**: P-5/P-6: RTL, and the `keyladder` module of the `klt synthesize` sky130_fd_sc_hd netlist (liberty corner `tt_025C_1v80`, pre-P&R) read through the PDK liberty functional models (`read_liberty -ignore_miss_func`); the netlist cells are modelled by Yosys from the liberty `function`/`ff` groups, no hand-written cell models. P-2 and P-1: RTL, and the full synthesized netlist.
 - **Run configuration**: `./scripts/setup-env.sh` then `./verification/formal/keyladder/run.sh --record`. Engine `smtbmc z3`, single solver, no portfolio. P-1 bounded depths configured: RTL {args.p1_depth_rtl}, netlist {args.p1_depth_net}.
 - **Property text**: P-5, P-6 and the covers are `{HERE}/props_slots.vh`, spliced unchanged into a generated COPY of `keyladder.v` (and of the netlist's `keyladder` module); `gen.py` checks the splice is a pure insertion. `rtl/keyladder/keyladder.v` is not modified. Registers named by the properties (`s0..s3 v0..v3 m0..m3 l0..l3 d0..d3 state dst par_root par_sel`) survive synthesis as named wires, so one text covers both.
@@ -299,13 +280,10 @@ The netlist negative controls are separate `klt synthesize` runs of the mutated 
 
 - **Tool versions**: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}); SymbiYosys and `yosys-smtbmc` from the same wheel; {versions['z3']} (z3-solver {versions['z3_solver_wheel']}, binary {versions['z3_binary']}); klt pinned at `{versions['klt_pin']}` (synthesis); {versions['icarus']}; Python {versions['python']}.
 - **Links**: `{HERE}/`, `rtl/keyladder/keyladder.v`, `spec/key-isolation-properties.md` (P-1, P-2, P-5, P-6, Open questions 1-3), `verification/records/keyladder-sim-synth/`.
-- **Timestamp / author**: {now:%Y-%m-%dT%H:%M:%SZ}, Loom builder agent (issue #56).
+- **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #56).
 - **Supersedes**: none
 """
-    out = REPO / "verification/records" / EXPERIMENT / "records" / f"{rid}.md"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(body)
-    print("wrote", out.relative_to(REPO))
+    record_lib.write_record(EXPERIMENT, rev, INPUTS, meta_extra, body)
     return 0
 
 
