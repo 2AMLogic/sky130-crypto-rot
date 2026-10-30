@@ -28,6 +28,14 @@ from verification.model import vectorlib  # noqa: E402
 MAX_CYCLES = 20000
 
 
+CORE_SCRUBBED = ("w", "hh", "a", "b", "c", "d", "e", "f", "g", "h")
+
+
+def core_dirty(dut):
+    """Names of hash-core datapath registers that are not all-zero (hierarchical read)."""
+    return [n for n in CORE_SCRUBBED if int(getattr(dut.core, n).value) != 0]
+
+
 class Dut:
     def __init__(self, dut):
         self.dut = dut
@@ -174,7 +182,44 @@ async def test_hmac_sha256(dut):
     assert not int(dut.busy.value) and not int(dut.mac_valid.value), "clear did not idle the block"
     await run("after clear", key, msg, 0)
 
+    # clear scrubs the hash core datapath too: abort in S_IPAD and in S_OPAD
+    # (state 4 and 7), with the core registers provably dirty beforehand.
+    scrub_fail = None
+    for label, st in (("S_IPAD", 4), ("S_OPAD", 7)):
+        key, msg = rng.randbytes(32), rng.randbytes(20)
+        await bench.start(key, 0)
+        if st == 7:
+            await bench._stream("in", msg, rng, False)
+        while int(dut.state.value) != st:
+            await FallingEdge(dut.clk)
+        await ClockCycles(dut.clk, 20)
+        await FallingEdge(dut.clk)
+        assert core_dirty(dut), f"core registers already zero before clear in {label}: bench is vacuous"
+        dut.clear.value = 1
+        await FallingEdge(dut.clk)
+        dut.clear.value = 0
+        left = core_dirty(dut)
+        if left and scrub_fail is None:
+            scrub_fail = f"{label}: core registers not zero after clear: {left}"
+        await run(f"after {label} clear", key, msg, 0)
+    # clear coinciding with start, then a back-to-back operation
+    key, msg = rng.randbytes(32), rng.randbytes(52)
+    await bench.start(key, 0)
+    await ClockCycles(dut.clk, 30)
+    await FallingEdge(dut.clk)
+    dut.clear.value = 1
+    dut.start.value = 1
+    await FallingEdge(dut.clk)
+    dut.clear.value = 0
+    dut.start.value = 0
+    left = core_dirty(dut)
+    if left and scrub_fail is None:
+        scrub_fail = f"clear+start: core registers not zero: {left}"
+    assert not int(dut.busy.value), "clear+start did not idle the block"
+    await run("after clear+start", key, msg, 0)
+
     dut._log.info(f"SUMMARY vectors={ran} first_failure={first_fail} "
                   f"kdf_shape_cycles_start_to_mac_valid={kdf_cycles}")
     assert first_fail is None, f"first failing vector: {first_fail}"
+    assert scrub_fail is None, f"first failing scrub check: {scrub_fail}"
     assert kdf_cycles >= 4 * 65, f"fewer cycles than 4 compressions: {kdf_cycles}"
