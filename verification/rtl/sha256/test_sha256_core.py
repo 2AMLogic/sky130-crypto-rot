@@ -51,6 +51,7 @@ class Dut:
     async def reset(self):
         d = self.dut
         d.rst_n.value = 0
+        d.scrub.value = 0
         d.in_valid.value = 0
         d.in_data.value = 0
         d.in_last.value = 0
@@ -164,3 +165,125 @@ async def test_million_a(dut):
     # padding block follows, so two blocks are hashed after the last accept.
     assert cycles == 2 * CYCLES_PER_BLOCK, f"latency {cycles}"
     dut._log.info("million-a: digest matches, 130 cycles after the last accept (2 blocks)")
+
+
+SCRUBBED = ("w", "hh", "a", "b", "c", "d", "e", "f", "g", "h", "len", "t", "dvalid")
+
+
+def dirty(dut):
+    """Names of the scrubbed registers that are not all-zero (hierarchical read)."""
+    return [n for n in SCRUBBED if int(getattr(dut, n).value) != 0]
+
+
+async def pulse_scrub(dut):
+    """Assert scrub for exactly one rising edge; return after the next falling edge."""
+    await FallingEdge(dut.clk)
+    dut.scrub.value = 1
+    await RisingEdge(dut.clk)
+    await FallingEdge(dut.clk)
+    dut.scrub.value = 0
+
+
+async def feed(dut, msg, nbytes):
+    """Accept the first nbytes of msg (no in_last), driving on falling edges."""
+    for byte in msg[:nbytes]:
+        await FallingEdge(dut.clk)
+        dut.in_valid.value = 1
+        dut.in_data.value = byte
+        dut.in_last.value = 0
+        dut.in_empty.value = 0
+        await RisingEdge(dut.clk)
+    await FallingEdge(dut.clk)
+    dut.in_valid.value = 0
+
+
+@cocotb.test()
+async def test_scrub(dut):
+    """scrub zeroes w/hh/a..h (and control) from any state; later messages still hash right."""
+    cocotb.start_soon(Clock(dut.clk, 20, unit="ns").start())
+    bench = Dut(dut)
+    await bench.reset()
+    failures = []
+
+    def expect_clean(label):
+        bad = dirty(dut)
+        if bad:
+            failures.append(f"{label}: not zero after scrub: {bad}")
+
+    follow = bytes((3 * i + 1) & 0xFF for i in range(100))
+
+    async def check_follow(label):
+        _, got = await bench.send(follow)
+        if got != model_sha256(follow):
+            failures.append(f"{label}: next message digest {got.hex()} != model")
+
+    # 1. idle, after a finished message (H and block buffer hold its state)
+    await bench.send(b"abc")
+    assert dirty(dut), "bench premise: registers should hold state after a message"
+    await pulse_scrub(dut)
+    expect_clean("idle after message")
+    if int(dut.digest_valid.value):
+        failures.append("idle after message: digest_valid still high")
+    await check_follow("idle")
+
+    # 2. mid-block collect (partial block buffer)
+    await feed(dut, bytes(range(1, 40)), 39)
+    assert int(dut.w.value) != 0
+    await pulse_scrub(dut)
+    expect_clean("mid-collect")
+    await check_follow("mid-collect")
+
+    # 3. mid-block rounds, at several round indices, plus the add edge
+    for rounds in (1, 17, 40, 64, 65):
+        await feed(dut, bytes(range(64)), 64)  # 64th byte commits the block
+        await ClockCycles(dut.clk, rounds - 1)
+        await FallingEdge(dut.clk)
+        assert int(dut.in_ready.value) == 0, "bench premise: block should be hashing"
+        await pulse_scrub(dut)
+        expect_clean(f"mid-rounds (edge {rounds})")
+        if not int(dut.in_ready.value):
+            failures.append(f"mid-rounds (edge {rounds}): not back in collect")
+        await check_follow(f"mid-rounds {rounds}")
+
+    # 4. during the length-only spill block (56-byte message: padding spills)
+    msg = bytes(range(56))
+    await feed(dut, msg, 55)
+    await FallingEdge(dut.clk)
+    dut.in_valid.value = 1
+    dut.in_data.value = msg[55]
+    dut.in_last.value = 1
+    dut.in_empty.value = 0
+    await RisingEdge(dut.clk)
+    await FallingEdge(dut.clk)
+    dut.in_valid.value = 0
+    dut.in_last.value = 0
+    await ClockCycles(dut.clk, 65 + 20)  # first block done, spill block in rounds
+    await FallingEdge(dut.clk)
+    assert not int(dut.digest_valid.value), "bench premise: spill block still hashing"
+    await pulse_scrub(dut)
+    expect_clean("spill block")
+    await check_follow("spill")
+
+    # 5. scrub on the cycle accept is high: the transfer must not be taken
+    await FallingEdge(dut.clk)
+    dut.scrub.value = 1
+    dut.in_valid.value = 1
+    dut.in_data.value = 0xA5
+    dut.in_last.value = 0
+    await RisingEdge(dut.clk)
+    await FallingEdge(dut.clk)
+    dut.scrub.value = 0
+    dut.in_valid.value = 0
+    expect_clean("scrub with accept high")
+    await check_follow("accept-high")
+
+    # 6. scrub back to back with a new message, and the whole-message KAT after
+    await feed(dut, bytes(range(10)), 10)
+    await pulse_scrub(dut)
+    await pulse_scrub(dut)
+    expect_clean("back-to-back scrubs")
+    _, got = await bench.send(b"abc")
+    check("abc after scrub", got, bytes.fromhex(INDEPENDENT[b"abc"]))
+
+    dut._log.info(f"SCRUB first_failure={failures[0] if failures else None}")
+    assert not failures, f"first failing scrub check: {failures[0]}"
