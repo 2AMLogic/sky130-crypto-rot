@@ -28,6 +28,9 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO / "flow/common"))
+
+from record_lib import pin, run, sha256  # noqa: E402
 EXPERIMENT = "keyladder-formal"
 HERE = "verification/formal/keyladder"
 INPUTS = (
@@ -65,23 +68,6 @@ EXPECT = {
     ("p1", "rtl"): "BOUNDED", ("p1", "net"): "BOUNDED",
 }
 CONES = {"rtl": "pass", "net": "pass", "rtl_slotpath": "fail", "net_slotpath": "fail"}
-
-
-def sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def pin(name: str) -> str:
-    for line in (REPO / "scripts/setup-env.sh").read_text().splitlines():
-        if line.startswith(name + '="'):
-            return line.split('"')[1]
-    raise SystemExit(f"pin {name} not found in scripts/setup-env.sh")
-
-
-def run(*cmd: str) -> str:
-    out = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    text = (out.stdout + out.stderr).strip()
-    return text.splitlines()[0] if text else "unknown"
 
 
 def collect(stage: Path, sby: str, task: str) -> dict:

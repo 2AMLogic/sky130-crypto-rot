@@ -15,8 +15,8 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import record_common as rc  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "flow/common"))
+import record_lib as rc  # noqa: E402
 
 EXPERIMENT = "drbg-sim-synth"
 INPUTS = (
@@ -35,7 +35,7 @@ INPUTS = (
     "verification/rtl/drbg/synth-request.json",
     "verification/rtl/drbg/run.sh",
     "verification/rtl/drbg/make_record.py",
-    "verification/rtl/record_common.py",
+    "flow/common/record_lib.py",
     "verification/model/ctr_drbg.py",
     "verification/model/aes.py",
     "verification/model/vectorlib.py",
@@ -86,7 +86,7 @@ def main() -> int:
   - 6/4-word elaboration (24-byte entropy||nonce, 16-byte reseed): the AES-128 use-df records of `CTR_DRBG_pr_false.rsp` (provenance sidecar checked) with personalization length 0 and both additional inputs empty, which are the only records inside the hardware's feature set (no personalization string, no additional input on generate or reseed): instantiate, reseed, generate-and-discard, generate, compare the second `ReturnedBits`. `{cavp_s}`
   - Not run: the other AES-128 use-df sections (non-empty personalization or additional input; unsupported by design, decision 0002), AES-256, no-df and 3KeyTDEA sections, prediction resistance.
 - **Result**: PASS. Shipped elaboration {sim['passed_count']}/{sim['test_count']} tests, CAVP elaboration {cavp['passed_count']}/{cavp['test_count']} tests. Negative controls (`./verification/rtl/drbg/run.sh --negative-control`): a flipped bit of the df key constant, a flipped bit of V in Update, one request too many before RESEED_REQUIRED, and the CAVP replay on a corrupted Update each make the bench fail. Synthesis: status `{syn['status']}`, {syn['instance_count']} instances, {syn['area_um2']} um2 ({syn['sequential_area_um2']} um2 sequential), no latches, combinational loops or multi-driven nets. Timing is `null`: no timing claim.
-- **klt provenance**: klt `{prov['klt_version']}` from revision `{v['klt_revision']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {v['yosys']} (yowasp-yosys {v['yowasp_yosys']}, `yosys.wasm` {v['yosys_wasm']}), {v['icarus']}, cocotb {v['cocotb']}, ciel {v['ciel']}, Python {v['python']}.
+- **klt provenance**: klt `{prov['klt_version']}` pinned at `{v['klt_pin']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {v['yosys']} (yowasp-yosys {v['yowasp_yosys']}, `yosys.wasm` {v['yosys_wasm']}), {v['icarus']}, cocotb {v['cocotb']}, ciel {v['ciel']}, Python {v['python']}.
 - **Links**: `rtl/drbg/`, `verification/rtl/drbg/`, `spec/decision-records/0002-drbg-construction.md`, `spec/target-spec.md` section 4.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 - **Supersedes**: none

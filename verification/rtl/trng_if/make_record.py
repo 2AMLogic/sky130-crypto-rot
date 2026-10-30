@@ -14,8 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import record_common as rc  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "flow/common"))
+import record_lib as rc  # noqa: E402
 
 EXPERIMENT = "trng-if-sim"
 INPUTS = (
@@ -33,7 +33,7 @@ INPUTS = (
     "verification/rtl/trng_if/fetch_trng.sh",
     "verification/rtl/trng_if/run.sh",
     "verification/rtl/trng_if/make_record.py",
-    "verification/rtl/record_common.py",
+    "flow/common/record_lib.py",
     "verification/model/ctr_drbg.py",
     "reuse.lock.json",
     "scripts/setup-env.sh",
@@ -85,7 +85,7 @@ def main() -> int:
 - **Negative controls** (`./verification/rtl/trng_if/run.sh --negative-control`): each of these corrupted builds makes the bench fail: ignoring the previous sample's gating (`TRNG_IF_NEG_PREV`), not discarding a partial seed (`TRNG_IF_NEG_DISCARD`), a seed one word short (`TRNG_IF_NEG_COUNT`), DRBG `V` surviving the alarm zeroize (`DRBG_NEG_ZEROIZE`), one request too many before `RESEED_REQUIRED` (`DRBG_NEG_INTERVAL`). There is no negative control for "ALARM written only after zeroize completed": at the stated ratio the sequencer's earliest write is hundreds of core cycles after the 3-cycle zeroize, so the ordering is checked but a bench cannot tell a sequencer that skips the wait from the shipped one.
 - **Measured**: alarm pin to zeroize asserted and to Key/V/seed zero is checked against a 6-cycle bound (2 synchronizer cycles, 1 register, 1 clear, margin) in both benches; the formal bound is in the `drbg-trng-formal` record.
 - **Not covered**: the sibling at its unshortened parameters (full 1024-sample start-up, 256-bit conditioner block); the `gated`-persists-then-`RESEED_REQUIRED` transition of `spec/target-spec.md` section 5 (no persistence threshold is specified, none is implemented); bus-visible status mirrors, key slots and the lifecycle FSM (issues #44 and #46); netlist-level behavior.
-- **Tool versions**: {v['icarus']}, cocotb {v['cocotb']}, Python {v['python']}, klt revision `{v['klt_revision']}`, ciel {v['ciel']}.
+- **Tool versions**: {v['icarus']}, cocotb {v['cocotb']}, Python {v['python']}, klt pinned at `{v['klt_pin']}`, ciel {v['ciel']}.
 - **Links**: `rtl/trng_if/`, `verification/rtl/trng_if/`, `spec/trng-interface.md`, `reuse.lock.json`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 - **Supersedes**: none
