@@ -83,6 +83,10 @@ jobs:
             echo "no rtl/ or verification/ change; verify skipped"
           fi
       - if: steps.changed.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - if: steps.changed.outputs.run == 'true'
         run: sudo apt-get update && sudo apt-get install -y iverilog
       - if: steps.changed.outputs.run == 'true'
         uses: actions/cache@v4
