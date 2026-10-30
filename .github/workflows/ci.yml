@@ -87,7 +87,9 @@ jobs:
         with:
           python-version: "3.13"
       - if: steps.changed.outputs.run == 'true'
-        run: sudo apt-get update && sudo apt-get install -y iverilog
+        # yosys provides the native `yosys-abc` that sby's `abc bmc3`/`abc pdr`
+        # engines call; the pinned YoWASP wheel has no standalone abc.
+        run: sudo apt-get update && sudo apt-get install -y iverilog yosys
       - if: steps.changed.outputs.run == 'true'
         uses: actions/cache@v4
         with:

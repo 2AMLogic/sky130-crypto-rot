@@ -21,6 +21,9 @@
 # failing tasks therefore produce no waveform. Tool gap filed generically on
 # 2AMLogic/klayout-tools (see the record).
 #
+# `abc` engines run a separate `yosys-abc`, which the YoWASP wheel does not ship:
+# a native Yosys install must provide it (CI: apt `yosys`); checked up front.
+#
 # yowasp-sby looks for `yosys-witness` / `yosys-smtbmc` by those names; the
 # venv ships them as yowasp-yosys-*, so a shim directory under flow/build/
 # links them (no host tool is touched).
@@ -47,6 +50,13 @@ fi
 if [ -z "${SBY}" ] || [ ! -x "${SBY}" ]; then
   echo "error: no SymbiYosys found (looked for ${REPO_ROOT}/.venv/bin/yowasp-sby and sby on PATH)." >&2
   echo "  -> run ./scripts/setup-env.sh first. The properties are NOT deferred; this run proved nothing." >&2
+  exit 2
+fi
+if ! command -v yosys-abc > /dev/null 2>&1; then
+  echo "error: yosys-abc not found on PATH. sby's 'abc bmc3'/'abc pdr' engines run it as a" >&2
+  echo "  separate program; the pinned yowasp-yosys wheel does not ship one." >&2
+  echo "  -> install a native Yosys (it provides yosys-abc), e.g. 'apt-get install yosys'." >&2
+  echo "  Without it every task exits 16 and the reach_*/neg_* controls cannot be told from a missing tool." >&2
   exit 2
 fi
 mkdir -p "${OUT}" "${SHIM}"
