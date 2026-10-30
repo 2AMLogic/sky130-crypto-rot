@@ -25,15 +25,24 @@ core_flow_setup() {
   cd "${HERE}"
 }
 
-# core_flow_negctl <what is corrupted> -- exit 0 only if the bench catches it.
-core_flow_negctl() {
-  echo "== negative control: ${1}; the bench must fail =="
-  if klt functional-verification sim-negctl-request.json --format json > "${OUT}/negctl.json"; then
-    echo "FAIL: the bench passed with a corrupted ${2}" >&2
+# core_flow_negctl_one <request> <json name> <result label> <grep pattern> <what the bench wrongly passed>
+# Runs one corrupted build; exits 1 if the bench passes it, else prints the
+# status and the first failing check. Does not exit 0 itself: the caller may
+# chain several controls.
+core_flow_negctl_one() {
+  if klt functional-verification "${1}" --format json > "${OUT}/${2}"; then
+    echo "FAIL: the bench passed with ${5}" >&2
     exit 1
   fi
-  _json_line "${OUT}/negctl.json" '"negative control:", d["status"], "(expected fail)"'
-  grep -o 'first failing vector: [^&]*' .klt/functional-verification/results_icarus.xml | head -1
+  _json_line "${OUT}/${2}" '"'"${3}"'", d["status"], "(expected fail)"'
+  grep -o "${4}" .klt/functional-verification/results_icarus.xml | head -1
+}
+
+# core_flow_negctl <what is corrupted> <noun> -- exit 0 only if the bench catches it.
+core_flow_negctl() {
+  echo "== negative control: ${1}; the bench must fail =="
+  core_flow_negctl_one sim-negctl-request.json negctl.json "negative control:" \
+    'first failing vector: [^&]*' "a corrupted ${2}"
   exit 0
 }
 
@@ -44,8 +53,9 @@ core_flow_sim() {
   grep -o 'SUMMARY[^<]*' .klt/functional-verification/test_icarus.log | head -1 || true
 }
 
+# core_flow_synth [what] -- the optional name goes in the banner ("synthesis of <what>").
 core_flow_synth() {
-  echo "== synthesis (klt synthesize -> sky130_fd_sc_hd, tt_025C_1v80) =="
+  echo "== synthesis${1:+ of ${1}} (klt synthesize -> sky130_fd_sc_hd, tt_025C_1v80) =="
   klt synthesize synth-request.json --pdk sky130A --pdk-root "${PDK_ROOT}" \
     --format json > "${OUT}/synth.json"
   _json_line "${OUT}/synth.json" 'd["status"], d["instance_count"], "instances", d["area_um2"], "um2"'

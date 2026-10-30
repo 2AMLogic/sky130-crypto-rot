@@ -21,8 +21,8 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${HERE}/../../.." && pwd)"
-OUT="${REPO_ROOT}/flow/build/trng_if"
+NAME=trng_if
+source "${HERE}/../../../flow/common/core_flow.sh"
 
 RECORD=0; NEG=0; REAL=1
 for arg in "$@"; do
@@ -34,20 +34,12 @@ for arg in "$@"; do
   esac
 done
 
-if [ ! -x "${REPO_ROOT}/.venv/bin/klt" ]; then
-  echo "error: ${REPO_ROOT}/.venv is not provisioned." >&2
-  echo "  -> run ./scripts/setup-env.sh first." >&2
-  exit 1
-fi
-export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
-
-mkdir -p "${OUT}"
-cd "${HERE}"
+core_flow_setup
 python3 -I mk_req.py
 
 sim() { klt functional-verification "$1" --format json > "$2"; }
 summaries() { grep -o 'SUMMARY[^<]*' .klt/functional-verification/test_icarus.log || true; }
-status() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["status"], d["passed_count"], "/", d["test_count"], "tests")' "$1"; }
+status() { _json_line "$1" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'; }
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each corrupted build MUST fail =="
