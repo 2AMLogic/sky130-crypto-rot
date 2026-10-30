@@ -63,15 +63,18 @@ run_task() { # run_task <file.sby> <task>
   rm -rf "${dir}"
   "${SBY}" -f -d "${dir}" "${file}" "${task}" > "${OUT}/${file%.sby}_${task}.out" 2>&1 || rc=$?
   local status engine frame secs
-  status="$(grep -o 'DONE ([A-Z]*' "${dir}/logfile.txt" | tail -1 | sed 's/DONE (//')"
-  engine="$(grep -o 'summary: engine_0 ([a-z0-9 ]*) returned [A-Z]*' "${dir}/logfile.txt" | tail -1 | sed 's/summary: //')"
-  frame="$(grep -o 'asserted in frame [0-9]*' "${dir}/logfile.txt" | head -1 | grep -o '[0-9]*$' || true)"
-  secs="$(grep -o 'Elapsed clock time.*(\([0-9]*\))' "${dir}/logfile.txt" | tail -1 | grep -o '([0-9]*)' | tr -d '()')"
+  # logfile.txt is missing when sby dies early; every grep tolerates that so
+  # the FAIL branch below (and the sby output it prints) is always reached.
+  status="$(grep -o 'DONE ([A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/DONE (//' || true)"
+  engine="$(grep -o 'summary: engine_0 ([a-z0-9 ]*) returned [A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/summary: //' || true)"
+  frame="$(grep -o 'asserted in frame [0-9]*' "${dir}/logfile.txt" 2>/dev/null | head -1 | grep -o '[0-9]*$' || true)"
+  secs="$(grep -o 'Elapsed clock time.*(\([0-9]*\))' "${dir}/logfile.txt" 2>/dev/null | tail -1 | grep -o '([0-9]*)' | tr -d '()' || true)"
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "${file}" "${task}" "${status:-ERROR}" "${rc}" "${engine:-none}" "${frame:--}" "${secs:--}" >> "${OUT}/results.tsv"
   if [ "${rc}" = 0 ]; then
     echo "  ok    ${file} ${task}: ${status} (${engine}${frame:+, counterexample at frame ${frame}}, ${secs}s)"
   else
     echo "  FAIL  ${file} ${task}: sby exit ${rc}, see ${OUT}/${file%.sby}_${task}.out" >&2
+    tail -n 40 "${OUT}/${file%.sby}_${task}.out" | sed 's/^/        | /' >&2 || true
     bad=1
   fi
 }
