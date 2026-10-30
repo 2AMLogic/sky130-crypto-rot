@@ -63,8 +63,8 @@ uvx --from "klayout-tools==0.8.0" klt signoff --attest 9 \
     -o manifests/inventories/item-9.envelope.json
 ```
 
-Runs `scripts/cold-start-benches.sh` (about 12 minutes: setup, model KATs, the
-smoke flow, and the SHA-256 (with million-`a`), AES, HMAC and key-ladder RTL
+Runs `scripts/cold-start-benches.sh` (about 12 minutes: setup, model KATs, and the
+SHA-256 (with million-`a`), AES, HMAC and key-ladder RTL
 benches with their negative controls). `klt` allows one command 1800 s, so the
 FORMAL key-ladder bench (`verification/formal/keyladder/run.sh`) is not in the
 inventory and the `keyladder-formal` record is not covered by this attestation.

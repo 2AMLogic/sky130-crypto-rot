@@ -13,10 +13,10 @@ decisions: [`spec/decision-records/0001-modexp-tooling-adoption.md`](../spec/dec
 
 | Where | What |
 |---|---|
-| CI `lint` | `python3 -m compileall verification flow`; `bash -n scripts/*.sh flow/smoke/run.sh` |
+| CI `lint` | `python3 -m compileall verification flow`; `bash -n scripts/*.sh verification/rtl/sha256/run.sh` |
 | CI `model` | `pytest verification/model` over the committed SHA-256 and HMAC-SHA-256 vectors (grows as AES, KDF and DRBG models land under `model/`) |
 | CI `reuse` | `check_reuse.py` re-hashes each `reuse.lock.json` file that has a local copy against its `sha256`; its self-test is `test_check_reuse.py` |
-| Local only | environment provisioning, cocotb + Icarus smoke flow, synthesis, place-and-route, DRC, LVS, `klt signoff --manifest` (all need the PDK or the provisioned venv) |
+| Local only | environment provisioning, cocotb + Icarus SHA-256 core flow, synthesis, place-and-route, DRC, LVS, `klt signoff --manifest` (all need the PDK or the provisioned venv) |
 
 CI proves format and known-answer correctness only and makes no security
 claim. The pin checker and evidence-record linter are not wired yet: they are

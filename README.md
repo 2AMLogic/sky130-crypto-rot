@@ -108,7 +108,6 @@ the pinned yosys and the PDK first):
 
 ```
 ./scripts/setup-env.sh                       # provision .venv, pinned yosys, PDK
-./flow/smoke/run.sh                          # smoke: cocotb + Icarus, then klt synthesize
 ./verification/rtl/sha256/run.sh             # SHA-256 core: cocotb + Icarus KATs, then klt synthesize
 ./verification/rtl/sha256/run.sh --record    # same, then write a record under verification/records/
 ```

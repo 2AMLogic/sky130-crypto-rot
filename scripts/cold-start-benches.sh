@@ -30,7 +30,6 @@ cd "${REPO_ROOT}"
 .venv/bin/python verification/check_reuse.py
 .venv/bin/python -m pytest verification/test_check_reuse.py
 
-./flow/smoke/run.sh
 for core in sha256 aes hmac keyladder; do
   if [ "${core}" = sha256 ]; then
     ./verification/rtl/sha256/run.sh --million-a

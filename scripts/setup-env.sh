@@ -355,18 +355,18 @@ if [ "${#missing[@]}" -gt 0 ]; then
       iverilog)
         echo "  - iverilog (Icarus Verilog): 'brew install icarus-verilog' (macOS)"
         echo "    or 'apt-get install iverilog' (Debian/Ubuntu). Required for"
-        echo "    the cocotb + Icarus smoke test."
+        echo "    the cocotb + Icarus SHA-256 core flow."
         ;;
       openroad)
         echo "  - openroad: no package-manager formula on macOS or common Linux"
         echo "    distros. Build from https://github.com/The-OpenROAD-Project/OpenROAD"
         echo "    and put it on \$PATH. Required for 'klt place-and-route'/'klt sta'"
-        echo "    only; the smoke flow's synthesis and simulation do not need it."
+        echo "    only; the SHA-256 flow's synthesis and simulation do not need it."
         ;;
     esac
   done
   echo
-  echo "This is non-fatal for this script: the smoke flow (flow/smoke/run.sh)"
+  echo "This is non-fatal for this script: the SHA-256 flow (verification/rtl/sha256/run.sh)"
   echo "needs only iverilog plus the pinned venv tools."
 else
   echo "all of iverilog/yosys/openroad resolve (yosys from the pin above)."

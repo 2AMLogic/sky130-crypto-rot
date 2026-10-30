@@ -11,15 +11,20 @@ sibling `2AMLogic/sky130-modexp` (`docs/environment.md` and
 `scripts/setup-env.sh` at `18f4d8fd5e104f64550817a5468f262c159f734f`), each
 re-resolved live on 2026-10-17 rather than copied blind (see "Re-verification").
 
-## Reproduce the smoke run
+## Reproduce the toolchain run
 
 ```bash
-./scripts/setup-env.sh       # once; idempotent
-./flow/smoke/run.sh          # cocotb + Icarus on the RTL, then klt synthesize
+./scripts/setup-env.sh                  # once; idempotent
+./verification/rtl/sha256/run.sh        # cocotb + Icarus on the RTL, then klt synthesize
 ```
 
-`./flow/smoke/run.sh --record` additionally writes a record under
-`verification/records/smoke-synthesis-sim/records/`.
+`./verification/rtl/sha256/run.sh --record` additionally writes a record under
+`verification/records/sha256-core-sim-synth/records/`.
+
+The original bring-up run, on a registered 8-bit adder that has since been
+retired in favour of the SHA-256 core flow, is the append-only record
+`verification/records/smoke-synthesis-sim/records/20261017-214652-6edf260.md`;
+its inputs are reproducible from commit `6edf260`.
 
 ## Provisioning: `scripts/setup-env.sh`
 
@@ -32,7 +37,7 @@ reported with an install pointer, never a traceback. It writes only into
 `.venv` and the PDK root (never `~/.local/*` or apt) and is safe to re-run.
 
 `yosys` is deliberately **not** taken from `$PATH`: the script exposes the
-pinned build as `.venv/bin/yosys`, and `flow/smoke/run.sh` puts `.venv/bin`
+pinned build as `.venv/bin/yosys`, and `verification/rtl/sha256/run.sh` puts `.venv/bin`
 first on `$PATH`. `yosys -V` names only the Yosys version, not the embedded
 ABC mapper, so the pin is checked by the sha256 of `yowasp_yosys/yosys.wasm`.
 
@@ -63,7 +68,7 @@ below name versions on purpose and are not checked.
 | Tool | Status |
 |---|---|
 | Icarus Verilog | host install (`iverilog`); the version is recorded in each record. Observed: 13.0 |
-| OpenROAD | host install; only checked, not provisioned. Not used by the smoke flow. Observed: `26Q3-1510-g6cb3f2b704` |
+| OpenROAD | host install; only checked, not provisioned. Not used by the SHA-256 flow. Observed: `26Q3-1510-g6cb3f2b704` |
 
 These are not content-pinned. A re-pin to a container digest or a built
 revision belongs with the first issue that depends on OpenROAD (place and
@@ -86,11 +91,11 @@ route, STA).
   digest matches. PyPI has 0.70.0.0.post1259; not adopted (no reason to move).
 - `ciel` is pinned at 2.6.1 (PyPI has 3.1.0, not adopted).
 - `cocotb` is pinned at 2.1.0, which is what resolved; modexp's doc says 2.0.1.
-  The smoke test passes on 2.1.0.
+  The adder smoke test (since retired) passed on 2.1.0.
 - `open_pdks` `f6eeac7d` matches the `SOURCES` file of the installed tree.
 
-## Smoke flow scope
+## Toolchain flow scope
 
-`flow/smoke/` holds a registered 8-bit adder, a cocotb test, and `klt`
-requests. `klt sta` is not run: it consumes a routed DEF, so it needs
+`verification/rtl/sha256/` holds the cocotb test and `klt` requests for the
+SHA-256 core. `klt sta` is not run: it consumes a routed DEF, so it needs
 place-and-route, which is out of scope for this bring-up.
