@@ -19,6 +19,18 @@ decisions: [`spec/decision-records/0001-modexp-tooling-adoption.md`](../spec/dec
 | CI `verify` | only on PRs touching `rtl/`, `verification/`, `flow/` or the env pins: `scripts/setup-env.sh`, then `scripts/ci-verify.sh` (about 6 min): the sha256, aes, drbg and trng_if benches and each `*_NEG_*` negative control (must fail), and `verification/formal/run.sh` (its `reach_*`/`neg_*` tasks must fail) |
 | Local only | synthesis, sha256 `--million-a` (about 10 min), `verification/formal/keyladder` (its `neg_net` task synthesizes; over 30 min), place-and-route, DRC, LVS, `klt signoff --manifest` |
 
+Dated evidence that `verify` behaves as the table says (throwaway draft PRs,
+closed unmerged, 2026-10-31, against `70b0a85`):
+
+- Red when a negative control stops failing: PR #104 disabled `AES_NEG_CTRL` in
+  `rtl/aes/aes_core.v`; `verify` failed with `FAIL: the bench passed with a
+  corrupted S-box`
+  ([run 41151370459](https://github.com/2AMLogic/sky130-crypto-rot/actions/runs/41151370459/job/124388432839)).
+- Docs-only skips the work: PR #105 touched only `docs/environment.md`; the
+  `verify` job reported success with setup-python, apt, cache, `setup-env.sh` and
+  `ci-verify.sh` all skipped
+  ([run 41151373181](https://github.com/2AMLogic/sky130-crypto-rot/actions/runs/41151373181/job/124388440094)).
+
 CI proves format, known-answer correctness and that the benches and formal
 tasks catch their negative controls; it makes no security claim. `verify`
 records nothing: records stay Builder- or re-run-produced under
