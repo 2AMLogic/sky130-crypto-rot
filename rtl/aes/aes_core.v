@@ -329,7 +329,7 @@ module aes_core (
                 8'hff: sbox = 8'h16;
                 default: sbox = 8'h00;
             endcase
-`ifdef AES_NEG_CTRL
+`ifdef AES_NEG_CTRL_DISABLED
             if (x == 8'h53) sbox = 8'hed ^ 8'h01;
 `endif
         end
