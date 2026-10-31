@@ -92,8 +92,8 @@ measurements/  silicon characterization (empty until tape-out)
 
 ## Reproduce
 
-CI (`.github/workflows/ci.yml`) needs no PDK and no Docker. Each job calls an
-`npm run` script, so a developer runs exactly what CI runs (Python 3.13 and
+CI (`.github/workflows/ci.yml`) needs no Docker; only `verify` provisions the PDK. Each job calls an
+`npm run` script (`verify`: `scripts/ci-verify.sh`), so a developer runs exactly what CI runs (Python 3.13 and
 `pytest` for the model and reuse checks):
 
 ```
@@ -101,6 +101,13 @@ npm run lint          # compileall on verification/ and flow/, bash -n on script
 npm run test          # pytest verification/model against the committed vectors
 npm run check:reuse   # re-hash reuse.lock.json files; self-test of the checker
 npm run check:ci      # all three
+```
+
+On PRs that touch `rtl/` or `verification/`, the `verify` job also provisions
+`.venv` and runs the benches, negative controls and SymbiYosys tasks; locally:
+
+```
+./scripts/setup-env.sh && ./scripts/ci-verify.sh
 ```
 
 The PDK-heavy legs stay local (`./scripts/setup-env.sh` provisions `.venv`,

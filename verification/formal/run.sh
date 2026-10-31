@@ -21,6 +21,9 @@
 # failing tasks therefore produce no waveform. Tool gap filed generically on
 # 2AMLogic/klayout-tools (see the record).
 #
+# `abc` engines run a separate `yosys-abc`, which the YoWASP wheel does not ship:
+# a native Yosys install must provide it (CI: apt `yosys`); checked up front.
+#
 # yowasp-sby looks for `yosys-witness` / `yosys-smtbmc` by those names; the
 # venv ships them as yowasp-yosys-*, so a shim directory under flow/build/
 # links them (no host tool is touched).
@@ -49,6 +52,13 @@ if [ -z "${SBY}" ] || [ ! -x "${SBY}" ]; then
   echo "  -> run ./scripts/setup-env.sh first. The properties are NOT deferred; this run proved nothing." >&2
   exit 2
 fi
+if ! command -v yosys-abc > /dev/null 2>&1; then
+  echo "error: yosys-abc not found on PATH. sby's 'abc bmc3'/'abc pdr' engines run it as a" >&2
+  echo "  separate program; the pinned yowasp-yosys wheel does not ship one." >&2
+  echo "  -> install a native Yosys (it provides yosys-abc), e.g. 'apt-get install yosys'." >&2
+  echo "  Without it every task exits 16 and the reach_*/neg_* controls cannot be told from a missing tool." >&2
+  exit 2
+fi
 mkdir -p "${OUT}" "${SHIM}"
 for t in witness smtbmc; do
   ln -sf "${REPO_ROOT}/.venv/bin/yowasp-yosys-${t}" "${SHIM}/yosys-${t}"
@@ -63,15 +73,18 @@ run_task() { # run_task <file.sby> <task>
   rm -rf "${dir}"
   "${SBY}" -f -d "${dir}" "${file}" "${task}" > "${OUT}/${file%.sby}_${task}.out" 2>&1 || rc=$?
   local status engine frame secs
-  status="$(grep -o 'DONE ([A-Z]*' "${dir}/logfile.txt" | tail -1 | sed 's/DONE (//')"
-  engine="$(grep -o 'summary: engine_0 ([a-z0-9 ]*) returned [A-Z]*' "${dir}/logfile.txt" | tail -1 | sed 's/summary: //')"
-  frame="$(grep -o 'asserted in frame [0-9]*' "${dir}/logfile.txt" | head -1 | grep -o '[0-9]*$' || true)"
-  secs="$(grep -o 'Elapsed clock time.*(\([0-9]*\))' "${dir}/logfile.txt" | tail -1 | grep -o '([0-9]*)' | tr -d '()')"
+  # logfile.txt is missing when sby dies early; every grep tolerates that so
+  # the FAIL branch below (and the sby output it prints) is always reached.
+  status="$(grep -o 'DONE ([A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/DONE (//' || true)"
+  engine="$(grep -o 'summary: engine_0 ([a-z0-9 ]*) returned [A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/summary: //' || true)"
+  frame="$(grep -o 'asserted in frame [0-9]*' "${dir}/logfile.txt" 2>/dev/null | head -1 | grep -o '[0-9]*$' || true)"
+  secs="$(grep -o 'Elapsed clock time.*(\([0-9]*\))' "${dir}/logfile.txt" 2>/dev/null | tail -1 | grep -o '([0-9]*)' | tr -d '()' || true)"
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "${file}" "${task}" "${status:-ERROR}" "${rc}" "${engine:-none}" "${frame:--}" "${secs:--}" >> "${OUT}/results.tsv"
   if [ "${rc}" = 0 ]; then
     echo "  ok    ${file} ${task}: ${status} (${engine}${frame:+, counterexample at frame ${frame}}, ${secs}s)"
   else
     echo "  FAIL  ${file} ${task}: sby exit ${rc}, see ${OUT}/${file%.sby}_${task}.out" >&2
+    tail -n 40 "${OUT}/${file%.sby}_${task}.out" | sed 's/^/        | /' >&2 || true
     bad=1
   fi
 }

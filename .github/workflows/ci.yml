@@ -1,9 +1,13 @@
 # CI for sky130-crypto-rot. Tool-light: no PDK, no Docker.
 #
-# What runs here: format and known-answer correctness only -- Python/shell
+# What runs here: format and known-answer correctness -- Python/shell
 # syntax, the golden models against the committed published vectors, and the
-# reuse.lock.json hashes. It makes no security claim.
-# What stays local: synthesis, place-and-route, DRC, LVS, signoff (PDK-heavy).
+# reuse.lock.json hashes -- plus, on PRs touching rtl/ or verification/, the
+# `verify` job: the sha256, aes, drbg and trng_if benches with their negative
+# controls and the SymbiYosys tasks (scripts/ci-verify.sh). It makes no
+# security claim.
+# What stays local: synthesis, place-and-route, DRC, LVS, signoff (PDK-heavy),
+# sha256 --million-a, and verification/formal/keyladder.
 # See README.md "Reproduce" and verification/README.md "What CI runs vs. what
 # stays local"; change those documents together with this file if a heavy leg
 # moves into CI.
@@ -56,3 +60,44 @@ jobs:
           python-version: "3.13"
       - run: python3 -m pip install pytest
       - run: npm run check:reuse
+
+  # Runs on every PR (so a required check is never left pending) but skips its
+  # steps unless rtl/, verification/, flow/ or the environment pins changed.
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changed
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+              | grep -Eq '^(rtl/|verification/|flow/|scripts/(setup-env|ci-verify)\.sh$|\.github/workflows/ci\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "no rtl/ or verification/ change; verify skipped"
+          fi
+      - if: steps.changed.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - if: steps.changed.outputs.run == 'true'
+        # yosys provides the native `yosys-abc` that sby's `abc bmc3`/`abc pdr`
+        # engines call; the pinned YoWASP wheel has no standalone abc.
+        run: sudo apt-get update && sudo apt-get install -y iverilog yosys
+      - if: steps.changed.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.ciel
+          key: ciel-${{ hashFiles('scripts/setup-env.sh') }}
+      - if: steps.changed.outputs.run == 'true'
+        run: ./scripts/setup-env.sh
+      - if: steps.changed.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/ci-verify.sh
