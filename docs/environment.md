@@ -99,3 +99,6 @@ route, STA).
 `verification/rtl/sha256/` holds the cocotb test and `klt` requests for the
 SHA-256 core. `klt sta` is not run: it consumes a routed DEF, so it needs
 place-and-route, which is out of scope for this bring-up.
+
+<!-- throwaway CI demo for #85: docs-only change, do not merge -->
+
