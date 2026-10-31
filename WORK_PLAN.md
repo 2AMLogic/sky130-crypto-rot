@@ -21,6 +21,8 @@ _None._
 `loom:important`; taken before unlabelled work.
 
 - **#46**: T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
+- **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
+- **#88**: T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
 
 ## Ready
 
@@ -32,33 +34,30 @@ _None._
 
 Issues currently being built (`loom:building`).
 
-- **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow
-- **#61**: sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state
-- **#64**: Dedupe record-generation scaffolding shared by the aes and sha256 verification flows
+- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-- **#40**: chore: retire the adder smoke flow in favour of the SHA-256 core flow
+- **#90**: spec: add register map decision record 0009 with table lint
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#65**: feat(rtl): add scrub input to sha256_core clearing w, hh and a-h
-- **#66**: refactor(verification): share record and driver scaffolding across core flows
+_None._
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
-- **#61**: sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state *(curated)*
+- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top *(curated)*
 
 ## Proposed (Architect / Hermit)
 
-- **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow *(hermit)*
+- **#103**: Finish record_lib convergence: main() reuses write_record; hmac/keyladder use main() *(hermit)*
 
 ## Epics
 
@@ -70,11 +69,11 @@ _None._
 |------|-------|
 | Operator merge-risk holds | 0 |
 | Very important | 0 |
-| Important | 1 |
+| Important | 3 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 3 |
+| In Progress (`loom:building`) | 1 |
 | PRs awaiting review | 1 |
-| Approved PRs awaiting merge | 2 |
+| Approved PRs awaiting merge | 0 |
 | Curated | 2 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
