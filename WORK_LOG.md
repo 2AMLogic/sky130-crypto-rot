@@ -3,12 +3,27 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-10-31
+
+- **PR #106**: docs: independent drbg, trng_if and formal re-run records with CI demo evidence
+- **PR #99**: test: independent re-run records and CI verify job for benches, negative controls and formal
+- **Issue #85** (closed): Independently re-run the verification flows behind #65, #66 and #69, and add them to CI
+
 ### 2026-10-30
 
+- **PR #102**: refactor: run hmac, keyladder, drbg and trng_if scripts on core_flow.sh
+- **PR #101**: refactor: converge hmac, keyladder rtl and formal record makers on record_lib
+- **PR #96**: fix: connect hmac_sha256 clear to sha256_core scrub and test core zeroization
+- **PR #95**: refactor: converge record makers on flow/common/record_lib.py
 - **PR #93**: fix: re-attest item 9 envelope to match benches on main
 - **PR #66**: refactor(verification): share record and driver scaffolding across core flows
 - **PR #65**: feat(rtl): add scrub input to sha256_core clearing w, hh and a-h
 - **PR #40**: chore: retire the adder smoke flow in favour of the SHA-256 core flow
+- **Issue #100** (closed): Converge hmac, keyladder, drbg, trng_if run.sh on flow/common/core_flow.sh
+- **Issue #98** (closed): bug: record_common.py reads removed KLT_REV pin, --record fails for drbg, trng_if, formal
+- **Issue #97** (closed): Converge remaining record makers (hmac, rtl/keyladder, formal/keyladder) on record_lib
+- **Issue #91** (closed): Converge flow/common/record_lib.py and verification/rtl/record_common.py into one record helper
+- **Issue #63** (closed): hmac_sha256: drive sha256_core scrub from clear/zeroize
 - **Issue #92** (closed): item-9 attestation envelope hashes for sha256 run.sh/test_sha256_core.py differ from the tree on main
 - **Issue #64** (closed): Dedupe record-generation scaffolding shared by the aes and sha256 verification flows
 - **Issue #61** (closed): sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state
