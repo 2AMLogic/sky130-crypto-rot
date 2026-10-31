@@ -138,50 +138,27 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
 
     check_pdk(args.pdk_root)
     rev = require_clean_inputs(inputs[:-1])
-    now = datetime.datetime.now(datetime.timezone.utc)
-    rid = f"{now:%Y%m%d-%H%M%S}-{rev[:7]}"
     prov = syn["provenance"]
-    wasm = wasm_hash()
+    versions = tool_versions()
     versions = {
         "klt": prov["klt_version"],
-        "klt_pin": pin("KLT_VERSION"),
+        "klt_pin": versions.pop("klt_pin"),
         "yosys": syn["engine_version"],
-        "yowasp_yosys": pin("YOWASP_YOSYS_VERSION"),
-        "yosys_wasm": wasm,
+        **versions,
         "icarus": sim["environment"]["engine_version"],
         "cocotb": sim["environment"]["cocotb_version"],
-        "ciel": pin("CIEL_VERSION"),
-        "python": platform.python_version(),
     }
-    meta = {
-        "record_id": rid,
-        "experiment": experiment,
-        "supersedes": None,
-        "git_revision": rev,
-        "provenance": {
-            "klt_version": prov["klt_version"],
-            "pdk": {"name": prov["pdk"]["name"], "version": prov["pdk"]["version"]},
-            "deck": {"name": prov["deck"]["name"], "content_hash": prov["deck"]["content_hash"]},
-            "tool_versions": versions,
-            "inputs": [{"path": p, "content_hash": sha256(REPO / p)} for p in inputs],
-        },
+    meta_extra = {
+        "klt_version": prov["klt_version"],
+        "pdk": {"name": prov["pdk"]["name"], "version": prov["pdk"]["version"]},
+        "deck": {"name": prov["deck"]["name"], "content_hash": prov["deck"]["content_hash"]},
+        "tool_versions": versions,
     }
     log = REPO / f"verification/rtl/{name}/.klt/functional-verification/test_icarus.log"
     m = re.search(r"SUMMARY (.*)", log.read_text()) if log.exists() else None
-    ctx = SimpleNamespace(args=args, sim=sim, syn=syn, prov=prov, versions=versions, wasm=wasm,
-                          extra=extra, summary=m.group(1).strip() if m else "see sim.json")
-    text = f"""<!-- record-meta
-{json.dumps(meta, indent=2)}
--->
-
-# Record {rid}
-
-- **Record ID**: {rid}
-{body(ctx)}- **Timestamp / author**: {now:%Y-%m-%dT%H:%M:%SZ}, {author}.
-- **Supersedes**: none
-"""
-    out = REPO / "verification/records" / experiment / "records" / f"{rid}.md"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(text)
-    print(f"wrote {out.relative_to(REPO)}")
+    ctx = SimpleNamespace(args=args, sim=sim, syn=syn, prov=prov, versions=versions,
+                          wasm=versions["yosys_wasm"], extra=extra,
+                          summary=m.group(1).strip() if m else "see sim.json")
+    tail = f"- **Timestamp / author**: {{timestamp}}, {author}.\n- **Supersedes**: none\n"
+    write_record(experiment, rev, inputs, meta_extra, body(ctx) + tail)
     return 0
