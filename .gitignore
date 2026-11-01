@@ -110,3 +110,6 @@ results.xml
 
 # klt per-run scratch (verification/rtl/sha256)
 .klt/
+
+# Repo Skills Codex-side machine-local install metadata (never committed)
+.agents/skills/repo/.install-local.json
