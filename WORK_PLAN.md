@@ -57,7 +57,7 @@ Issues carrying `loom:curated`.
 
 ## Proposed (Architect / Hermit)
 
-- **#103**: Finish record_lib convergence: main() reuses write_record; hmac/keyladder use main() *(hermit)*
+_None._
 
 ## Epics
 
@@ -75,6 +75,6 @@ _None._
 | PRs awaiting review | 1 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 2 |
-| Architect / Hermit proposals | 1 |
+| Architect / Hermit proposals | 0 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
