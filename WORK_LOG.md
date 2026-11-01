@@ -3,8 +3,14 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-01
+
+- **PR #110**: Bump Repo Skills 0.24.7 -> 0.25.1
+
 ### 2026-10-31
 
+- **PR #109**: refactor: record_lib.main reuses write_record; hmac and keyladder use main
+- **Issue #103** (closed): Finish record_lib convergence: main() reuses write_record; hmac/keyladder use main()
 - **PR #106**: docs: independent drbg, trng_if and formal re-run records with CI demo evidence
 - **PR #99**: test: independent re-run records and CI verify job for benches, negative controls and formal
 - **Issue #85** (closed): Independently re-run the verification flows behind #65, #66 and #69, and add them to CI
