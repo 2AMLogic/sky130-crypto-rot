@@ -6,7 +6,7 @@
 #   ./scripts/setup-env.sh                  # once: .venv, pinned yosys, PDK
 #   ./scripts/ci-verify.sh
 #
-# Per core: the positive simulation(s), then every negative control, which
+# Covers sha256, aes, drbg, hmac, keyladder and trng_if. Per core: the positive simulation(s), then every negative control, which
 # must FAIL (the run.sh exits non-zero if one passes). Then the SymbiYosys
 # tasks, whose reach_*/neg_* tasks must fail. Nothing is recorded.
 #
@@ -40,8 +40,10 @@ sim sha256 sim-scrub-request.json
 sim aes sim-request.json
 sim drbg sim-request.json shipped
 sim drbg sim-cavp-request.json cavp
+sim hmac sim-request.json
+sim keyladder sim-request.json
 
-for core in sha256 aes drbg; do
+for core in sha256 aes drbg hmac keyladder; do
   echo "== negative controls: $core =="
   "${REPO_ROOT}/verification/rtl/${core}/run.sh" --negative-control
 done
