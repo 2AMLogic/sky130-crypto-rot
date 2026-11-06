@@ -3,6 +3,11 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-06
+
+- **PR #115**: test: run hmac and keyladder benches and negative controls in ci-verify
+- **Issue #114** (closed): Add the hmac and keyladder benches and their negative controls to scripts/ci-verify.sh
+
 ### 2026-11-01
 
 - **PR #110**: Bump Repo Skills 0.24.7 -> 0.25.1
