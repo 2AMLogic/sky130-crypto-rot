@@ -3,14 +3,14 @@
   "kind": "generic",
   "status": "pass",
   "t1_item": 9,
-  "summary": "T1 item 9 (Testbenches shipped): 53/53 attestation checks passed (klt signoff --attest)",
+  "summary": "T1 item 9 (Testbenches shipped): 61/61 attestation checks passed (klt signoff --attest)",
   "source": "manifests/inventories/item-9.json",
   "attestation": {
     "producer": "klt signoff --attest",
     "inventory_schema_version": 1,
     "hash_algorithm": "sha256-raw-bytes",
-    "check_count": 53,
-    "passed_count": 53,
+    "check_count": 61,
+    "passed_count": 61,
     "checks": [
       {
         "check": "present",
@@ -127,6 +127,13 @@
       {
         "check": "present",
         "role": "testbench",
+        "path": "verification/rtl/aes/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:9e298ad29f72543fcedbb01dd781ae91d9f36094074ea57a2e61934a23c53cb3"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
         "path": "verification/rtl/aes/test_aes_core.py",
         "passed": true,
         "content_hash": "sha256:bae19df0fd3413822264d3d6dba075c245565ce9410a87a6e3fdfb01caaa4b7d"
@@ -183,6 +190,13 @@
       {
         "check": "present",
         "role": "testbench",
+        "path": "verification/rtl/drbg/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:550e971d2377521f49ad1e6484f5522e21ae46881e56e0492c9fc3e059c14a2a"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
         "path": "verification/rtl/drbg/tb_drbg.v",
         "passed": true,
         "content_hash": "sha256:9c6a463148ceb694e081add5ae6b90f1ee31f589e60aac686257894e7c0e9aa0"
@@ -214,6 +228,20 @@
         "path": "verification/rtl/hmac/sim-request.json",
         "passed": true,
         "content_hash": "sha256:2835e5d16f187e8027beab3b58ee00ea53dded658cb2583c6c751bd647082228"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/hmac/sim-scrub-negctl-request.json",
+        "passed": true,
+        "content_hash": "sha256:fc3dde19d8b94dd2f36730c162a77cceca3a4d5e5d030e4a5ea2db2aeffa0d67"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/hmac/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:9a4a5f1151396a6e8495afe6a1272396b5d4641b9f617f64d5855ce1955d8cd0"
       },
       {
         "check": "present",
@@ -260,6 +288,13 @@
       {
         "check": "present",
         "role": "testbench",
+        "path": "verification/rtl/keyladder/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:4e5437b2cb5ee4d56e10fcf0b73b7fd71131886f320510c55e0febb8609d226f"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
         "path": "verification/rtl/keyladder/test_keyladder.py",
         "passed": true,
         "content_hash": "sha256:b0b62b8ffcc5025ec765018bec7f652528ac350f6bafde770353340327a15525"
@@ -291,6 +326,27 @@
         "path": "verification/rtl/sha256/sim-request.json",
         "passed": true,
         "content_hash": "sha256:f464516408fb80a77969b9f7529baca84ebafa7922546067694b5ba497243202"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/sim-scrub-negctl-request.json",
+        "passed": true,
+        "content_hash": "sha256:b190b26e9ece0fdd48fddbf5d9baddf1c508b1c241a821d1b6a70560e933f349"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/sim-scrub-request.json",
+        "passed": true,
+        "content_hash": "sha256:65c33a6e51a6db054fcb9449cf0ca97d570b0f659ab28f34206a11c01cfca3cc"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:48199cea42f08baca7315baacbc73ffcd3d6fd216d1c60cd6a8b58e14008319a"
       },
       {
         "check": "present",
@@ -406,7 +462,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:966af2b4a141127427797e9a360e5059b255fc6de0298bd83f16c53e8de59fc3"
+      "content_hash": "sha256:0b5c2dcb4d0a8bcc2f167b474eecc4f9f7c5ac540b8a6c812d681f1152275577"
     }
   }
 }
