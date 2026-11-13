@@ -48,7 +48,6 @@ INPUTS = (
     f"{HERE}/run.sh",
     f"{HERE}/make_record.py",
     "spec/key-isolation-properties.md",
-    "scripts/setup-env.sh",
 )
 
 # property -> (mutation, what it breaks, the run that must fail). Checked below.

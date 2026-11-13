@@ -39,7 +39,6 @@ INPUTS = (
     "verification/model/aes.py",
     "verification/model/vectorlib.py",
     "verification/vectors/CTR_DRBG_pr_false.rsp",
-    "scripts/setup-env.sh",
 )
 
 
@@ -64,7 +63,7 @@ def main() -> int:
         return 0
 
     rc.check_pdk(args.pdk_root)
-    rev = rc.require_clean_inputs(INPUTS[:-1])
+    rev = rc.require_clean_inputs(INPUTS)
     shipped = (args.out_dir / "summary-shipped.txt").read_text().strip()
     cavp_s = (args.out_dir / "summary-cavp.txt").read_text().strip()
     prov = syn["provenance"]
@@ -89,7 +88,7 @@ def main() -> int:
 - **Links**: `rtl/drbg/`, `verification/rtl/drbg/`, `spec/decision-records/0002-drbg-construction.md`, `spec/target-spec.md` section 4.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 """
-    rc.write_record(EXPERIMENT, rev, INPUTS[:-1], meta, body)
+    rc.write_record(EXPERIMENT, rev, INPUTS, meta, body)
     return 0
 
 

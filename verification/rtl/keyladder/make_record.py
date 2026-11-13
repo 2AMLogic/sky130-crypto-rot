@@ -35,7 +35,6 @@ INPUTS = (
     "verification/rtl/keyladder/make_record.py",
     "verification/model/kdf.py",
     "verification/model/hmac_sha256.py",
-    "scripts/setup-env.sh",
 )
 
 
