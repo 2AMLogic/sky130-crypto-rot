@@ -21,6 +21,10 @@ flow/build/
 # cocotb/Icarus build + result artifacts (verification/)
 sim_build/
 results.xml
+# verification/rtl/trng_if klt requests: mk_req.py writes all eight of them
+# at the top of every run.sh invocation, so the generator is the only copy
+# the records hash and the only one tracked here.
+/verification/rtl/trng_if/sim-*-request.json
 # local klt install, created by the setup script
 .venv/
 # >>> loom-managed (do not edit) >>>
