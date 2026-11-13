@@ -107,6 +107,7 @@ a developer can run unchanged -- the three `npm run` scripts below, and `./scrip
 npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script, pin check
 npm run test          # pytest: verification/model against the committed vectors,
                       #         plus the self-tests of the pin, reuse and record checkers
+                      #         and of the key-ladder formal record's depth reader
 npm run check:reuse   # re-hash reuse.lock.json files
 npm run check:ci      # all three
 ```
