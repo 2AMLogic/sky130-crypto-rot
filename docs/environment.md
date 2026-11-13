@@ -68,7 +68,7 @@ below name versions on purpose and are not checked.
 | Tool | Status |
 |---|---|
 | Icarus Verilog | host install (`iverilog`); the version is recorded in each record. Observed: 13.0 |
-| OpenROAD | host install; only checked, not provisioned. Not used by the SHA-256 flow. Observed: `26Q3-1510-g6cb3f2b704` |
+| OpenROAD | host install; only checked, not provisioned. Not used by the cocotb + Icarus benches or `klt synthesize`. Observed: `26Q3-1510-g6cb3f2b704` |
 
 These are not content-pinned. A re-pin to a container digest or a built
 revision belongs with the first issue that depends on OpenROAD (place and
