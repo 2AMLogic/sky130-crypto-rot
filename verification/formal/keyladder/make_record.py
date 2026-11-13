@@ -31,22 +31,13 @@ import record_lib  # noqa: E402
 from record_lib import pin, run  # noqa: E402
 EXPERIMENT = "keyladder-formal"
 HERE = "verification/formal/keyladder"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/sha256/sha256_core.v",
     "rtl/hmac/hmac_sha256.v",
     "rtl/keyladder/keyladder.v",
-    f"{HERE}/props_slots.vh",
-    f"{HERE}/hmac_abstract.v",
-    f"{HERE}/p1_product.v",
-    f"{HERE}/p5.sby",
-    f"{HERE}/p6.sby",
-    f"{HERE}/p1.sby",
-    f"{HERE}/cover.sby",
-    f"{HERE}/cone.py",
-    f"{HERE}/gen.py",
-    f"{HERE}/latency_tb.v",
-    f"{HERE}/run.sh",
-    f"{HERE}/make_record.py",
     "spec/key-isolation-properties.md",
     "scripts/setup-env.sh",
 )
@@ -153,7 +144,7 @@ def main() -> int:
     z3_sha = hashlib.sha256((REPO / ".venv/bin/z3").read_bytes()).hexdigest()
     if z3_sha != pin("Z3_BIN_SHA256"):
         raise SystemExit("z3 binary does not match the pin; refusing to record")
-    rev = record_lib.require_clean_inputs(INPUTS)
+    rev = record_lib.require_clean_inputs(INPUTS, generator=__file__)
     tv = record_lib.tool_versions()
     versions = {
         "yosys": run(str(REPO / ".venv/bin/yosys"), "-V"),
@@ -282,7 +273,7 @@ The netlist negative controls are separate `klt synthesize` runs of the mutated 
 - **Links**: `{HERE}/`, `rtl/keyladder/keyladder.v`, `spec/key-isolation-properties.md` (P-1, P-2, P-5, P-6, Open questions 1-3), `verification/records/keyladder-sim-synth/`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #56).
 """
-    record_lib.write_record(EXPERIMENT, rev, INPUTS, meta_extra, body)
+    record_lib.write_record(EXPERIMENT, rev, INPUTS, meta_extra, body, generator=__file__)
     return 0
 
 

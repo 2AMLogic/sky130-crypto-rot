@@ -21,15 +21,12 @@ import record_lib  # noqa: E402
 
 NAME = "hmac"
 EXPERIMENT = "hmac-sha256-sim-synth"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/sha256/sha256_core.v",
     "rtl/hmac/hmac_sha256.v",
-    "verification/rtl/hmac/test_hmac_sha256.py",
-    "verification/rtl/hmac/sim-request.json",
-    "verification/rtl/hmac/sim-negctl-request.json",
-    "verification/rtl/hmac/synth-request.json",
-    "verification/rtl/hmac/run.sh",
-    "verification/rtl/hmac/make_record.py",
     "verification/model/hmac_sha256.py",
     "verification/model/vectorlib.py",
     "verification/vectors/rfc4231.txt",
@@ -56,6 +53,7 @@ def body(ctx) -> str:
 
 def main() -> int:
     return record_lib.main(name=NAME, experiment=EXPERIMENT, inputs=INPUTS,
+                           generator=__file__,
                            author="Loom builder agent (issue #54)", body=body)
 
 

@@ -21,17 +21,11 @@ import record_lib  # noqa: E402
 
 NAME = "sha256"
 EXPERIMENT = "sha256-core-sim-synth"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/sha256/sha256_core.v",
-    "verification/rtl/sha256/test_sha256_core.py",
-    "verification/rtl/sha256/sim-request.json",
-    "verification/rtl/sha256/sim-million-a-request.json",
-    "verification/rtl/sha256/sim-negctl-request.json",
-    "verification/rtl/sha256/sim-scrub-request.json",
-    "verification/rtl/sha256/sim-scrub-negctl-request.json",
-    "verification/rtl/sha256/synth-request.json",
-    "verification/rtl/sha256/run.sh",
-    "verification/rtl/sha256/make_record.py",
     "verification/model/sha256.py",
     "verification/model/vectorlib.py",
     "verification/vectors/SHA256ShortMsg.rsp",
@@ -76,6 +70,7 @@ def body(ctx) -> str:
 
 def main() -> int:
     return record_lib.main(name=NAME, experiment=EXPERIMENT, inputs=INPUTS,
+                           generator=__file__,
                            author="Loom builder agent (issue #61)", body=body, extra_check=extra_check)
 
 

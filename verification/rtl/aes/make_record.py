@@ -20,14 +20,11 @@ import record_lib  # noqa: E402
 
 NAME = "aes"
 EXPERIMENT = "aes-core-sim-synth"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/aes/aes_core.v",
-    "verification/rtl/aes/test_aes_core.py",
-    "verification/rtl/aes/sim-request.json",
-    "verification/rtl/aes/sim-negctl-request.json",
-    "verification/rtl/aes/synth-request.json",
-    "verification/rtl/aes/run.sh",
-    "verification/rtl/aes/make_record.py",
     "verification/model/aes.py",
     "verification/model/vectorlib.py",
     "verification/vectors/fips197.txt",
@@ -53,6 +50,7 @@ def body(ctx) -> str:
 
 def main() -> int:
     return record_lib.main(name=NAME, experiment=EXPERIMENT, inputs=INPUTS,
+                           generator=__file__,
                            author="Loom builder agent (issue #43)", body=body)
 
 
