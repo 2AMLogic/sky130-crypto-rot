@@ -15,11 +15,13 @@ re-resolved live on 2026-10-17 rather than copied blind (see "Re-verification").
 
 ```bash
 ./scripts/setup-env.sh                  # once; idempotent
-./verification/rtl/sha256/run.sh        # cocotb + Icarus on the RTL, then klt synthesize
 ```
 
-`./verification/rtl/sha256/run.sh --record` additionally writes a record under
-`verification/records/sha256-core-sim-synth/records/`.
+That provisions the environment; it does not run anything. For what to run in
+it, `README.md` "Reproduce" gives the CI and cold-start commands, and
+`rtl/README.md` names the `run.sh` that verifies each block. Each `run.sh`
+takes `--negative-control`, and `--record` to write a record under
+`verification/records/`.
 
 The original bring-up run, on a registered 8-bit adder that has since been
 retired in favour of the SHA-256 core flow, is the append-only record
@@ -37,9 +39,12 @@ reported with an install pointer, never a traceback. It writes only into
 `.venv` and the PDK root (never `~/.local/*` or apt) and is safe to re-run.
 
 `yosys` is deliberately **not** taken from `$PATH`: the script exposes the
-pinned build as `.venv/bin/yosys`, and `verification/rtl/sha256/run.sh` puts `.venv/bin`
-first on `$PATH`. `yosys -V` names only the Yosys version, not the embedded
-ABC mapper, so the pin is checked by the sha256 of `yowasp_yosys/yosys.wasm`.
+pinned build as `.venv/bin/yosys`, and every flow driver puts `.venv/bin`
+first on `$PATH` -- `flow/common/core_flow.sh` (`core_flow_setup`, sourced by
+every `verification/rtl/*/run.sh`), `scripts/ci-verify.sh`,
+`verification/formal/run.sh` and `verification/formal/keyladder/run.sh`.
+`yosys -V` names only the Yosys version, not the embedded ABC mapper, so the
+pin is checked by the sha256 of `yowasp_yosys/yosys.wasm`.
 
 If the system Python lacks `venv`/`ensurepip` (Debian/Ubuntu without
 `python3-venv`), the script falls back to `uv venv --seed`; without either it
@@ -72,7 +77,8 @@ below name versions on purpose and are not checked.
 
 These are not content-pinned. A re-pin to a container digest or a built
 revision belongs with the first issue that depends on OpenROAD (place and
-route, STA).
+route, STA). `klt sta` is likewise not run: it consumes a routed DEF, so it
+needs place-and-route, which is out of scope for this bring-up.
 
 ## klt re-pin (2026-10-27)
 
@@ -93,9 +99,3 @@ route, STA).
 - `cocotb` is pinned at 2.1.0, which is what resolved; modexp's doc says 2.0.1.
   The adder smoke test (since retired) passed on 2.1.0.
 - `open_pdks` `f6eeac7d` matches the `SOURCES` file of the installed tree.
-
-## Toolchain flow scope
-
-`verification/rtl/sha256/` holds the cocotb test and `klt` requests for the
-SHA-256 core. `klt sta` is not run: it consumes a routed DEF, so it needs
-place-and-route, which is out of scope for this bring-up.
