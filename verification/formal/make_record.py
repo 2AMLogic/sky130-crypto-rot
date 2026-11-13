@@ -70,7 +70,6 @@ def main() -> int:
 - **Tool versions**: {v['sby']}, yowasp-yosys {v['yowasp_yosys']} (`yosys.wasm` {v['yosys_wasm']}), Python {v['python']}, klt pinned at `{v['klt_pin']}`.
 - **Links**: `verification/formal/`, `spec/key-isolation-properties.md`, `rtl/drbg/`, `rtl/trng_if/`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
-- **Supersedes**: none
 """
     rc.write_record(EXPERIMENT, rev, INPUTS[:-1], {"tool_versions": v}, body)
     return 0

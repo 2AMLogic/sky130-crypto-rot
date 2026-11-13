@@ -36,6 +36,11 @@ SETUP_ENV = "scripts/setup-env.sh"
 
 _SOURCES_CORE_FLOW = re.compile(r"^[ \t]*(?:source|\.)[ \t]+\S*" + re.escape(CORE_FLOW), re.M)
 
+# A generated record filename: <YYYYMMDD>-<HHMMSS>-<7-hex> as write_record() builds
+# it. The three hand-written independent-rerun records use a shorter shape and are
+# deliberately not matched: only records this module wrote take part in the chain.
+_RECORD_FILE = re.compile(r"^\d{8}-\d{6}-[0-9a-f]{7}\.md$")
+
 
 def sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
@@ -118,25 +123,55 @@ def tool_versions() -> dict:
     }
 
 
+def previous_record(experiment: str) -> str | None:
+    """Id of the newest record git already tracks for `experiment`, else None.
+
+    This is the value of the record's `supersedes` field. Supersession here is
+    positional -- "the record this one follows" -- not a claim that the new
+    record repeats or widens the old one's coverage; see verification/README.md.
+
+    Only tracked (committed or staged) files count, so an untracked leftover from
+    an aborted run is never named. Ids sort chronologically by construction, so
+    the newest is the lexically greatest. subprocess is used directly rather than
+    run(), which swallows errors: a lookup that cannot be answered must refuse,
+    not quietly report "no predecessor" and write a false claim into the trail.
+    """
+    rel = f"verification/records/{experiment}/records"
+    try:
+        out = subprocess.run(["git", "-C", str(REPO), "ls-files", "-z", "--", rel],
+                             capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise SystemExit(f"cannot list tracked records under {rel}, refusing to record: {exc}")
+    ids = sorted(name[:-3] for name in
+                 (entry.rsplit("/", 1)[-1] for entry in out.stdout.split("\0") if entry)
+                 if _RECORD_FILE.match(name))
+    return ids[-1] if ids else None
+
+
 def write_record(experiment: str, rev: str, inputs, meta_extra: dict, body: str) -> Path:
     """Append-only record: record-meta comment, then `body` (bullets from Claim on).
 
     The shared flow helpers are hashed in too, whether or not `inputs` names them.
     `{rid}` and `{timestamp}` in body are substituted.
     """
+    supersedes = previous_record(experiment)
     inputs = shared_inputs(inputs)
     now = datetime.datetime.now(datetime.timezone.utc)
     rid = f"{now:%Y%m%d-%H%M%S}-{rev[:7]}"
     meta = {
         "record_id": rid,
         "experiment": experiment,
-        "supersedes": None,
+        "supersedes": supersedes,
         "git_revision": rev,
         "provenance": {**meta_extra,
                        "inputs": [{"path": p, "content_hash": sha256(REPO / p)} for p in inputs]},
     }
     text = f"<!-- record-meta\n{json.dumps(meta, indent=2)}\n-->\n\n# Record {rid}\n\n- **Record ID**: {rid}\n" + \
         body.replace("{rid}", rid).replace("{timestamp}", f"{now:%Y-%m-%dT%H:%M:%SZ}")
+    # Appended after substitution and from the same value as the meta field, so no
+    # body text can collide with it and the two can never disagree.
+    text = (text if text.endswith("\n") else text + "\n") + \
+        f"- **Supersedes**: {supersedes or 'none'}\n"
     out = REPO / "verification/records" / experiment / "records" / f"{rid}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text)
@@ -201,6 +236,6 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
     ctx = SimpleNamespace(args=args, sim=sim, syn=syn, prov=prov, versions=versions,
                           wasm=versions["yosys_wasm"], extra=extra,
                           summary=m.group(1).strip() if m else "see sim.json")
-    tail = f"- **Timestamp / author**: {{timestamp}}, {author}.\n- **Supersedes**: none\n"
+    tail = f"- **Timestamp / author**: {{timestamp}}, {author}.\n"
     write_record(experiment, rev, inputs, meta_extra, body(ctx) + tail)
     return 0

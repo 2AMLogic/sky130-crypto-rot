@@ -87,7 +87,6 @@ def main() -> int:
 - **Tool versions**: {v['icarus']}, cocotb {v['cocotb']}, Python {v['python']}, klt pinned at `{v['klt_pin']}`, ciel {v['ciel']}.
 - **Links**: `rtl/trng_if/`, `verification/rtl/trng_if/`, `spec/trng-interface.md`, `reuse.lock.json`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
-- **Supersedes**: none
 """
     rc.write_record(EXPERIMENT, rev, INPUTS[:-1], meta, body)
     return 0
