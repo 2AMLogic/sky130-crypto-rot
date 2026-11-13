@@ -33,7 +33,6 @@ INPUTS = (
     "verification/rtl/trng_if/fetch_trng.sh",
     "verification/rtl/trng_if/run.sh",
     "verification/rtl/trng_if/make_record.py",
-    "flow/common/record_lib.py",
     "verification/model/ctr_drbg.py",
     "reuse.lock.json",
     "scripts/setup-env.sh",

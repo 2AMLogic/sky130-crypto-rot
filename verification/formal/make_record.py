@@ -24,7 +24,6 @@ INPUTS = (
     "verification/formal/p9.sby",
     "verification/formal/run.sh",
     "verification/formal/make_record.py",
-    "flow/common/record_lib.py",
     "spec/key-isolation-properties.md",
     "scripts/setup-env.sh",
 )
