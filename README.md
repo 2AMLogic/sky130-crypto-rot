@@ -94,12 +94,13 @@ measurements/  silicon characterization (empty until tape-out)
 
 CI (`.github/workflows/ci.yml`) needs no Docker; only `verify` provisions the PDK. Each job calls an
 `npm run` script (`verify`: `scripts/ci-verify.sh`), so a developer runs exactly what CI runs (Python 3.13 and
-`pytest` for the model and reuse checks):
+`pytest` for the model job):
 
 ```
-npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script
-npm run test          # pytest verification/model against the committed vectors
-npm run check:reuse   # re-hash reuse.lock.json files; self-test of the checker
+npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script, pin check
+npm run test          # pytest: verification/model against the committed vectors,
+                      #         plus the self-tests of the pin, reuse and record checkers
+npm run check:reuse   # re-hash reuse.lock.json files
 npm run check:ci      # all three
 ```
 

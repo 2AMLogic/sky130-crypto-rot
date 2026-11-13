@@ -35,7 +35,6 @@ INPUTS = (
     "verification/rtl/drbg/synth-request.json",
     "verification/rtl/drbg/run.sh",
     "verification/rtl/drbg/make_record.py",
-    "flow/common/record_lib.py",
     "verification/model/ctr_drbg.py",
     "verification/model/aes.py",
     "verification/model/vectorlib.py",
