@@ -50,6 +50,23 @@ def test_dirty_input_guard_refuses_untracked(tmp_path, monkeypatch):
         record_lib.require_clean_inputs(["a.txt"])
 
 
+def test_dirty_input_guard_exempts_setup_env_by_name(tmp_path, monkeypatch):
+    """setup-env.sh is hashed into every record but never blocks a run (issue #138)."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@t",
+                    "commit", "-q", "--allow-empty", "-m", "x"], check=True)
+    monkeypatch.setattr(record_lib, "REPO", tmp_path)
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / record_lib.SETUP_ENV).write_text("x")
+    # Named by the caller or added by shared_inputs(), it is exempt either way.
+    assert record_lib.require_clean_inputs([])
+    assert record_lib.require_clean_inputs([record_lib.SETUP_ENV])
+    # Any other untracked input still refuses, so the exemption is not a blanket one.
+    (tmp_path / "a.txt").write_text("x")
+    with pytest.raises(SystemExit, match="commit it before recording"):
+        record_lib.require_clean_inputs(["a.txt"])
+
+
 def _load(maker: str):
     """The make_record.py at repo-relative `maker`, imported under a unique name."""
     spec = importlib.util.spec_from_file_location(maker.replace("/", "_")[:-3], REPO / maker)
@@ -110,9 +127,14 @@ def test_generator_passes_itself_to_record_lib(maker):
 
 @pytest.mark.parametrize("maker", MAKERS)
 def test_shared_flow_helpers_are_effective_inputs(maker):
-    """record_lib.py always, core_flow.sh iff the sibling run.sh sources it (issue #124)."""
+    """record_lib.py and setup-env.sh always, core_flow.sh iff run.sh sources it.
+
+    Issue #124 for the first two helpers, #138 for setup-env.sh: every generator
+    reports tool pins read out of that file, so every record must hash it.
+    """
     effective = _effective(maker)
     assert record_lib.RECORD_LIB in effective
+    assert record_lib.SETUP_ENV in effective
     sources = "flow/common/core_flow.sh" in (REPO / Path(maker).parent / "run.sh").read_text()
     assert (record_lib.CORE_FLOW in effective) is sources
 
@@ -123,10 +145,21 @@ def test_generator_does_not_hand_list_the_shared_helpers(maker):
     inputs = _load(maker).INPUTS
     assert record_lib.RECORD_LIB not in inputs
     assert record_lib.CORE_FLOW not in inputs
+    assert record_lib.SETUP_ENV not in inputs
 
 
-def test_shared_inputs_keeps_setup_env_last_and_is_idempotent():
-    out = record_lib.shared_inputs(["verification/rtl/aes/run.sh", record_lib.SETUP_ENV])
+@pytest.mark.parametrize("maker", MAKERS)
+def test_generator_does_not_slice_its_inputs(maker):
+    """The setup-env exemption is applied by name in require_clean_inputs().
+
+    A positional `INPUTS[:-1]` is what made the same tuple mean three different
+    things across the generators (issue #138).
+    """
+    assert "[:-1]" not in (REPO / maker).read_text()
+
+
+def test_shared_inputs_appends_the_helpers_and_is_idempotent():
+    out = record_lib.shared_inputs(["verification/rtl/aes/run.sh"])
     assert out == ["verification/rtl/aes/run.sh", record_lib.CORE_FLOW,
                    record_lib.RECORD_LIB, record_lib.SETUP_ENV]
     assert record_lib.shared_inputs(out) == out
@@ -134,14 +167,14 @@ def test_shared_inputs_keeps_setup_env_last_and_is_idempotent():
 
 def test_shared_inputs_omits_core_flow_when_the_flow_does_not_source_it():
     out = record_lib.shared_inputs(["verification/formal/run.sh"])
-    assert out == ["verification/formal/run.sh", record_lib.RECORD_LIB]
+    assert out == ["verification/formal/run.sh", record_lib.RECORD_LIB, record_lib.SETUP_ENV]
 
 
 def test_shared_inputs_derives_core_flow_from_the_derived_run_sh():
     """The flow's run.sh is no longer hand-listed, so the core_flow.sh rule now
     reads it out of own_inputs() rather than out of INPUTS (issue #124's rule,
     issue #146's list)."""
-    out = record_lib.shared_inputs(["rtl/aes/aes_core.v", record_lib.SETUP_ENV],
+    out = record_lib.shared_inputs(["rtl/aes/aes_core.v"],
                                    REPO / "verification/rtl/aes/make_record.py")
     assert out[0] == "rtl/aes/aes_core.v"
     assert out[-1] == record_lib.SETUP_ENV
@@ -228,11 +261,13 @@ def _meta(text: str) -> dict:
 
 @pytest.fixture
 def temp_repo(tmp_path, monkeypatch):
-    """A throwaway REPO holding the one shared input shared_inputs() always adds."""
+    """A throwaway REPO holding the shared inputs shared_inputs() always adds."""
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
-    (tmp_path / record_lib.RECORD_LIB).parent.mkdir(parents=True)
-    (tmp_path / record_lib.RECORD_LIB).write_text("# stand-in for the real record_lib.py\n")
-    _git(tmp_path, "add", record_lib.RECORD_LIB)
+    for rel, text in ((record_lib.RECORD_LIB, "# stand-in for the real record_lib.py\n"),
+                      (record_lib.SETUP_ENV, "# stand-in for the real setup-env.sh\n")):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(text)
+        _git(tmp_path, "add", rel)
     monkeypatch.setattr(record_lib, "REPO", tmp_path)
     return tmp_path
 

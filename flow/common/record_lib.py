@@ -29,9 +29,12 @@ _WASM_HASH = ("import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha25
               "open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
 
 # The shared flow helpers every record implicitly depends on. No generator lists
-# them in its own INPUTS: shared_inputs() adds them, so which files a record
-# hashes and dirty-checks cannot drift between cores. The files in a generator's
-# OWN directory are derived the same way, by own_inputs() -- see its docstring.
+# them in its own INPUTS: shared_inputs() adds them by name, so which files a
+# record hashes and dirty-checks cannot drift between cores. SETUP_ENV is the
+# one exception to "hashed and guarded": every record hashes it and reports its
+# tool pins, but require_clean_inputs() exempts it from the dirty-input guard.
+# The files in a generator's OWN directory are derived the same way, by
+# own_inputs() -- see its docstring.
 RECORD_LIB = "flow/common/record_lib.py"
 CORE_FLOW = "flow/common/core_flow.sh"
 SETUP_ENV = "scripts/setup-env.sh"
@@ -146,22 +149,22 @@ def shared_inputs(inputs, generator=None) -> list:
     `generator` is the calling make_record.py (its `__file__`); when given, every
     tracked file beside it is added by own_inputs(), so `inputs` carries only the
     files OUTSIDE its directory -- the RTL sources, verification/model/*,
-    verification/vectors/*, spec/*. record_lib.py is always added -- every
-    generator imports it, and it is what hashes the inputs and writes the record.
-    core_flow.sh is added when the flow's own run.sh (one of the derived
-    own-directory files) sources it, so the record follows what the flow actually
-    runs rather than a hand-copied line. Entries already present are not
-    duplicated, and a trailing scripts/setup-env.sh stays last so the "last entry
-    is exempt from the dirty-input guard" convention still holds.
+    verification/vectors/*, spec/*. record_lib.py and setup-env.sh are always
+    added by name -- every generator imports the first, and tool_versions() reads
+    every pin it reports out of the second. core_flow.sh is added when the flow's
+    own run.sh (one of the derived own-directory files) sources it, so the record
+    follows what the flow actually runs rather than a hand-copied line. Entries
+    already present are not duplicated, so the result is idempotent, and
+    setup-env.sh lands last, after the derived own-directory files and the other
+    shared helpers.
     """
     out = list(inputs)
-    tail = [out.pop()] if out and out[-1] == SETUP_ENV else []
     own = own_inputs(generator) if generator is not None else []
     extra = [CORE_FLOW] if any(_runs_core_flow(p) for p in out + own) else []
-    for path in own + extra + [RECORD_LIB]:
+    for path in own + extra + [RECORD_LIB, SETUP_ENV]:
         if path not in out:
             out.append(path)
-    return out + tail
+    return out
 
 
 def require_clean_inputs(inputs, generator=None) -> str:
@@ -170,11 +173,14 @@ def require_clean_inputs(inputs, generator=None) -> str:
     The shared flow helpers are guarded too, whether or not `inputs` names them,
     and when `generator` is given its whole directory is guarded: the derived
     own-directory inputs cover every tracked file there, and _untracked_in()
-    covers the rest, so an uncommitted bench file refuses the record.
+    covers the rest, so an uncommitted bench file refuses the record. One
+    exemption: scripts/setup-env.sh is hashed into every record but is not
+    guarded. The exemption is applied here, by name, so it reads the same way for
+    every generator instead of each caller slicing a positional entry off.
     """
-    paths = shared_inputs(inputs, generator)
+    guarded = [p for p in shared_inputs(inputs, generator) if p != SETUP_ENV]
     rev = run("git", "-C", str(REPO), "rev-parse", "HEAD")
-    dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + list(paths),
+    dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + guarded,
                            capture_output=True, text=True).stdout.strip()
     stray = _untracked_in(generator_dir(generator)) if generator is not None else []
     if stray:
@@ -260,10 +266,10 @@ def main(*, name, experiment, inputs, generator, author, body, extra_check=None,
 
     name:        core directory under verification/rtl/ (also the verdict label)
     inputs:      repo-relative paths OUTSIDE this core's own directory, hashed
-                 into the record; the last entry (scripts/setup-env.sh) is
-                 excluded from the dirty-input guard. The files beside the
-                 generator and the shared flow helpers are added by
-                 shared_inputs() and must not be listed here
+                 into the record. The files beside the generator and the shared
+                 flow helpers are added by shared_inputs() and must not be
+                 listed here; of those, scripts/setup-env.sh is hashed but
+                 exempt from the dirty-input guard
     generator:   the calling make_record.py (pass `__file__`); the tracked files
                  in its directory are the derived part of the input list
     author:      text after the timestamp in the record
@@ -293,7 +299,7 @@ def main(*, name, experiment, inputs, generator, author, body, extra_check=None,
         return 0
 
     check_pdk(args.pdk_root)
-    rev = require_clean_inputs(inputs[:-1], generator)
+    rev = require_clean_inputs(inputs, generator)
     prov = syn["provenance"]
     versions = tool_versions()
     versions = {

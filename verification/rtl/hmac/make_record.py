@@ -30,7 +30,6 @@ INPUTS = (
     "verification/model/hmac_sha256.py",
     "verification/model/vectorlib.py",
     "verification/vectors/rfc4231.txt",
-    "scripts/setup-env.sh",
 )
 
 

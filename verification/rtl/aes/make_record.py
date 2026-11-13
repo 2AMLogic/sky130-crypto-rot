@@ -29,7 +29,6 @@ INPUTS = (
     "verification/model/vectorlib.py",
     "verification/vectors/fips197.txt",
     "verification/vectors/sp800-38a-ecb.txt",
-    "scripts/setup-env.sh",
 )
 
 

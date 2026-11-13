@@ -29,7 +29,6 @@ INPUTS = (
     "rtl/aes/aes_core.v",
     "verification/model/ctr_drbg.py",
     "reuse.lock.json",
-    "scripts/setup-env.sh",
 )
 
 
@@ -54,7 +53,7 @@ def main() -> int:
     if args.check_only:
         return 0
 
-    rev = rc.require_clean_inputs(INPUTS[:-1], generator=__file__)
+    rev = rc.require_clean_inputs(INPUTS, generator=__file__)
     v = rc.tool_versions()
     sib = json.loads((rc.REPO / "reuse.lock.json").read_text())
     pin = next(i for i in sib["imports"] if i["from"] == "2AMLogic/sky130-trng")
@@ -82,7 +81,7 @@ def main() -> int:
 - **Links**: `rtl/trng_if/`, `verification/rtl/trng_if/`, `spec/trng-interface.md`, `reuse.lock.json`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 """
-    rc.write_record(EXPERIMENT, rev, INPUTS[:-1], meta, body, generator=__file__)
+    rc.write_record(EXPERIMENT, rev, INPUTS, meta, body, generator=__file__)
     return 0
 
 

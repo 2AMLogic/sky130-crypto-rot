@@ -11,8 +11,8 @@
 #      into it, PyPI-pinned as `klayout-tools==${KLT_VERSION}` below.
 #   2. Installs the pinned Yosys build (YoWASP wheel) into that .venv and
 #      verifies its WebAssembly module's sha256 -- the mapper identity that
-#      `yosys -V` does NOT report (issue #143) -- then exposes it as
-#      `.venv/bin/yosys`.
+#      `yosys -V` does NOT report (2AMLogic/sky130-modexp#143) -- then
+#      exposes it as `.venv/bin/yosys`.
 #   3. Fetches the pinned `sky130A` PDK version via `ciel` into
 #      `${PDK_ROOT:-$HOME/.ciel}` and verifies the installed tree's open_pdks
 #      revision (its `SOURCES` file) matches the pin.
@@ -28,7 +28,7 @@
 #
 # Usage:
 #   ./scripts/setup-env.sh
-#   ./scripts/setup-env.sh --pdk-root /custom/path
+#   ./scripts/setup-env.sh --pdk-root=/custom/path
 #
 # The resolved versions this script pins are recorded in
 # docs/environment.md -- update both together if you re-pin.
@@ -53,9 +53,11 @@ CIEL_SKY130_VERSION="f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7"
 # compiled into it -- so two hosts on the same pinned version execute a
 # byte-identical mapper. A host-built `yosys` does not have that property:
 # `yosys -V` names the Yosys version but says nothing about the embedded abc
-# build, and issue #141 measured two hosts at the same nominal `yosys -V`
-# mapping the same design to 1204 vs. 1105 instances. So the pin below is
-# checked by CONTENT (the wasm sha256), not by version string.
+# build: on the upstream sky130-modexp design, two hosts at the same nominal
+# `yosys -V` mapped that design to 1204 vs. 1105 instances
+# (2AMLogic/sky130-modexp#143). Those counts are that block's, not this one's
+# -- the failure mode belongs to the mapper, not to either design. So the pin
+# below is checked by CONTENT (the wasm sha256), not by version string.
 YOWASP_YOSYS_VERSION="0.68.0.0.post1208"
 YOWASP_YOSYS_WASM_SHA256="e37a7e65e3fa4efbbd64a9c1b0e906be16cdc6c4d5273109d17537f78449f38c"
 # Formal flow (issue #56). SymbiYosys (`sby`), `yosys-smtbmc` and `yosys-witness`
@@ -246,9 +248,11 @@ if [ "${WASM_SHA}" != "${YOWASP_YOSYS_WASM_SHA256}" ]; then
   echo "  actual:   sha256:${WASM_SHA}"
   echo "  -> this is exactly the failure the pin exists to catch: a different"
   echo "     mapper build maps the same RTL to a different instance count and"
-  echo "     can move a timing-closure verdict across the threshold (issue"
-  echo "     #141 measured 1.06 ns of setup slack at ss_n40C_1v28). Do NOT"
-  echo "     mint evidence records from this environment."
+  echo "     can move a timing-closure verdict across the threshold. On the"
+  echo "     upstream sky130-modexp design that was worth 1.06 ns of setup"
+  echo "     slack at ss_n40C_1v28 (2AMLogic/sky130-modexp#143); this block"
+  echo "     has no measured figure of its own. Do NOT mint evidence records"
+  echo "     from this environment."
   echo "  -> re-pin deliberately (update YOWASP_YOSYS_VERSION and"
   echo "     YOWASP_YOSYS_WASM_SHA256 here and the matching row in"
   echo "     docs/environment.md together), or remove ${VENV_DIR} and re-run."
@@ -330,9 +334,9 @@ fi
 echo
 echo "== toolchain check (iverilog / openroad) =="
 # yosys is NOT probed here: step 3 provisions it into the venv at a pinned,
-# digest-verified build. A host `yosys` on $PATH is not that build (issue
-# #143), so "some yosys resolves" is not the property this check should
-# report.
+# digest-verified build. A host `yosys` on $PATH is not that build
+# (2AMLogic/sky130-modexp#143), so "some yosys resolves" is not the property
+# this check should report.
 echo "  yosys:    ${VENV_DIR}/bin/yosys (pinned, verified in step 3)"
 missing=()
 if command -v iverilog >/dev/null 2>&1; then
@@ -355,19 +359,21 @@ if [ "${#missing[@]}" -gt 0 ]; then
       iverilog)
         echo "  - iverilog (Icarus Verilog): 'brew install icarus-verilog' (macOS)"
         echo "    or 'apt-get install iverilog' (Debian/Ubuntu). Required for"
-        echo "    the cocotb + Icarus SHA-256 core flow."
+        echo "    the cocotb + Icarus benches under verification/rtl/."
         ;;
       openroad)
         echo "  - openroad: no package-manager formula on macOS or common Linux"
         echo "    distros. Build from https://github.com/The-OpenROAD-Project/OpenROAD"
         echo "    and put it on \$PATH. Required for 'klt place-and-route'/'klt sta'"
-        echo "    only; the SHA-256 flow's synthesis and simulation do not need it."
+        echo "    only; the cocotb + Icarus benches and 'klt synthesize' do not"
+        echo "    need it."
         ;;
     esac
   done
   echo
-  echo "This is non-fatal for this script: the SHA-256 flow (verification/rtl/sha256/run.sh)"
-  echo "needs only iverilog plus the pinned venv tools."
+  echo "This is non-fatal for this script: the cocotb + Icarus benches under"
+  echo "verification/rtl/ need only iverilog plus the pinned venv tools, and the"
+  echo "formal harnesses under verification/formal/ need only the venv tools."
 else
   echo "all of iverilog/yosys/openroad resolve (yosys from the pin above)."
 fi
