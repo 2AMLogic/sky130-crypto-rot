@@ -68,6 +68,8 @@ SHA-256 (with million-`a`), AES, HMAC and key-ladder RTL
 benches with their negative controls). `klt` allows one command 1800 s, so the
 FORMAL key-ladder bench (`verification/formal/keyladder/run.sh`) is not in the
 inventory and the `keyladder-formal` record is not covered by this attestation.
+The `cold_start` command is marked `local_only`, so this re-attest runs it but
+the CI envelope gate below does not (see "Freshness is CI-enforced").
 Re-attest when a listed bench changes, then put the inventory's
 `provenance.input.content_hash` in the manifest and regenerate the record.
 
@@ -84,9 +86,49 @@ venv that has both (not bare `uvx`, whose `python3` has no `pytest`). The
 envelope records the hashes of README.md, LICENSE and both workflows, so
 re-attest after editing any of them, then put the inventory's
 `provenance.input.content_hash` in the manifest and regenerate the record.
+All three commands are marked `local_only`, so this re-attest runs them but the
+CI envelope gate below does not (see "Freshness is CI-enforced").
 
 ## Freshness is CI-enforced
 
-`.github/workflows/signoff.yml` re-runs the grader on every push to `main`
-and every pull request, accepts exit codes 0 and 3, and fails when the
-fresh output differs byte-for-byte from the committed record.
+`.github/workflows/signoff.yml` runs two checks on every push to `main` and
+every pull request.
+
+**The verdict of record.** It re-runs the grader, accepts exit codes 0 and 3,
+and fails when the fresh output differs byte-for-byte from the committed
+record.
+
+**The attestation envelopes.** The grade above binds items 9 and 10 only by
+the hash of each inventory file, so on its own it cannot see an attested file
+being edited: a PR that changes `README.md` or a listed bench without
+re-attesting leaves the record byte-identical, and the stale `content_hash`
+entries in the envelope go unnoticed. The step before it therefore re-checks
+both envelopes with the tool's own drift mode:
+
+```console
+klt signoff --attest 9 --inventory manifests/inventories/item-9.json \
+    --check manifests/inventories/item-9.envelope.json
+```
+
+and the same for item 10. That mode re-attests and writes nothing: exit `0`
+only if the committed envelope still reproduces *and* still passes, `3`
+otherwise, naming each field that changed. The job fails on anything but `0`
+and prints the re-attest command. So the "re-attest after editing a listed
+file" rule above is now mechanical rather than advisory — including for a
+routine docs PR that touches the root `README.md`, which item 10 hashes.
+
+**What the gate does not re-run.** Item 9's `cold_start` and item 10's three
+audit commands are marked `local_only: true` in their inventories. `--attest`
+runs them; `--attest --check` skips them, lists them under `skipped_checks`,
+and carries their committed outcome into the verdict — so the gate needs no
+bench toolchain and costs under a second per item, and a committed *failing*
+command still fails the gate. Those commands are not left unchecked: `npm run
+lint`, `npm run test` and `npm run check:reuse` are what `.github/workflows/ci.yml`
+runs on the same events, and the cold start is what a re-attest runs. Because
+the flag is recorded in the envelope, adding or removing it changes both the
+inventory hash and the envelope.
+
+Order of work when a PR edits `signoff.yml` itself: item 10 hashes that file,
+so finish the workflow edit first and re-attest item 10 afterwards. Rebase and
+re-run both `--check` commands before review — a merge to `main` that touches a
+listed file in between will fail the gate.
