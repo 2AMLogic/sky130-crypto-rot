@@ -97,7 +97,7 @@ CI (`.github/workflows/ci.yml`) needs no Docker; only `verify` provisions the PD
 `pytest` for the model job):
 
 ```
-npm run lint          # compileall on verification/ and flow/, bash -n on scripts, pin check
+npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script, pin check
 npm run test          # pytest: verification/model against the committed vectors,
                       #         plus the self-tests of the pin, reuse and record checkers
 npm run check:reuse   # re-hash reuse.lock.json files
