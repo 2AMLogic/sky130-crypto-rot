@@ -38,8 +38,7 @@ INPUTS = (
 
 
 def body(ctx) -> str:
-    sim, syn, prov = ctx.sim, ctx.syn, ctx.prov
-    versions, wasm = ctx.versions, ctx.wasm
+    sim, syn = ctx.sim, ctx.syn
     summary = ctx.summary
     args = ctx.args
     kdf = re.search(r"kdf_shape_cycles_start_to_mac_valid=(\d+)", summary)
@@ -49,7 +48,7 @@ def body(ctx) -> str:
 - **Run configuration**: `./scripts/setup-env.sh` then `./verification/rtl/hmac/run.sh --record`. Simulation: `klt functional-verification verification/rtl/hmac/sim-request.json` (engine icarus, `random_seed` 1, one DUT instance, no reset between operations). Synthesis: `klt synthesize verification/rtl/hmac/synth-request.json --pdk sky130A --pdk-root {args.pdk_root}`, liberty corner `tt_025C_1v80`, single corner, pre-P&R, cell area only, no clock target. No STA was run.
 - **Statistical convention**: deterministic; zero-mismatch pass/fail. Vectors: RFC 4231 cases 1-4, 6, 7 parsed from `verification/vectors/rfc4231.txt` (provenance checked; keys of at most 32 bytes run through both key ports, the 131-byte keys of cases 6 and 7 through the stream port); message lengths 0, 55, 56, 63, 64, 119 against key lengths 32, 64, 65; key lengths 0, 1, 31, 33, 63, 100, 128, 129, 200; 40 random key/message lengths with input stalls; all against the model, plus a `clear` abort followed by a good operation. RFC 4231 case 5 (truncation) is not applicable and is not run.
 - **Result**: PASS. Simulation: {sim['passed_count']}/{sim['test_count']} tests passed ({summary}). The KDF message shape (52-byte message, 32-byte slot key) takes {kdf_cycles} clock cycles from the `start` edge to `mac_valid`, of which 4 x 65 = 260 are the four compressions of decision 0003 and the rest is the byte-serial feed of the ipad block, opad block and inner digest through the core's byte port plus the 52 message bytes. Negative control: `./verification/rtl/hmac/run.sh --negative-control` flips one opad bit (`HMAC_NEG_CTRL`, 0x5c to 0x5d) and the bench fails, naming the first failing vector. Synthesis: status `{syn['status']}`, {syn['instance_count']} instances, {syn['area_um2']} um2 ({syn['sequential_area_um2']} um2 sequential), no latches, combinational loops or multi-driven nets. Timing is `null`: no timing claim; the 50 MHz target remains target, unmeasured.
-- **klt provenance**: klt `{prov['klt_version']}` pinned at `{versions['klt_pin']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}), Icarus Verilog {versions['icarus']}, cocotb {versions['cocotb']}, ciel {versions['ciel']}, Python {versions['python']}.
+{ctx.klt_provenance}
 - **Links**: `rtl/hmac/hmac_sha256.v`, `verification/rtl/hmac/`, `docs/environment.md`, `spec/target-spec.md` section 2, `spec/decision-records/0003-kdf-construction.md`.
 """
 
