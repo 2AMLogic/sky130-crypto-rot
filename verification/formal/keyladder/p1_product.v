@@ -4,9 +4,11 @@
 // material: the root key and the software-load words (ld_data). cmd_ctx is the
 // 0003 user_context, a public label, and is shared. Asserted: every output other
 // than the two key-bearing ones (hmac_key, aes_key) is equal in both copies at
-// every cycle. Registers without a reset (the SHA-256 core datapath) start free
-// and independent in each copy, so "differ only in key material" includes any
-// residue in them. The first cycle is a reset.
+// every cycle after the first. The first cycle is a reset, and every register of
+// keyladder, hmac_sha256 and sha256_core is assigned in a synchronous reset
+// branch, so none is free once that edge has been taken. Cycle 0 is before it:
+// there every register is free and independent in each copy, which is why the
+// comparison starts at cycle 1.
 //
 // This is the MODULE-boundary property; the bus-level P-1 (dat_o/ack/err/irq) needs
 // the bus front end and is issue #46's.

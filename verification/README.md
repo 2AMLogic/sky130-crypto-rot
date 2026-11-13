@@ -5,16 +5,17 @@
 [`reuse.lock.json`](../reuse.lock.json); do not edit it here. Adoption
 decisions: [`spec/decision-records/0001-modexp-tooling-adoption.md`](../spec/decision-records/0001-modexp-tooling-adoption.md).
 
-`model/` holds the Python golden reference models (SHA-256, HMAC-SHA-256) and
-`vectors/` the published known-answer vectors with provenance sidecars; see
-[`model/README.md`](model/README.md). See the repo README for scope.
+`model/` holds the Python golden reference models and `vectors/` the published
+known-answer vectors with provenance sidecars;
+[`model/README.md`](model/README.md) is the maintained list of which model is
+checked against which vectors. See the repo README for scope.
 
 ## What CI runs vs. what stays local
 
 | Where | What |
 |---|---|
 | CI `lint` | `python3 -m compileall verification flow`; one `bash -n` per tracked project `*.sh` (the `git ls-files` set, excluding the tool-managed `.loom/`, `.claude/`, `.agents/` and `loom.sh`); `check_pins.py` (the pins in `scripts/setup-env.sh` appear in `docs/environment.md`) |
-| CI `model` | the whole `npm run test` pytest run: `verification/model` over the committed SHA-256 and HMAC-SHA-256 vectors (grows as AES, KDF and DRBG models land under `model/`), plus the checker self-tests `test_check_pins.py`, `test_check_reuse.py` and `test_record_lib.py` (pin resolution and the PDK-pin and dirty-input guards in `flow/common/record_lib.py`) |
+| CI `model` | the whole `npm run test` pytest run: `verification/model` over the committed vectors (`model/README.md` lists them), plus the checker self-tests `test_check_pins.py`, `test_check_reuse.py` and `test_record_lib.py` (pin resolution and the PDK-pin and dirty-input guards in `flow/common/record_lib.py`) |
 | CI `reuse` | `check_reuse.py` re-hashes each `reuse.lock.json` file that has a local copy against its `sha256`; its self-test runs in `model` |
 | CI `verify` | only on PRs touching `rtl/`, `verification/`, `flow/` or the env pins: `scripts/setup-env.sh`, then `scripts/ci-verify.sh` (about 8 min): the sha256, aes, drbg, hmac, keyladder and trng_if benches and each `*_NEG_*` negative control (must fail; including `HMAC_NEG_CTRL`, `HMAC_NEG_SCRUB`, `KL_NEG_MASK`, `KL_NEG_LOCK`, `KL_NEG_ZEROIZE`), and `verification/formal/run.sh` (its `reach_*`/`neg_*` tasks must fail) |
 | Local only | synthesis, sha256 `--million-a` (about 10 min), `verification/formal/keyladder` (its `neg_net` task synthesizes; over 30 min), place-and-route, DRC, LVS, `klt signoff --manifest` |
