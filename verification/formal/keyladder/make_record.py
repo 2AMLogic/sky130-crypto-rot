@@ -251,7 +251,7 @@ Structural cone-of-influence check (`cone.py`) on the flattened design: bit-leve
 
 ### P-1 at the module boundary
 
-Two copies of `keyladder` share every input except the key material (`root_key`, `ld_data`; `cmd_ctx` is the 0003 public user_context and is shared); asserted: every output other than `hmac_key`/`aes_key` is equal in both copies in every cycle from the first post-reset cycle. The two copies start with independent free contents in the registers that have no reset (the SHA-256 datapath). The real HMAC and SHA-256 core are in the product (no abstraction).
+Two copies of `keyladder` share every input except the key material (`root_key`, `ld_data`; `cmd_ctx` is the 0003 public user_context and is shared); asserted: every output other than `hmac_key`/`aes_key` is equal in both copies in every cycle from the first post-reset cycle. The first cycle of the product is a reset (`p1_product.v` assumes `rst_n` low there), and every register of `keyladder`, `hmac_sha256` and `sha256_core` is assigned in a synchronous reset branch, so no register is free from the first post-reset cycle on. The cycle before that edge, where both copies' registers are free and independent, is outside the assertion. The real HMAC and SHA-256 core are in the product (no abstraction).
 
 - **Longest operation**: one root derivation takes {latency} clock cycles from the command to `done_pulse` (Icarus, `latency_tb.v`; +-1 for the edge convention). The earlier curation estimate was "at least 260" (the HMAC's hash work alone); the measured figure includes the byte-serial feed.
 - **RTL**: {p1_state(p1r, args.p1_depth_rtl)}.
@@ -275,7 +275,6 @@ The netlist negative controls are separate `klt synthesize` runs of the mutated 
 - Netlist results are for the `klt synthesize` output of this RTL at one liberty corner, read through Yosys's own liberty-derived models. Placed or routed netlists, scan/DFT structures and P-12 were not examined. P-13 (equivalence of netlist to RTL) was not attempted; the RTL and netlist rows are separate proofs of the same text, not one carried to the other.
 - P-5/P-6 are about the ladder's registers and release logic, over an abstract HMAC; they say nothing about the HMAC core. P-4 (release only to the permitted consumer) and bus-level behaviour are other issues'.
 - The slot properties are stated over the ports and named registers listed above; a property of a register this text does not name is not covered.
-- Known limitation carried from the issue #55 record: `hmac_sha256` `clear` does not clear the SHA-256 datapath registers; this record neither depends on nor changes that.
 - Nothing here is a certification, validation or side-channel claim.
 
 - **Tool versions**: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}); SymbiYosys and `yosys-smtbmc` from the same wheel; {versions['z3']} (z3-solver {versions['z3_solver_wheel']}, binary {versions['z3_binary']}); klt pinned at `{versions['klt_pin']}` (synthesis); {versions['icarus']}; Python {versions['python']}.
