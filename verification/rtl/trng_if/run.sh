@@ -35,6 +35,9 @@ for arg in "$@"; do
 done
 
 core_flow_setup
+# The eight sim-*-request.json files the benches below read are mk_req.py's
+# output, not tracked copies of it: they are gitignored and rewritten on
+# every run, and mk_req.py is the request input make_record.py hashes.
 python3 -I mk_req.py
 
 sim() { klt functional-verification "$1" --format json > "$2"; }
