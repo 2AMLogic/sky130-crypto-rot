@@ -13,7 +13,7 @@ decisions: [`spec/decision-records/0001-modexp-tooling-adoption.md`](../spec/dec
 
 | Where | What |
 |---|---|
-| CI `lint` | `python3 -m compileall verification flow`; `bash -n scripts/*.sh verification/rtl/sha256/run.sh` |
+| CI `lint` | `python3 -m compileall verification flow`; one `bash -n` per tracked project `*.sh` (the `git ls-files` set, excluding the tool-managed `.loom/`, `.claude/`, `.agents/` and `loom.sh`) |
 | CI `model` | `pytest verification/model` over the committed SHA-256 and HMAC-SHA-256 vectors (grows as AES, KDF and DRBG models land under `model/`) |
 | CI `reuse` | `check_reuse.py` re-hashes each `reuse.lock.json` file that has a local copy against its `sha256`; its self-test is `test_check_reuse.py` |
 | CI `verify` | only on PRs touching `rtl/`, `verification/`, `flow/` or the env pins: `scripts/setup-env.sh`, then `scripts/ci-verify.sh` (about 8 min): the sha256, aes, drbg, hmac, keyladder and trng_if benches and each `*_NEG_*` negative control (must fail; including `HMAC_NEG_CTRL`, `HMAC_NEG_SCRUB`, `KL_NEG_MASK`, `KL_NEG_LOCK`, `KL_NEG_ZEROIZE`), and `verification/formal/run.sh` (its `reach_*`/`neg_*` tasks must fail) |

@@ -3,9 +3,9 @@
 # What runs here: format and known-answer correctness -- Python/shell
 # syntax, the golden models against the committed published vectors, and the
 # reuse.lock.json hashes -- plus, on PRs touching rtl/ or verification/, the
-# `verify` job: the sha256, aes, drbg and trng_if benches with their negative
-# controls and the SymbiYosys tasks (scripts/ci-verify.sh). It makes no
-# security claim.
+# `verify` job: the sha256, aes, drbg, hmac, keyladder and trng_if benches with
+# their negative controls and the SymbiYosys tasks (scripts/ci-verify.sh). It
+# makes no security claim.
 # What stays local: synthesis, place-and-route, DRC, LVS, signoff (PDK-heavy),
 # sha256 --million-a, and verification/formal/keyladder.
 # See README.md "Reproduce" and verification/README.md "What CI runs vs. what
