@@ -1,12 +1,13 @@
 """Shared scaffolding for the per-core verification record makers.
 
 Each verification/rtl/<core>/make_record.py supplies only its own data (name,
-experiment, INPUTS, the claim/result prose as a body callback, and an optional
-extra check such as a SHA-256 million-`a` result) and calls main(). The verdict
-(sim passed, synthesis ok, no latches / comb loops / multi-driven nets), the
-PDK-pin and dirty-input guards, the tool-version collection and the record-meta
-and record-id emission live here so every core records the same way. Standard
-library only.
+experiment, its own INPUTS -- the shared flow helpers are added by
+shared_inputs(), not listed per core -- the claim/result prose as a body
+callback, and an optional extra check such as a SHA-256 million-`a` result) and
+calls main(). The verdict (sim passed, synthesis ok, no latches / comb loops /
+multi-driven nets), the PDK-pin and dirty-input guards, the tool-version
+collection and the record-meta and record-id emission live here so every core
+records the same way. Standard library only.
 """
 
 from __future__ import annotations
@@ -25,6 +26,15 @@ REPO = Path(__file__).resolve().parents[2]
 
 _WASM_HASH = ("import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha256("
               "open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
+
+# The shared flow helpers every record implicitly depends on. No generator lists
+# them in its own INPUTS: shared_inputs() adds them, so which files a record
+# hashes and dirty-checks cannot drift between cores.
+RECORD_LIB = "flow/common/record_lib.py"
+CORE_FLOW = "flow/common/core_flow.sh"
+SETUP_ENV = "scripts/setup-env.sh"
+
+_SOURCES_CORE_FLOW = re.compile(r"^[ \t]*(?:source|\.)[ \t]+\S*" + re.escape(CORE_FLOW), re.M)
 
 
 def sha256(path: Path) -> str:
@@ -57,8 +67,36 @@ def check_pdk(pdk_root: Path) -> None:
         raise SystemExit("PDK tree does not name the pinned open_pdks commit; refusing to record")
 
 
+def _runs_core_flow(path: str) -> bool:
+    """True if `path` is a flow's run.sh that sources flow/common/core_flow.sh."""
+    return path.endswith("/run.sh") and bool(_SOURCES_CORE_FLOW.search((REPO / path).read_text()))
+
+
+def shared_inputs(inputs) -> list:
+    """`inputs` plus the shared flow helpers, which no generator lists by hand.
+
+    record_lib.py is always added -- every generator imports it, and it is what
+    hashes the inputs and writes the record. core_flow.sh is added when the flow's
+    own run.sh (already one of `inputs`) sources it, so the record follows what the
+    flow actually runs rather than a hand-copied line. Entries already present are
+    not duplicated, and a trailing scripts/setup-env.sh stays last so the "last
+    entry is exempt from the dirty-input guard" convention still holds.
+    """
+    out = list(inputs)
+    tail = [out.pop()] if out and out[-1] == SETUP_ENV else []
+    extra = [CORE_FLOW] if any(_runs_core_flow(p) for p in out) else []
+    for path in extra + [RECORD_LIB]:
+        if path not in out:
+            out.append(path)
+    return out + tail
+
+
 def require_clean_inputs(inputs) -> str:
-    """HEAD revision, after refusing if any of `inputs` is modified or untracked."""
+    """HEAD revision, after refusing if any input is modified or untracked.
+
+    The shared flow helpers are guarded too, whether or not `inputs` names them.
+    """
+    inputs = shared_inputs(inputs)
     rev = run("git", "-C", str(REPO), "rev-parse", "HEAD")
     dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + list(inputs),
                            capture_output=True, text=True).stdout.strip()
@@ -83,8 +121,10 @@ def tool_versions() -> dict:
 def write_record(experiment: str, rev: str, inputs, meta_extra: dict, body: str) -> Path:
     """Append-only record: record-meta comment, then `body` (bullets from Claim on).
 
+    The shared flow helpers are hashed in too, whether or not `inputs` names them.
     `{rid}` and `{timestamp}` in body are substituted.
     """
+    inputs = shared_inputs(inputs)
     now = datetime.datetime.now(datetime.timezone.utc)
     rid = f"{now:%Y%m%d-%H%M%S}-{rev[:7]}"
     meta = {
@@ -108,8 +148,10 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
     """Verdict, and unless --check-only an append-only record, for one core.
 
     name:        core directory under verification/rtl/ (also the verdict label)
-    inputs:      repo-relative paths hashed into the record; the last entry
-                 (scripts/setup-env.sh) is excluded from the dirty-input guard
+    inputs:      repo-relative paths specific to this core, hashed into the
+                 record; the last entry (scripts/setup-env.sh) is excluded from
+                 the dirty-input guard. The shared flow helpers are added by
+                 shared_inputs() and must not be listed here
     author:      text after the timestamp in the record
     body:        callable(ctx) -> the record's bullets from Claim through Links
     extra_check: optional callable(out_dir) -> (ok, verdict_text, data); the

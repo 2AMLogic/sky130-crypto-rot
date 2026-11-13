@@ -32,8 +32,6 @@ INPUTS = (
     "verification/model/vectorlib.py",
     "verification/vectors/fips197.txt",
     "verification/vectors/sp800-38a-ecb.txt",
-    "flow/common/core_flow.sh",
-    "flow/common/record_lib.py",
     "scripts/setup-env.sh",
 )
 
