@@ -38,3 +38,18 @@ records nothing: records stay Builder- or re-run-produced under
 deferred by decision record 0001 until the modexp pin moves. If a heavy leg
 moves into CI, change this table, the README "Reproduce" section and
 `.github/workflows/ci.yml` together.
+
+## What a record's `supersedes` field asserts
+
+`flow/common/record_lib.py` fills a new record's `supersedes` in from the tree:
+it names the newest record git already tracks for the same experiment, or
+`none` when the experiment has none. Nobody types the value.
+
+It asserts exactly one thing: the named record is the **previous** record of
+this experiment and is, from here on, frozen history rather than a claim about
+current sources. It does **not** assert that the new record repeats or widens
+every check the old one made -- what a record covers is stated by its own
+Claim and Result bullets, and a narrower re-run still supersedes the record it
+follows (the SHA-256 trail alternates on the `--million-a` KAT, for instance).
+Records are append-only, so the chain is never edited afterwards: the records
+written before this field worked stay unlinked.

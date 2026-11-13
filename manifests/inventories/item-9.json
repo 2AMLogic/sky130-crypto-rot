@@ -48,14 +48,6 @@
     "verification/rtl/trng_if/fetch_trng.sh",
     "verification/rtl/trng_if/mk_req.py",
     "verification/rtl/trng_if/run.sh",
-    "verification/rtl/trng_if/sim-if-negctl-count-request.json",
-    "verification/rtl/trng_if/sim-if-negctl-discard-request.json",
-    "verification/rtl/trng_if/sim-if-negctl-prev-request.json",
-    "verification/rtl/trng_if/sim-if-request.json",
-    "verification/rtl/trng_if/sim-real-request.json",
-    "verification/rtl/trng_if/sim-sys-negctl-interval-request.json",
-    "verification/rtl/trng_if/sim-sys-negctl-zeroize-request.json",
-    "verification/rtl/trng_if/sim-sys-request.json",
     "verification/rtl/trng_if/tb_sys.v",
     "verification/rtl/trng_if/tb_trng_if.v",
     "verification/rtl/trng_if/test_sys.py",
@@ -66,7 +58,8 @@
   "cold_start": {
     "argv": [
       "scripts/cold-start-benches.sh"
-    ]
+    ],
+    "local_only": true
   },
   "pins": {
     "pdk": {

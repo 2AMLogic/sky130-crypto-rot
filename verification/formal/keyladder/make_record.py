@@ -281,7 +281,6 @@ The netlist negative controls are separate `klt synthesize` runs of the mutated 
 - **Tool versions**: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}); SymbiYosys and `yosys-smtbmc` from the same wheel; {versions['z3']} (z3-solver {versions['z3_solver_wheel']}, binary {versions['z3_binary']}); klt pinned at `{versions['klt_pin']}` (synthesis); {versions['icarus']}; Python {versions['python']}.
 - **Links**: `{HERE}/`, `rtl/keyladder/keyladder.v`, `spec/key-isolation-properties.md` (P-1, P-2, P-5, P-6, Open questions 1-3), `verification/records/keyladder-sim-synth/`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #56).
-- **Supersedes**: none
 """
     record_lib.write_record(EXPERIMENT, rev, INPUTS, meta_extra, body)
     return 0

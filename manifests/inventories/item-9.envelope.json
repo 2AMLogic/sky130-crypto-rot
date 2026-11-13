@@ -3,14 +3,14 @@
   "kind": "generic",
   "status": "pass",
   "t1_item": 9,
-  "summary": "T1 item 9 (Testbenches shipped): 61/61 attestation checks passed (klt signoff --attest)",
+  "summary": "T1 item 9 (Testbenches shipped): 53/53 attestation checks passed (klt signoff --attest)",
   "source": "manifests/inventories/item-9.json",
   "attestation": {
     "producer": "klt signoff --attest",
     "inventory_schema_version": 1,
     "hash_algorithm": "sha256-raw-bytes",
-    "check_count": 61,
-    "passed_count": 61,
+    "check_count": 53,
+    "passed_count": 53,
     "checks": [
       {
         "check": "present",
@@ -311,70 +311,14 @@
         "role": "testbench",
         "path": "verification/rtl/trng_if/mk_req.py",
         "passed": true,
-        "content_hash": "sha256:c1841b2b09c711d3ea2f247f24c4d4024e713aa42a1afc8376838b82a80f7d53"
+        "content_hash": "sha256:01c8e0479ff1b8c3e6d87094117b04f4e504cb6e4ae3287a575e1cd535bb9d3a"
       },
       {
         "check": "present",
         "role": "testbench",
         "path": "verification/rtl/trng_if/run.sh",
         "passed": true,
-        "content_hash": "sha256:291e5f604fb67c595735d5ab83073058f292a9a8a69f8c99f153fafc4549dd6c"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-if-negctl-count-request.json",
-        "passed": true,
-        "content_hash": "sha256:1986c36d5b59d4928660b9b632302c10b370411ad5ee1708d456b85f4d1e2d00"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-if-negctl-discard-request.json",
-        "passed": true,
-        "content_hash": "sha256:824db9f4a4e9e100b392fa204f6d13ef323ee6f8ebddb59df65631356e35e60f"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-if-negctl-prev-request.json",
-        "passed": true,
-        "content_hash": "sha256:d90d4ff4cd8273fda79c4ad93384fbdf98ac438d7f035a1ba250328603cca78a"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-if-request.json",
-        "passed": true,
-        "content_hash": "sha256:e5a0de5a7d8c2ac60efa6f48f9e7fb74ef42d1f701a657911c40826b652983f0"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-real-request.json",
-        "passed": true,
-        "content_hash": "sha256:676f88f71274bbf534d08469c7bf435be9a7bb146d57414521ec705e6c8c30d2"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-sys-negctl-interval-request.json",
-        "passed": true,
-        "content_hash": "sha256:881324114ecfc96ade7146f5fba2c2a74689d6add139f971ca37145024f87fc2"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-sys-negctl-zeroize-request.json",
-        "passed": true,
-        "content_hash": "sha256:1f4c6ddb1b19c6290b3acec9dc2655cc0096853acd3c687ba8a94dde72d0beb4"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/trng_if/sim-sys-request.json",
-        "passed": true,
-        "content_hash": "sha256:759d65feb20f96dd9907ee452c9143528fbd4e57f69bd2e91e02f1028e6e5c4a"
+        "content_hash": "sha256:bcf1c4959acfe24f268902b94daa788f58a266c6f2ad48f4e764bc21da41738b"
       },
       {
         "check": "present",
@@ -426,7 +370,8 @@
         ],
         "cwd": ".",
         "exit_status": 0,
-        "passed": true
+        "passed": true,
+        "local_only": true
       },
       {
         "check": "pin",
@@ -461,7 +406,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:4ce47ebaace5a8404000bc83ee8054c08d972514e2c2908d73b7f42ccc291885"
+      "content_hash": "sha256:966af2b4a141127427797e9a360e5059b255fc6de0298bd83f16c53e8de59fc3"
     }
   }
 }

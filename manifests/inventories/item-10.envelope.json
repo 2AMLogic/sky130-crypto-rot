@@ -17,14 +17,14 @@
         "role": "hygiene",
         "path": ".github/workflows/ci.yml",
         "passed": true,
-        "content_hash": "sha256:6a6abc71a625d5e947bf4bea6d561088a81d2e2ee4800a23485a2a2f156f5b1b"
+        "content_hash": "sha256:43ba4eb6aeb43fa7196c172438088de7b96c6b98d53c4bdb8cea6699e3b5e02d"
       },
       {
         "check": "present",
         "role": "hygiene",
         "path": ".github/workflows/signoff.yml",
         "passed": true,
-        "content_hash": "sha256:ef33ed022406f16143f55145f14a363d2d6b10461afe58b8ed1506def0696e68"
+        "content_hash": "sha256:ed541167b1638f66a86b35ec8de4b2cfc781f3bfb21b30e0c4cabe558b3e6426"
       },
       {
         "check": "present",
@@ -38,7 +38,7 @@
         "role": "hygiene",
         "path": "README.md",
         "passed": true,
-        "content_hash": "sha256:eabcf1a61e3b61e99b608ba59c4499412d89e9467f4ab5d5d95452cd2d22a7e0"
+        "content_hash": "sha256:c30db631098066376c025cc640c4502d0f54ad3290070510ee208fa6e667b014"
       },
       {
         "check": "command",
@@ -51,7 +51,8 @@
         ],
         "cwd": ".",
         "exit_status": 0,
-        "passed": true
+        "passed": true,
+        "local_only": true
       },
       {
         "check": "command",
@@ -64,7 +65,8 @@
         ],
         "cwd": ".",
         "exit_status": 0,
-        "passed": true
+        "passed": true,
+        "local_only": true
       },
       {
         "check": "command",
@@ -77,7 +79,8 @@
         ],
         "cwd": ".",
         "exit_status": 0,
-        "passed": true
+        "passed": true,
+        "local_only": true
       }
     ]
   },
@@ -91,7 +94,7 @@
         "path": "manifests/inventories/item-10.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:17c59b46f7f709974e31752491b9759188ac3f3059e015547d7135152da30837"
+      "content_hash": "sha256:e3eb2b466aee40701fa3bf068d7261ff729da198bafa1e11162d31d63932f248"
     }
   }
 }

@@ -88,7 +88,6 @@ def main() -> int:
 - **klt provenance**: klt `{prov['klt_version']}` pinned at `{v['klt_pin']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {v['yosys']} (yowasp-yosys {v['yowasp_yosys']}, `yosys.wasm` {v['yosys_wasm']}), {v['icarus']}, cocotb {v['cocotb']}, ciel {v['ciel']}, Python {v['python']}.
 - **Links**: `rtl/drbg/`, `verification/rtl/drbg/`, `spec/decision-records/0002-drbg-construction.md`, `spec/target-spec.md` section 4.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
-- **Supersedes**: none
 """
     rc.write_record(EXPERIMENT, rev, INPUTS[:-1], meta, body)
     return 0

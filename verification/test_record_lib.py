@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -95,3 +96,76 @@ def test_shared_inputs_keeps_setup_env_last_and_is_idempotent():
 def test_shared_inputs_omits_core_flow_when_the_flow_does_not_source_it():
     out = record_lib.shared_inputs(["verification/formal/run.sh"])
     assert out == ["verification/formal/run.sh", record_lib.RECORD_LIB]
+
+
+# --- supersedes: the predecessor lookup (issue #137) -------------------------
+#
+# write_record() derives `supersedes` from the tree rather than taking it from a
+# caller, so these drive write_record() against a throwaway git repository.
+# Predecessors are seeded as files, not by calling write_record() twice: two
+# calls in the same second produce the same record id and the second overwrites
+# the first.
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True)
+
+
+def _meta(text: str) -> dict:
+    return json.loads(text.split("<!-- record-meta\n", 1)[1].split("\n-->", 1)[0])
+
+
+@pytest.fixture
+def temp_repo(tmp_path, monkeypatch):
+    """A throwaway REPO holding the one shared input shared_inputs() always adds."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    (tmp_path / record_lib.RECORD_LIB).parent.mkdir(parents=True)
+    (tmp_path / record_lib.RECORD_LIB).write_text("# stand-in for the real record_lib.py\n")
+    _git(tmp_path, "add", record_lib.RECORD_LIB)
+    monkeypatch.setattr(record_lib, "REPO", tmp_path)
+    return tmp_path
+
+
+def _seed(repo: Path, experiment: str, *names: str) -> Path:
+    d = repo / "verification/records" / experiment / "records"
+    d.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        (d / name).write_text("seed\n")
+    return d
+
+
+def test_first_record_of_an_experiment_supersedes_nothing(temp_repo):
+    text = record_lib.write_record("exp", "0" * 40, [], {}, "- **Claim**: x\n").read_text()
+    assert _meta(text)["supersedes"] is None
+    assert text.splitlines()[-1] == "- **Supersedes**: none"
+    assert text.count("**Supersedes**") == 1
+
+
+def test_record_supersedes_the_newest_tracked_record_of_the_same_experiment(temp_repo):
+    """Newest tracked generated record only: not the hand-written id shape, not a
+    non-record file, not an untracked leftover, not another experiment's records."""
+    _seed(temp_repo, "exp", "20260101-000000-aaaaaaa.md", "20260102-000000-bbbbbbb.md",
+          "20260103-ccccccc.md", "README.md")
+    _seed(temp_repo, "other", "20260105-000000-eeeeeee.md")
+    _git(temp_repo, "add", "verification/records")
+    _seed(temp_repo, "exp", "20260104-000000-ddddddd.md")  # untracked, after the add
+
+    text = record_lib.write_record("exp", "0" * 40, [], {}, "- **Claim**: x\n").read_text()
+    assert _meta(text)["supersedes"] == "20260102-000000-bbbbbbb"
+    assert text.splitlines()[-1] == "- **Supersedes**: 20260102-000000-bbbbbbb"
+    assert text.count("**Supersedes**") == 1
+
+
+def test_failed_predecessor_lookup_refuses_to_write(tmp_path, monkeypatch):
+    """Fail closed: an unanswerable lookup must not fall back to `none`."""
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path.parent))
+    monkeypatch.setattr(record_lib, "REPO", tmp_path)  # not a git repository
+    with pytest.raises(SystemExit, match="refusing to record"):
+        record_lib.write_record("exp", "0" * 40, [], {}, "- **Claim**: x\n")
+    assert not (tmp_path / "verification").exists()
+
+
+@pytest.mark.parametrize("maker", MAKERS)
+def test_generator_does_not_hand_write_the_supersedes_bullet(maker):
+    """One source for the value; six hand-copied literals is what issue #137 found."""
+    assert "Supersedes" not in (REPO / maker).read_text()
