@@ -6,9 +6,14 @@
 #   ./scripts/setup-env.sh                  # once: .venv, pinned yosys, PDK
 #   ./scripts/ci-verify.sh
 #
-# Covers sha256, aes, drbg, hmac, keyladder and trng_if. Per core: the positive simulation(s), then every negative control, which
-# must FAIL (the run.sh exits non-zero if one passes). Then the SymbiYosys
-# tasks, whose reach_*/neg_* tasks must fail. Nothing is recorded.
+# Covers sha256, aes, drbg, hmac, keyladder and trng_if. Per core, both halves
+# come from that core's own run.sh: `--sim-only` runs its positive
+# simulation(s) and stops before synthesis, `--negative-control` runs every
+# control, which must FAIL (the run.sh exits non-zero if one passes). Which
+# simulations a core has is the run.sh's business alone -- this script never
+# keeps a second list of them, so a bench added there is run here too (#114,
+# #131). Then the SymbiYosys tasks, whose reach_*/neg_* tasks must fail.
+# Nothing is recorded.
 #
 # Left out, on purpose, and named in verification/README.md:
 #   * synthesis (needs the PDK and is not a property check);
@@ -29,21 +34,9 @@ if [ ! -x "${REPO_ROOT}/.venv/bin/klt" ]; then
 fi
 export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
 
-sim() { # sim <dir under verification/rtl> <request> [DRBG_BENCH_MODE]
-  echo "== sim: $1/$2 =="
-  (cd "${REPO_ROOT}/verification/rtl/$1" && DRBG_BENCH_MODE="${3:-}" \
-    klt functional-verification "$2" --format json > /dev/null)
-}
-
-sim sha256 sim-request.json
-sim sha256 sim-scrub-request.json
-sim aes sim-request.json
-sim drbg sim-request.json shipped
-sim drbg sim-cavp-request.json cavp
-sim hmac sim-request.json
-sim keyladder sim-request.json
-
 for core in sha256 aes drbg hmac keyladder; do
+  echo "== simulations: $core =="
+  "${REPO_ROOT}/verification/rtl/${core}/run.sh" --sim-only
   echo "== negative controls: $core =="
   "${REPO_ROOT}/verification/rtl/${core}/run.sh" --negative-control
 done
