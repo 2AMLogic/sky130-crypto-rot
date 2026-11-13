@@ -19,22 +19,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "flow/common"))
 import record_lib as rc  # noqa: E402
 
 EXPERIMENT = "drbg-sim-synth"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/drbg/ctr_drbg.v",
     "rtl/drbg/drbg_top.v",
     "rtl/trng_if/trng_if.v",
     "rtl/aes/aes_core.v",
-    "verification/rtl/drbg/tb_drbg.v",
-    "verification/rtl/drbg/test_drbg.py",
-    "verification/rtl/drbg/sim-request.json",
-    "verification/rtl/drbg/sim-cavp-request.json",
-    "verification/rtl/drbg/sim-negctl-df-request.json",
-    "verification/rtl/drbg/sim-negctl-upd-request.json",
-    "verification/rtl/drbg/sim-negctl-interval-request.json",
-    "verification/rtl/drbg/sim-negctl-cavp-request.json",
-    "verification/rtl/drbg/synth-request.json",
-    "verification/rtl/drbg/run.sh",
-    "verification/rtl/drbg/make_record.py",
     "verification/model/ctr_drbg.py",
     "verification/model/aes.py",
     "verification/model/vectorlib.py",
@@ -63,7 +55,7 @@ def main() -> int:
         return 0
 
     rc.check_pdk(args.pdk_root)
-    rev = rc.require_clean_inputs(INPUTS)
+    rev = rc.require_clean_inputs(INPUTS, generator=__file__)
     shipped = (args.out_dir / "summary-shipped.txt").read_text().strip()
     cavp_s = (args.out_dir / "summary-cavp.txt").read_text().strip()
     prov = syn["provenance"]
@@ -88,7 +80,7 @@ def main() -> int:
 - **Links**: `rtl/drbg/`, `verification/rtl/drbg/`, `spec/decision-records/0002-drbg-construction.md`, `spec/target-spec.md` section 4.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 """
-    rc.write_record(EXPERIMENT, rev, INPUTS, meta, body)
+    rc.write_record(EXPERIMENT, rev, INPUTS, meta, body, generator=__file__)
     return 0
 
 

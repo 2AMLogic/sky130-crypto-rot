@@ -10,9 +10,13 @@ toward DRC/LVS-clean GDS by AI agents driving
 open-source digital flow: cocotb + Icarus for verification, Yosys for
 synthesis, OpenROAD for place-and-route.
 
-**Status: spec ratified; first RTL core in.** The v1 spec is ratified. RTL exists for
-the SHA-256 core only (`rtl/sha256/sha256_core.v`); AES, HMAC, the key ladder, the DRBG
-and the key slots are not yet written.
+**Status: spec ratified; block RTL in, not yet integrated.** The v1 spec is
+ratified. [`rtl/README.md`](rtl/README.md) is the maintained list of which RTL
+blocks exist and which script verifies each; what has a recorded result is
+[`verification/records/`](verification/records/), and
+[`scripts/cold-start-benches.sh`](scripts/cold-start-benches.sh) is the one
+command that runs the benches behind those records. The top-level integration,
+the register interface, layout, DRC and LVS have no committed result yet.
 
 **Built agent-native.** Every specification, decision record, testbench, and
 line of documentation here is produced by AI agents working from a ratified
@@ -77,8 +81,11 @@ Maturity ladder: spec ratified → algorithm cores pass the published
 known-answer vectors → key-isolation properties proven on the synthesized
 netlist → TRNG interface verified against the sibling's RTL → layout
 DRC/LVS-clean → timing closed across corners → shuttle seat → measured
-silicon. **Current position: spec ratified; the SHA-256 core has a simulation and synthesis
-record (a correctness claim and a pre-P&R cell-area figure, nothing more).**
+silicon. **Current position: the algorithm-core rung, with the key-isolation
+rung partly recorded and no rung beyond it claimed.** Which result exists, at
+what depth, over which design and under which abstractions is stated by the
+records themselves ([`verification/records/`](verification/records/)) rather
+than restated here.
 
 ## Repo layout
 
@@ -115,10 +122,15 @@ The PDK-heavy legs stay local (`./scripts/setup-env.sh` provisions `.venv`,
 the pinned yosys and the PDK first):
 
 ```
-./scripts/setup-env.sh                       # provision .venv, pinned yosys, PDK
-./verification/rtl/sha256/run.sh             # SHA-256 core: cocotb + Icarus KATs, then klt synthesize
-./verification/rtl/sha256/run.sh --record    # same, then write a record under verification/records/
+./scripts/setup-env.sh                  # provision .venv, pinned yosys, PDK
+./scripts/cold-start-benches.sh         # provision, then run every bench behind a record
 ```
+
+`cold-start-benches.sh` is the cold-start command T1 item 9 attests (about 18
+minutes); its header names the records it does not cover and why. To run one
+block instead, use the `run.sh` [`rtl/README.md`](rtl/README.md) names for it —
+each takes `--negative-control`, and `--record` to write a record under
+`verification/records/`.
 
 The tier-verdict record is re-graded by `.github/workflows/signoff.yml`; to
 reproduce it (and the item-10 attestation) at the pinned `klayout-tools`:
