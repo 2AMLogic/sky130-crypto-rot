@@ -36,7 +36,6 @@ INPUTS = (
     "verification/model/vectorlib.py",
     "verification/vectors/SHA256ShortMsg.rsp",
     "verification/vectors/SHA256LongMsg.rsp",
-    "scripts/setup-env.sh",
 )
 
 

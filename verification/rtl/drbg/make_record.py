@@ -43,7 +43,6 @@ INPUTS = (
     "verification/model/aes.py",
     "verification/model/vectorlib.py",
     "verification/vectors/CTR_DRBG_pr_false.rsp",
-    "scripts/setup-env.sh",
 )
 
 
