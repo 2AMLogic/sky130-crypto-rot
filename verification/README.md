@@ -14,7 +14,7 @@ checked against which vectors. See the repo README for scope.
 
 | Where | What |
 |---|---|
-| CI `lint` | `python3 -m compileall verification flow`; one `bash -n` per tracked project `*.sh` (the `git ls-files` set, excluding the tool-managed `.loom/`, `.claude/`, `.agents/` and `loom.sh`); `check_pins.py` (the pins in `scripts/setup-env.sh` appear in `docs/environment.md`) |
+| CI `lint` | `python3 -m compileall verification flow`; one `bash -n` per tracked project `*.sh` (the `git ls-files` set, excluding the tool-managed `.loom/`, `.claude/`, `.agents/` and `loom.sh`); `check_pins.py` (the pins in `scripts/setup-env.sh` appear in `docs/environment.md`, and agree with the `pins` block of `manifests/inventories/item-9.json`) |
 | CI `model` | the whole `npm run test` pytest run: `verification/model` over the committed vectors (`model/README.md` lists them), plus the checker self-tests `test_check_pins.py`, `test_check_reuse.py` and `test_record_lib.py` (pin resolution and the PDK-pin and dirty-input guards in `flow/common/record_lib.py`) |
 | CI `reuse` | `check_reuse.py` re-hashes each `reuse.lock.json` file that has a local copy against its `sha256`; its self-test runs in `model` |
 | CI `verify` | only on PRs touching `rtl/`, `verification/`, `flow/` or the env pins: `scripts/setup-env.sh`, then `scripts/ci-verify.sh` (about 8 min): the sha256, aes, drbg, hmac, keyladder and trng_if benches and each `*_NEG_*` negative control (must fail; including `HMAC_NEG_CTRL`, `HMAC_NEG_SCRUB`, `KL_NEG_MASK`, `KL_NEG_LOCK`, `KL_NEG_ZEROIZE`), and `verification/formal/run.sh` (its `reach_*`/`neg_*` tasks must fail) |
