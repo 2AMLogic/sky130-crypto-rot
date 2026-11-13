@@ -6,9 +6,9 @@ it and the shared flow helpers are added by shared_inputs() from `generator`,
 not listed per core -- the claim/result prose as a body callback, and an
 optional extra check such as a SHA-256 million-`a` result) and calls main(). The
 verdict (sim passed, synthesis ok, no latches / comb loops / multi-driven nets),
-the PDK-pin and dirty-input guards, the tool-version collection and the
-record-meta and record-id emission live here so every core records the same way.
-Standard library only.
+the PDK-pin and dirty-input guards, the tool-version collection, the shared
+klt-provenance bullet and the record-meta and record-id emission live here so
+every core records the same way. Standard library only.
 """
 
 from __future__ import annotations
@@ -203,6 +203,25 @@ def tool_versions() -> dict:
     }
 
 
+def klt_provenance_bullet(prov: dict, versions: dict) -> str:
+    """The record's `klt provenance` bullet, built once for every sim+synth core.
+
+    Five generators carried a byte-identical (drbg's: near-identical) copy of this
+    f-string, so a change to what the records say about their tools had to be made
+    five times. main() exposes the result as ctx.klt_provenance; no generator
+    writes the bullet itself. No trailing newline: a body interpolates it as a line.
+    """
+    return (
+        f"- **klt provenance**: klt `{prov['klt_version']}` pinned at `{versions['klt_pin']}`; "
+        f"pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; "
+        f"liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; "
+        f"synthesis input {prov['input']['content_hash']}. "
+        f"Tool versions: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, "
+        f"`yosys.wasm` {versions['yosys_wasm']}), Icarus Verilog {versions['icarus']}, "
+        f"cocotb {versions['cocotb']}, ciel {versions['ciel']}, Python {versions['python']}."
+    )
+
+
 def previous_record(experiment: str) -> str | None:
     """Id of the newest record git already tracks for `experiment`, else None.
 
@@ -273,7 +292,10 @@ def main(*, name, experiment, inputs, generator, author, body, extra_check=None,
     generator:   the calling make_record.py (pass `__file__`); the tracked files
                  in its directory are the derived part of the input list
     author:      text after the timestamp in the record
-    body:        callable(ctx) -> the record's bullets from Claim through Links
+    body:        callable(ctx) -> the record's bullets from Claim through Links.
+                 ctx carries args, sim, syn, prov, versions, summary, the
+                 extra_check data as ctx.extra, and the ready-made
+                 ctx.klt_provenance bullet, which no body rebuilds
     extra_check: optional callable(out_dir) -> (ok, verdict_text, data); the
                  verdict text is appended to the PASS/FAIL line and data is
                  exposed to body as ctx.extra
@@ -319,7 +341,7 @@ def main(*, name, experiment, inputs, generator, author, body, extra_check=None,
     log = REPO / f"verification/rtl/{name}/.klt/functional-verification/test_icarus.log"
     m = re.search(r"SUMMARY (.*)", log.read_text()) if log.exists() else None
     ctx = SimpleNamespace(args=args, sim=sim, syn=syn, prov=prov, versions=versions,
-                          wasm=versions["yosys_wasm"], extra=extra,
+                          klt_provenance=klt_provenance_bullet(prov, versions), extra=extra,
                           summary=m.group(1).strip() if m else "see sim.json")
     tail = f"- **Timestamp / author**: {{timestamp}}, {author}.\n"
     write_record(experiment, rev, inputs, meta_extra, body(ctx) + tail, generator)

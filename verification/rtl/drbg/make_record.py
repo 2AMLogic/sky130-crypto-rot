@@ -5,19 +5,23 @@ Reads flow/build/drbg/{sim,cavp,synth}.json and the two SUMMARY files. Fails
 (exit 1) unless both simulations passed and the synthesis status is ok with no
 latches, combinational loops or multi-driven nets. Without --check-only it
 also writes an append-only record under verification/records/drbg-sim-synth/.
-Standard library only.
+The driver (argument parsing, verdict, guards, tool versions, record meta) is
+record_lib.main(); the second simulation rides its extra_check hook. Standard
+library only.
 """
 
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "flow/common"))
-import record_lib as rc  # noqa: E402
+REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO / "flow/common"))
 
+import record_lib  # noqa: E402
+
+NAME = "drbg"
 EXPERIMENT = "drbg-sim-synth"
 # The inputs OUTSIDE this directory. The tracked files beside this generator
 # are derived by record_lib.own_inputs(), and the shared flow helpers by
@@ -34,41 +38,22 @@ INPUTS = (
 )
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out-dir", type=Path, required=True)
-    ap.add_argument("--pdk-root", type=Path, required=True)
-    ap.add_argument("--check-only", action="store_true")
-    args = ap.parse_args()
-
-    sim = json.loads((args.out_dir / "sim.json").read_text())
-    cavp = json.loads((args.out_dir / "cavp.json").read_text())
-    syn = json.loads((args.out_dir / "synth.json").read_text())
-    st = syn["structural"]
-    clean = st["latches"] == 0 and st["comb_loops"] == 0 and st["multi_driven"] == 0
-    ok = sim["status"] == "pass" and cavp["status"] == "pass" and syn["status"] == "ok" and clean
-    print(f"drbg: shipped-width sim={sim['status']} cavp sim={cavp['status']} synthesis={syn['status']} "
-          f"latches={st['latches']} -> {'PASS' if ok else 'FAIL'}")
-    if not ok:
-        return 1
-    if args.check_only:
-        return 0
-
-    rc.check_pdk(args.pdk_root)
-    rev = rc.require_clean_inputs(INPUTS, generator=__file__)
-    shipped = (args.out_dir / "summary-shipped.txt").read_text().strip()
-    cavp_s = (args.out_dir / "summary-cavp.txt").read_text().strip()
-    prov = syn["provenance"]
-    v = rc.tool_versions()
-    v["yosys"] = syn["engine_version"]
-    v["klt"] = prov["klt_version"]
-    meta = {
-        "klt_version": prov["klt_version"],
-        "pdk": {"name": prov["pdk"]["name"], "version": prov["pdk"]["version"]},
-        "deck": {"name": prov["deck"]["name"], "content_hash": prov["deck"]["content_hash"]},
-        "tool_versions": v,
+def extra_check(out_dir: Path):
+    """The second elaboration: the CAVP replay, plus both SUMMARY lines."""
+    cavp = json.loads((out_dir / "cavp.json").read_text())
+    return cavp["status"] == "pass", f" cavp={cavp['status']}", {
+        "cavp": cavp,
+        "shipped_summary": (out_dir / "summary-shipped.txt").read_text().strip(),
+        "cavp_summary": (out_dir / "summary-cavp.txt").read_text().strip(),
     }
-    body = f"""- **Claim**: `rtl/drbg/ctr_drbg.v` (NIST SP 800-90A CTR_DRBG, AES-128, block-cipher derivation function, no prediction resistance; decision record 0002), driven through the AES forward cipher of `rtl/aes/aes_core.v`, reproduces `verification/model/ctr_drbg.py` and the published CAVP AES-128 use-df vectors in the two elaborations listed under Result. A correctness claim for the algorithm only; it says nothing about key isolation (the properties are in the `drbg-trng-formal` and `trng-if-sim` records), entropy, side channels or timing at 50 MHz.
+
+
+def body(ctx) -> str:
+    sim, syn = ctx.sim, ctx.syn
+    args = ctx.args
+    cavp = ctx.extra["cavp"]
+    shipped, cavp_s = ctx.extra["shipped_summary"], ctx.extra["cavp_summary"]
+    return f"""- **Claim**: `rtl/drbg/ctr_drbg.v` (NIST SP 800-90A CTR_DRBG, AES-128, block-cipher derivation function, no prediction resistance; decision record 0002), driven through the AES forward cipher of `rtl/aes/aes_core.v`, reproduces `verification/model/ctr_drbg.py` and the published CAVP AES-128 use-df vectors in the two elaborations listed under Result. A correctness claim for the algorithm only; it says nothing about key isolation (the properties are in the `drbg-trng-formal` and `trng-if-sim` records), entropy, side channels or timing at 50 MHz.
 - **Design provenance**: RTL, pre-synthesis simulation (Icarus). The synthesis figure is the `klt synthesize` output for `drbg_top` (DRBG, AES engine and the TRNG interface). No gate-level simulation was run.
 - **Run configuration**: `./scripts/setup-env.sh` then `./verification/rtl/drbg/run.sh --record`. Simulation: `klt functional-verification` on `sim-request.json` (shipped elaboration) and `sim-cavp-request.json` (6/4-word elaboration), engine icarus, `random_seed` 1. Synthesis: `klt synthesize verification/rtl/drbg/synth-request.json --pdk sky130A --pdk-root {args.pdk_root}`, liberty corner `tt_025C_1v80`, single corner, pre-P&R, cell area only, no clock target. No STA was run.
 - **Which vectors ran on which elaboration**:
@@ -76,12 +61,16 @@ def main() -> int:
   - 6/4-word elaboration (24-byte entropy||nonce, 16-byte reseed): the AES-128 use-df records of `CTR_DRBG_pr_false.rsp` (provenance sidecar checked) with personalization length 0 and both additional inputs empty, which are the only records inside the hardware's feature set (no personalization string, no additional input on generate or reseed): instantiate, reseed, generate-and-discard, generate, compare the second `ReturnedBits`. `{cavp_s}`
   - Not run: the other AES-128 use-df sections (non-empty personalization or additional input; unsupported by design, decision 0002), AES-256, no-df and 3KeyTDEA sections, prediction resistance.
 - **Result**: PASS. Shipped elaboration {sim['passed_count']}/{sim['test_count']} tests, CAVP elaboration {cavp['passed_count']}/{cavp['test_count']} tests. Negative controls (`./verification/rtl/drbg/run.sh --negative-control`): a flipped bit of the df key constant, a flipped bit of V in Update, one request too many before RESEED_REQUIRED, and the CAVP replay on a corrupted Update each make the bench fail. Synthesis: status `{syn['status']}`, {syn['instance_count']} instances, {syn['area_um2']} um2 ({syn['sequential_area_um2']} um2 sequential), no latches, combinational loops or multi-driven nets. Timing is `null`: no timing claim.
-- **klt provenance**: klt `{prov['klt_version']}` pinned at `{v['klt_pin']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {v['yosys']} (yowasp-yosys {v['yowasp_yosys']}, `yosys.wasm` {v['yosys_wasm']}), {v['icarus']}, cocotb {v['cocotb']}, ciel {v['ciel']}, Python {v['python']}.
+{ctx.klt_provenance}
 - **Links**: `rtl/drbg/`, `verification/rtl/drbg/`, `spec/decision-records/0002-drbg-construction.md`, `spec/target-spec.md` section 4.
-- **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 """
-    rc.write_record(EXPERIMENT, rev, INPUTS, meta, body, generator=__file__)
-    return 0
+
+
+def main() -> int:
+    return record_lib.main(name=NAME, experiment=EXPERIMENT, inputs=INPUTS,
+                           generator=__file__,
+                           author="Loom builder agent (issue #45)", body=body,
+                           extra_check=extra_check)
 
 
 if __name__ == "__main__":

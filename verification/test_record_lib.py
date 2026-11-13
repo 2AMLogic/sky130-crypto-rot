@@ -315,3 +315,34 @@ def test_failed_predecessor_lookup_refuses_to_write(tmp_path, monkeypatch):
 def test_generator_does_not_hand_write_the_supersedes_bullet(maker):
     """One source for the value; six hand-copied literals is what issue #137 found."""
     assert "Supersedes" not in (REPO / maker).read_text()
+
+
+# --- the shared klt-provenance bullet (issue #141) ---------------------------
+
+
+def _prov_and_versions():
+    prov = {"klt_version": "1.2.3",
+            "pdk": {"name": "sky130A", "version": "pdkver"},
+            "deck": {"name": "tt_025C_1v80", "content_hash": "sha256:deck"},
+            "input": {"content_hash": "sha256:in"}}
+    versions = {"klt_pin": "1.2.3", "yosys": "0.57", "yowasp_yosys": "0.57.0.dev",
+                "yosys_wasm": "sha256:wasm", "icarus": "13.0", "cocotb": "1.9.2",
+                "ciel": "2.0.0", "python": "3.12.3"}
+    return prov, versions
+
+
+def test_klt_provenance_bullet_is_one_line_naming_every_tool():
+    bullet = record_lib.klt_provenance_bullet(*_prov_and_versions())
+    assert bullet == (
+        "- **klt provenance**: klt `1.2.3` pinned at `1.2.3`; pdk `sky130A` pdkver; "
+        "liberty `tt_025C_1v80` sha256:deck; synthesis input sha256:in. "
+        "Tool versions: Yosys 0.57 (yowasp-yosys 0.57.0.dev, `yosys.wasm` sha256:wasm), "
+        "Icarus Verilog 13.0, cocotb 1.9.2, ciel 2.0.0, Python 3.12.3.")
+    assert "\n" not in bullet  # a body interpolates it as a single line
+
+
+@pytest.mark.parametrize("maker", MAKERS)
+def test_generator_does_not_hand_write_the_klt_provenance_bullet(maker):
+    """Five byte-identical copies is what issue #141 found; main() builds it once."""
+    text = (REPO / maker).read_text()
+    assert "- **klt provenance**: klt `{prov[" not in text
