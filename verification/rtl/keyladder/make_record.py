@@ -21,18 +21,13 @@ import record_lib  # noqa: E402
 
 NAME = "keyladder"
 EXPERIMENT = "keyladder-sim-synth"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/sha256/sha256_core.v",
     "rtl/hmac/hmac_sha256.v",
     "rtl/keyladder/keyladder.v",
-    "verification/rtl/keyladder/test_keyladder.py",
-    "verification/rtl/keyladder/sim-request.json",
-    "verification/rtl/keyladder/sim-negctl-mask-request.json",
-    "verification/rtl/keyladder/sim-negctl-lock-request.json",
-    "verification/rtl/keyladder/sim-negctl-zeroize-request.json",
-    "verification/rtl/keyladder/synth-request.json",
-    "verification/rtl/keyladder/run.sh",
-    "verification/rtl/keyladder/make_record.py",
     "verification/model/kdf.py",
     "verification/model/hmac_sha256.py",
 )
@@ -56,6 +51,7 @@ def body(ctx) -> str:
 
 def main() -> int:
     return record_lib.main(name=NAME, experiment=EXPERIMENT, inputs=INPUTS,
+                           generator=__file__,
                            author="Loom builder agent (issue #55)", body=body)
 
 

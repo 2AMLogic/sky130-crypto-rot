@@ -23,22 +23,14 @@ import record_lib  # noqa: E402
 
 NAME = "drbg"
 EXPERIMENT = "drbg-sim-synth"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/drbg/ctr_drbg.v",
     "rtl/drbg/drbg_top.v",
     "rtl/trng_if/trng_if.v",
     "rtl/aes/aes_core.v",
-    "verification/rtl/drbg/tb_drbg.v",
-    "verification/rtl/drbg/test_drbg.py",
-    "verification/rtl/drbg/sim-request.json",
-    "verification/rtl/drbg/sim-cavp-request.json",
-    "verification/rtl/drbg/sim-negctl-df-request.json",
-    "verification/rtl/drbg/sim-negctl-upd-request.json",
-    "verification/rtl/drbg/sim-negctl-interval-request.json",
-    "verification/rtl/drbg/sim-negctl-cavp-request.json",
-    "verification/rtl/drbg/synth-request.json",
-    "verification/rtl/drbg/run.sh",
-    "verification/rtl/drbg/make_record.py",
     "verification/model/ctr_drbg.py",
     "verification/model/aes.py",
     "verification/model/vectorlib.py",
@@ -76,6 +68,7 @@ def body(ctx) -> str:
 
 def main() -> int:
     return record_lib.main(name=NAME, experiment=EXPERIMENT, inputs=INPUTS,
+                           generator=__file__,
                            author="Loom builder agent (issue #45)", body=body,
                            extra_check=extra_check)
 
