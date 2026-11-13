@@ -36,7 +36,8 @@
   "cold_start": {
     "argv": [
       "scripts/cold-start-benches.sh"
-    ]
+    ],
+    "local_only": true
   },
   "pins": {
     "pdk": {

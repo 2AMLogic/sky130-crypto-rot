@@ -101,7 +101,7 @@
         "role": "testbench",
         "path": "verification/rtl/hmac/run.sh",
         "passed": true,
-        "content_hash": "sha256:63a266f69cc7cf5bf11407ecb4080264de64f89c0041eae30518d881aa7365ca"
+        "content_hash": "sha256:5a4d3bc76239ff42ce803c4dcdd2063f595bed0860fcbd00b616676d74eab2a3"
       },
       {
         "check": "present",
@@ -122,14 +122,14 @@
         "role": "testbench",
         "path": "verification/rtl/hmac/test_hmac_sha256.py",
         "passed": true,
-        "content_hash": "sha256:993f4e4e9b61c3e24db5553bba37f42ec6eb4fdc4ecc7822ccc410701bb797d7"
+        "content_hash": "sha256:3d8c5b9cf839f360bdad0417595de5bb8c5307186a51dae00f250834257adf2f"
       },
       {
         "check": "present",
         "role": "testbench",
         "path": "verification/rtl/keyladder/run.sh",
         "passed": true,
-        "content_hash": "sha256:bf8e10c0e74d76568e49e869c4f8b8e324fc3c05caecd04d030be27c2fcc3e67"
+        "content_hash": "sha256:c21035a1ce010707116c413477dea7264ff765349a1b6c4677945b6932f0aae3"
       },
       {
         "check": "present",
@@ -216,7 +216,8 @@
         ],
         "cwd": ".",
         "exit_status": 0,
-        "passed": true
+        "passed": true,
+        "local_only": true
       },
       {
         "check": "pin",
@@ -251,7 +252,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:89b4a8db3454a27e8740d46f5be45c663fc2bd59147f615e724ae4fd5ca54c05"
+      "content_hash": "sha256:75a491d7d59974cdf6a29588efa319eccfce7b773b1f72b92ebb1f379be5c534"
     }
   }
 }

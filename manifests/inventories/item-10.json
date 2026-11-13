@@ -10,8 +10,8 @@
     ".github/workflows/signoff.yml"
   ],
   "checks": [
-    {"name": "lint", "argv": ["npm", "run", "lint"]},
-    {"name": "model-kats", "argv": ["npm", "run", "test"]},
-    {"name": "reuse", "argv": ["npm", "run", "check:reuse"]}
+    {"name": "lint", "argv": ["npm", "run", "lint"], "local_only": true},
+    {"name": "model-kats", "argv": ["npm", "run", "test"], "local_only": true},
+    {"name": "reuse", "argv": ["npm", "run", "check:reuse"], "local_only": true}
   ]
 }

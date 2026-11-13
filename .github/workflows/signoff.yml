@@ -5,6 +5,12 @@ name: klt signoff
 # fresh output against the committed verdict of record. Whoever changes the
 # manifest, the vendored checklist doc or the klayout-tools pin must
 # regenerate the record in the same PR. See manifests/README.md.
+#
+# That grade binds each attested T1 item only by the hash of its inventory
+# file, so it cannot see an attested file being edited. The step before it
+# closes that gap: it re-checks the item 9 and item 10 attestation envelopes
+# with the tool's own drift mode, so a PR that edits a file one of them lists
+# fails until it re-attests.
 
 on:
   push:
@@ -30,6 +36,50 @@ jobs:
         run: |
           pip install klayout-tools==0.8.0
           klt --version
+
+      - name: Re-check the item 9 and item 10 attestation envelopes
+        run: |
+          set -uo pipefail
+          # Each committed envelope under manifests/inventories/ pins the raw
+          # bytes of every file its inventory lists. The grader step below
+          # binds an item only by the hash of its *inventory*, so an edit to
+          # an attested file (README.md, a workflow, a bench) leaves the
+          # record byte-identical and the drift invisible. The tool's own
+          # drift mode is what sees it: --attest ITEM --check ENVELOPE
+          # re-attests and exits 0 only if the committed envelope still
+          # reproduces AND still passes, 3 otherwise, writing nothing.
+          #
+          # The inventories mark their long or toolchain-dependent commands
+          # local_only (item 9's cold start, item 10's three npm commands), so
+          # --check skips them and carries their committed outcome rather than
+          # re-running them here: this step needs no bench toolchain, and a
+          # committed failure still fails the gate. ci.yml runs those
+          # commands itself. Re-attesting (without --check) always runs them.
+          fail=0
+          for item in 9 10; do
+            inventory="manifests/inventories/item-${item}.json"
+            envelope="manifests/inventories/item-${item}.envelope.json"
+            rc=0
+            klt signoff --attest "$item" \
+                        --inventory "$inventory" \
+                        --check "$envelope" || rc=$?
+            if [ "$rc" -eq 0 ]; then
+              echo "T1 item ${item}: committed envelope still reproduces and passes."
+              continue
+            fi
+            fail=1
+            if [ "$rc" -eq 3 ]; then
+              echo "::error file=${envelope}::T1 item ${item}'s attestation is stale: ${envelope} no longer reproduces (or no longer passes). The drift report above names each field that changed - a content_hash entry means that attested file was edited without re-attesting."
+            else
+              echo "::error file=${envelope}::klt signoff --attest ${item} --check exited ${rc} (expected 0 or 3): ${inventory} or ${envelope} is malformed or unreadable."
+            fi
+            echo "Re-attest item ${item} in this same PR, per the 'Attest item ${item}' section of manifests/README.md:"
+            echo "  klt signoff --attest ${item} --inventory ${inventory} -o ${envelope}"
+            echo "then put the envelope's provenance.input.content_hash in manifests/sky130-crypto-rot.json and regenerate manifests/sky130-crypto-rot.signoff.json."
+          done
+          if [ "$fail" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Re-run klt signoff and compare against the committed record
         run: |
