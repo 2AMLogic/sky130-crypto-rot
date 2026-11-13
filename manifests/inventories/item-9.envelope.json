@@ -143,7 +143,7 @@
         "role": "testbench",
         "path": "verification/rtl/drbg/run.sh",
         "passed": true,
-        "content_hash": "sha256:4ec0a9f335c931720dc085458f66ac8583b2529b767797f1bdbaba5ca6104e2b"
+        "content_hash": "sha256:28e31c0f0c15de38ce6b91c7b836b5dc9f269a95369cc8227107b0af448e9fbc"
       },
       {
         "check": "present",
@@ -304,7 +304,7 @@
         "role": "testbench",
         "path": "verification/rtl/sha256/run.sh",
         "passed": true,
-        "content_hash": "sha256:7f5a8b056a509935365acbff87df72a596eacd37fdc4540a8caff2cf94c45921"
+        "content_hash": "sha256:ac1c76028ebf088dad4620d8e653ce5e6850cd62cf8620e0b096254559342d18"
       },
       {
         "check": "present",
@@ -374,7 +374,7 @@
         "role": "testbench",
         "path": "verification/rtl/trng_if/run.sh",
         "passed": true,
-        "content_hash": "sha256:bcf1c4959acfe24f268902b94daa788f58a266c6f2ad48f4e764bc21da41738b"
+        "content_hash": "sha256:5b6e2fc4e8e5c7c43a407d73f81c42f8f46fcd0b63a1209a9955218da5bb0730"
       },
       {
         "check": "present",

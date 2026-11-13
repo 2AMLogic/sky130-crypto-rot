@@ -36,12 +36,9 @@ done
 core_flow_setup
 if [ "${NEG}" = 1 ]; then
   echo "== negative control: SHA256_NEG_SCRUB omits hh from the scrub list; test_scrub must fail =="
-  if klt functional-verification sim-scrub-negctl-request.json --format json > "${OUT}/scrub-negctl.json"; then
-    echo "FAIL: test_scrub passed with hh left out of the scrub" >&2
-    exit 1
-  fi
-  _json_line "${OUT}/scrub-negctl.json" '"scrub negative control:", d["status"], "(expected fail)"'
-  grep -o 'first failing scrub check: [^&]*' .klt/functional-verification/results_icarus.xml | head -1
+  core_flow_negctl_one sim-scrub-negctl-request.json scrub-negctl.json \
+    "scrub negative control:" 'first failing scrub check: [^&]*' \
+    "hh left out of the scrub"
   core_flow_negctl "SHA256_NEG_CTRL flips one K constant" "constant"
 fi
 
