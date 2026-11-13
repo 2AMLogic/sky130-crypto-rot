@@ -7,6 +7,8 @@
 #   ./verification/rtl/keyladder/run.sh                      # cocotb + Icarus, then klt synthesize
 #   ./verification/rtl/keyladder/run.sh --record             # same, then write a record under
 #                                                       # verification/records/keyladder-sim-synth/records/
+#   ./verification/rtl/keyladder/run.sh --sim-only           # simulation only: stop before synthesis
+#                                                       # (what scripts/ci-verify.sh runs)
 #   ./verification/rtl/keyladder/run.sh --negative-control   # three controls (mask check, lock check,
 #                                                       # one slot omitted from zeroize): each MUST fail
 #                                                       # (exit 0 only if the bench catches all three)
@@ -21,14 +23,16 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=keyladder
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; NEG=0
+RECORD=0; NEG=0; SIM_ONLY=0
 for arg in "$@"; do
   case "${arg}" in
     --record) RECORD=1 ;;
     --negative-control) NEG=1 ;;
+    --sim-only) SIM_ONLY=1 ;;
     *) echo "unknown option: ${arg}" >&2; exit 2 ;;
   esac
 done
+core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
 
 core_flow_setup
 
@@ -42,5 +46,4 @@ if [ "${NEG}" = 1 ]; then
 fi
 
 core_flow_sim
-core_flow_synth
-core_flow_verdict "${RECORD}"
+core_flow_finish "${SIM_ONLY}" "${RECORD}"

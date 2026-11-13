@@ -8,6 +8,8 @@
 #   ./verification/rtl/drbg/run.sh                      # shipped-width cross-check, CAVP replay, synthesis
 #   ./verification/rtl/drbg/run.sh --record             # same, then write a record under
 #                                                       # verification/records/drbg-sim-synth/records/
+#   ./verification/rtl/drbg/run.sh --sim-only           # both elaborations only: stop before
+#                                                       # synthesis (what scripts/ci-verify.sh runs)
 #   ./verification/rtl/drbg/run.sh --negative-control   # four corrupted builds (df key, Update V,
 #                                                       # reseed interval, and the CAVP replay on
 #                                                       # a corrupted Update): every one MUST fail
@@ -27,14 +29,16 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=drbg
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; NEG=0
+RECORD=0; NEG=0; SIM_ONLY=0
 for arg in "$@"; do
   case "${arg}" in
     --record) RECORD=1 ;;
     --negative-control) NEG=1 ;;
+    --sim-only) SIM_ONLY=1 ;;
     *) echo "unknown option: ${arg}" >&2; exit 2 ;;
   esac
 done
+core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
 
 core_flow_setup
 
@@ -79,5 +83,4 @@ sim sim-cavp-request.json cavp "${OUT}/cavp.json"
 _json_line "${OUT}/cavp.json" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
 summary_line | tee "${OUT}/summary-cavp.txt"
 
-core_flow_synth drbg_top
-core_flow_verdict "${RECORD}"
+core_flow_finish "${SIM_ONLY}" "${RECORD}" drbg_top

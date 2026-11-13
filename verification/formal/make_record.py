@@ -15,17 +15,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flow/common"))
 import record_lib as rc  # noqa: E402
 
 EXPERIMENT = "drbg-trng-formal"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/drbg/ctr_drbg.v",
     "rtl/trng_if/trng_if.v",
-    "verification/formal/fv_drbg.v",
-    "verification/formal/fv_p9.v",
-    "verification/formal/p7_p8.sby",
-    "verification/formal/p9.sby",
-    "verification/formal/run.sh",
-    "verification/formal/make_record.py",
     "spec/key-isolation-properties.md",
-    "scripts/setup-env.sh",
 )
 
 NOTES = {
@@ -50,7 +46,7 @@ def main() -> int:
     if not rows or any(r[3] != "0" for r in rows):
         print("formal: not recording, a task did not meet its expectation", file=sys.stderr)
         return 1
-    rev = rc.require_clean_inputs(INPUTS[:-1])
+    rev = rc.require_clean_inputs(INPUTS, generator=__file__)
     v = rc.tool_versions()
     v["sby"] = rc.run(str(rc.REPO / ".venv/bin/yowasp-sby"), "--version")
     table = "\n".join(
@@ -71,7 +67,8 @@ def main() -> int:
 - **Links**: `verification/formal/`, `spec/key-isolation-properties.md`, `rtl/drbg/`, `rtl/trng_if/`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 """
-    rc.write_record(EXPERIMENT, rev, INPUTS[:-1], {"tool_versions": v}, body)
+    rc.write_record(EXPERIMENT, rev, INPUTS, {"tool_versions": v}, body,
+                    generator=__file__)
     return 0
 
 

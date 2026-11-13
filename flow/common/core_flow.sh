@@ -4,6 +4,10 @@
 # The caller sets HERE (its own directory) and NAME (the core directory name,
 # also flow/build/<NAME>), parses its own options, then calls the steps below.
 # Synthesis is a single corner (tt_025C_1v80), pre-P&R, cell area only.
+#
+# Every core ends on core_flow_finish, which owns the --sim-only split: CI asks
+# each core for its own simulations and nothing else (scripts/ci-verify.sh), so
+# neither synthesis nor the record verdict may run on that path.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${REPO_ROOT}/flow/build/${NAME}"
@@ -81,6 +85,17 @@ core_flow_sim() {
   grep -o 'SUMMARY[^<]*' .klt/functional-verification/test_icarus.log | head -1 || true
 }
 
+# core_flow_check_opts <SIM_ONLY 0|1> <RECORD 0|1> -- reject the one option pair
+# that cannot mean anything, before a bench runs rather than after: a record is
+# a simulation AND synthesis result, and --sim-only never synthesizes.
+core_flow_check_opts() {
+  if [ "${1}" = 1 ] && [ "${2}" = 1 ]; then
+    echo "error: --sim-only and --record are mutually exclusive:" >&2
+    echo "  --sim-only stops before synthesis, and a record reports one." >&2
+    exit 2
+  fi
+}
+
 # core_flow_synth [what] -- the optional name goes in the banner ("synthesis of <what>").
 core_flow_synth() {
   echo "== synthesis${1:+ of ${1}} (klt synthesize -> sky130_fd_sc_hd, tt_025C_1v80) =="
@@ -96,4 +111,17 @@ core_flow_verdict() {
   else
     python3 "${HERE}/make_record.py" --out-dir "${OUT}" --pdk-root "${PDK_ROOT}" --check-only
   fi
+}
+
+# core_flow_finish <SIM_ONLY 0|1> <RECORD 0|1> [what] -- the tail every core
+# shares. SIM_ONLY=1 stops here: that is the whole of CI's positive run, which
+# has no PDK and mints no evidence. Otherwise synthesize, then settle the
+# verdict (and write a record when RECORD=1).
+core_flow_finish() {
+  if [ "${1}" = 1 ]; then
+    echo "== --sim-only: stopping before synthesis; no verdict, no record =="
+    return 0
+  fi
+  core_flow_synth "${3:-}"
+  core_flow_verdict "${2}"
 }

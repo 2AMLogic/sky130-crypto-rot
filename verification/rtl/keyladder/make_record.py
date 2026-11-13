@@ -21,27 +21,20 @@ import record_lib  # noqa: E402
 
 NAME = "keyladder"
 EXPERIMENT = "keyladder-sim-synth"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/sha256/sha256_core.v",
     "rtl/hmac/hmac_sha256.v",
     "rtl/keyladder/keyladder.v",
-    "verification/rtl/keyladder/test_keyladder.py",
-    "verification/rtl/keyladder/sim-request.json",
-    "verification/rtl/keyladder/sim-negctl-mask-request.json",
-    "verification/rtl/keyladder/sim-negctl-lock-request.json",
-    "verification/rtl/keyladder/sim-negctl-zeroize-request.json",
-    "verification/rtl/keyladder/synth-request.json",
-    "verification/rtl/keyladder/run.sh",
-    "verification/rtl/keyladder/make_record.py",
     "verification/model/kdf.py",
     "verification/model/hmac_sha256.py",
-    "scripts/setup-env.sh",
 )
 
 
 def body(ctx) -> str:
-    sim, syn, prov = ctx.sim, ctx.syn, ctx.prov
-    versions, wasm = ctx.versions, ctx.wasm
+    sim, syn = ctx.sim, ctx.syn
     summary = ctx.summary
     args = ctx.args
     cnt = re.search(r"derivations=(\d+)", summary)
@@ -50,14 +43,15 @@ def body(ctx) -> str:
 - **Design provenance**: RTL, pre-synthesis simulation (Icarus); the synthesis figure is the `klt synthesize` output for the same sources. No gate-level simulation was run.
 - **Run configuration**: `./scripts/setup-env.sh` then `./verification/rtl/keyladder/run.sh --record`. Simulation: `klt functional-verification verification/rtl/keyladder/sim-request.json` (engine icarus, `random_seed` 1). Synthesis: `klt synthesize verification/rtl/keyladder/synth-request.json --pdk sky130A --pdk-root {args.pdk_root}`, liberty corner `tt_025C_1v80`, single corner, pre-P&R, cell area only, no clock target. No STA was run.
 - **Statistical convention**: deterministic; zero-mismatch pass/fail against the golden model. Cases: root -> slot for use_mask 0001, 0010, 0100, 1000, 1111 on every slot (masks without a direct engine path are checked through a child derivation; AES-only masks compare the upper 128 bits, the half the AES key port carries), root -> slot -> slot for three slot pairs, back-to-back and re-derivations, the full 16-mask x 4-slot x 3-engine permission matrix, the refusal cases (derive into a locked slot, from a locked parent, from a parent without KDF-parent, mask change, chain deeper than 2, never-derived parent, self-derive, lock of an empty slot, invalid root, command while busy, software load into a locked slot or with a changed mask), software load, and zeroize including four mid-derivation aborts. The CAVP `KDFCTR_gen.rsp` vectors are not used here: their fixed input data is not the 0003 layout, so the golden-model cross-check stands (0003 "Consequences").
-- **Result**: PASS. Simulation: {sim['passed_count']}/{sim['test_count']} tests passed ({summary}); {ndrv} derivations completed. Negative controls: `./verification/rtl/keyladder/run.sh --negative-control` builds three variants (`KL_NEG_MASK`: HMAC mask bit not checked; `KL_NEG_LOCK`: lock not checked on write; `KL_NEG_ZEROIZE`: slot 3 omitted from zeroize) and the bench fails on each. Synthesis: status `{syn['status']}`, {syn['instance_count']} instances, {syn['area_um2']} um2 ({syn['sequential_area_um2']} um2 sequential, includes the HMAC and SHA-256 cores), no latches, combinational loops or multi-driven nets. Timing is `null`: no timing claim. Hand check of outputs: the only outputs derived from slot contents are `hmac_key` and `aes_key`; `slot_valid`, `slot_locked`, `busy`, `done_pulse`, `err_*` and `rel_deny` are status bits. Known limitation: `hmac_sha256` `clear` does not clear the SHA-256 core datapath registers (`w`, `hh`, `a`..`h`), so a derived key can remain there after a derivation or a zeroize; for the FORMAL sibling / the zeroize-completeness review (P-10).
-- **klt provenance**: klt `{prov['klt_version']}` pinned at `{versions['klt_pin']}`; pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; synthesis input {prov['input']['content_hash']}. Tool versions: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}), Icarus Verilog {versions['icarus']}, cocotb {versions['cocotb']}, ciel {versions['ciel']}, Python {versions['python']}.
+- **Result**: PASS. Simulation: {sim['passed_count']}/{sim['test_count']} tests passed ({summary}); {ndrv} derivations completed. Negative controls: `./verification/rtl/keyladder/run.sh --negative-control` builds three variants (`KL_NEG_MASK`: HMAC mask bit not checked; `KL_NEG_LOCK`: lock not checked on write; `KL_NEG_ZEROIZE`: slot 3 omitted from zeroize) and the bench fails on each. Synthesis: status `{syn['status']}`, {syn['instance_count']} instances, {syn['area_um2']} um2 ({syn['sequential_area_um2']} um2 sequential, includes the HMAC and SHA-256 cores), no latches, combinational loops or multi-driven nets. Timing is `null`: no timing claim. Hand check of outputs: the only outputs derived from slot contents are `hmac_key` and `aes_key`; `slot_valid`, `slot_locked`, `busy`, `done_pulse`, `err_*` and `rel_deny` are status bits. Not checked here: the SHA-256 core datapath registers themselves after a `zeroize` — this bench checks the slot state and the engine key outputs. The core's clear/scrub behaviour, with its `HMAC_NEG_SCRUB` negative control, is the HMAC experiment's (`verification/rtl/hmac/`).
+{ctx.klt_provenance}
 - **Links**: `rtl/keyladder/keyladder.v`, `verification/rtl/keyladder/`, `spec/target-spec.md` section 3, `spec/decision-records/0003-kdf-construction.md`.
 """
 
 
 def main() -> int:
     return record_lib.main(name=NAME, experiment=EXPERIMENT, inputs=INPUTS,
+                           generator=__file__,
                            author="Loom builder agent (issue #55)", body=body)
 
 

@@ -1,13 +1,14 @@
 """Shared scaffolding for the per-core verification record makers.
 
 Each verification/rtl/<core>/make_record.py supplies only its own data (name,
-experiment, its own INPUTS -- the shared flow helpers are added by
-shared_inputs(), not listed per core -- the claim/result prose as a body
-callback, and an optional extra check such as a SHA-256 million-`a` result) and
-calls main(). The verdict (sim passed, synthesis ok, no latches / comb loops /
-multi-driven nets), the PDK-pin and dirty-input guards, the tool-version
-collection and the record-meta and record-id emission live here so every core
-records the same way. Standard library only.
+experiment, its own INPUTS -- the files OUTSIDE its directory; the files beside
+it and the shared flow helpers are added by shared_inputs() from `generator`,
+not listed per core -- the claim/result prose as a body callback, and an
+optional extra check such as a SHA-256 million-`a` result) and calls main(). The
+verdict (sim passed, synthesis ok, no latches / comb loops / multi-driven nets),
+the PDK-pin and dirty-input guards, the tool-version collection, the shared
+klt-provenance bullet and the record-meta and record-id emission live here so
+every core records the same way. Standard library only.
 """
 
 from __future__ import annotations
@@ -28,8 +29,12 @@ _WASM_HASH = ("import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha25
               "open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
 
 # The shared flow helpers every record implicitly depends on. No generator lists
-# them in its own INPUTS: shared_inputs() adds them, so which files a record
-# hashes and dirty-checks cannot drift between cores.
+# them in its own INPUTS: shared_inputs() adds them by name, so which files a
+# record hashes and dirty-checks cannot drift between cores. SETUP_ENV is the
+# one exception to "hashed and guarded": every record hashes it and reports its
+# tool pins, but require_clean_inputs() exempts it from the dirty-input guard.
+# The files in a generator's OWN directory are derived the same way, by
+# own_inputs() -- see its docstring.
 RECORD_LIB = "flow/common/record_lib.py"
 CORE_FLOW = "flow/common/core_flow.sh"
 SETUP_ENV = "scripts/setup-env.sh"
@@ -77,34 +82,109 @@ def _runs_core_flow(path: str) -> bool:
     return path.endswith("/run.sh") and bool(_SOURCES_CORE_FLOW.search((REPO / path).read_text()))
 
 
-def shared_inputs(inputs) -> list:
-    """`inputs` plus the shared flow helpers, which no generator lists by hand.
+def _git_lines(*args: str) -> list[str]:
+    """NUL-separated output of a git command that must succeed, as a list.
 
-    record_lib.py is always added -- every generator imports it, and it is what
-    hashes the inputs and writes the record. core_flow.sh is added when the flow's
-    own run.sh (already one of `inputs`) sources it, so the record follows what the
-    flow actually runs rather than a hand-copied line. Entries already present are
-    not duplicated, and a trailing scripts/setup-env.sh stays last so the "last
-    entry is exempt from the dirty-input guard" convention still holds.
+    subprocess directly rather than run(), which swallows errors: a lookup that
+    decides which files a record hashes must refuse when it cannot be answered,
+    not quietly report an empty list and write a record over a short input set.
+    """
+    try:
+        out = subprocess.run(["git", "-C", str(REPO), *args],
+                             capture_output=True, text=True, check=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise SystemExit(f"cannot run `git {' '.join(args)}`, refusing to record: {exc}")
+    return [entry for entry in out.stdout.split("\0") if entry]
+
+
+def generator_dir(generator) -> str:
+    """Repo-relative directory holding `generator` (a make_record.py path)."""
+    here = Path(generator).resolve().parent
+    try:
+        return here.relative_to(REPO).as_posix()
+    except ValueError:
+        raise SystemExit(f"{generator} is outside {REPO}; refusing to record")
+
+
+def own_inputs(generator) -> list[str]:
+    """The tracked files sitting directly beside `generator`, sorted.
+
+    In every flow directory each tracked file is one of that flow's record
+    inputs -- the bench, its Verilog wrappers, every klt request, run.sh, the
+    helper scripts, the generator itself -- so the rule is uniform and the list
+    carries no information. It is therefore derived rather than hand-copied into
+    each INPUTS, for the same reason shared_inputs() derives the shared helpers:
+    a hand-copied list drifts (issue #146 found the hmac scrub negative-control
+    request run by the bench but absent from its generator's INPUTS, so the next
+    hmac record would have neither hashed nor dirty-checked it).
+
+    Non-recursive: verification/formal/keyladder/ is a separate experiment with
+    its own generator, and must not fold into verification/formal/'s inputs. The
+    files a run generates (the trng_if klt requests, the klt scratch directory,
+    the cocotb build) are gitignored, so they are untracked and stay out by
+    construction; require_clean_inputs() refuses on any that is not.
+    """
+    here = generator_dir(generator)
+    return sorted(path for path in _git_lines("ls-files", "-z", "--", here)
+                  if path.rsplit("/", 1)[0] == here)
+
+
+def _untracked_in(directory: str) -> list[str]:
+    """Untracked, non-ignored entries directly inside `directory`, sorted.
+
+    own_inputs() names only TRACKED files, so an uncommitted new file beside a
+    generator would no longer trip the dirty guard the way a hand-listed one did.
+    This closes that gap, and closes it wider: a stray file refuses the record
+    whether or not anyone would have remembered to list it.
+    """
+    entries = _git_lines("ls-files", "--others", "--exclude-standard", "--directory",
+                         "-z", "--", directory)
+    return sorted(e for e in entries if e.rstrip("/").rsplit("/", 1)[0] == directory)
+
+
+def shared_inputs(inputs, generator=None) -> list:
+    """`inputs`, plus what no generator lists by hand: its own directory and the
+    shared flow helpers.
+
+    `generator` is the calling make_record.py (its `__file__`); when given, every
+    tracked file beside it is added by own_inputs(), so `inputs` carries only the
+    files OUTSIDE its directory -- the RTL sources, verification/model/*,
+    verification/vectors/*, spec/*. record_lib.py and setup-env.sh are always
+    added by name -- every generator imports the first, and tool_versions() reads
+    every pin it reports out of the second. core_flow.sh is added when the flow's
+    own run.sh (one of the derived own-directory files) sources it, so the record
+    follows what the flow actually runs rather than a hand-copied line. Entries
+    already present are not duplicated, so the result is idempotent, and
+    setup-env.sh lands last, after the derived own-directory files and the other
+    shared helpers.
     """
     out = list(inputs)
-    tail = [out.pop()] if out and out[-1] == SETUP_ENV else []
-    extra = [CORE_FLOW] if any(_runs_core_flow(p) for p in out) else []
-    for path in extra + [RECORD_LIB]:
+    own = own_inputs(generator) if generator is not None else []
+    extra = [CORE_FLOW] if any(_runs_core_flow(p) for p in out + own) else []
+    for path in own + extra + [RECORD_LIB, SETUP_ENV]:
         if path not in out:
             out.append(path)
-    return out + tail
+    return out
 
 
-def require_clean_inputs(inputs) -> str:
+def require_clean_inputs(inputs, generator=None) -> str:
     """HEAD revision, after refusing if any input is modified or untracked.
 
-    The shared flow helpers are guarded too, whether or not `inputs` names them.
+    The shared flow helpers are guarded too, whether or not `inputs` names them,
+    and when `generator` is given its whole directory is guarded: the derived
+    own-directory inputs cover every tracked file there, and _untracked_in()
+    covers the rest, so an uncommitted bench file refuses the record. One
+    exemption: scripts/setup-env.sh is hashed into every record but is not
+    guarded. The exemption is applied here, by name, so it reads the same way for
+    every generator instead of each caller slicing a positional entry off.
     """
-    inputs = shared_inputs(inputs)
+    guarded = [p for p in shared_inputs(inputs, generator) if p != SETUP_ENV]
     rev = run("git", "-C", str(REPO), "rev-parse", "HEAD")
-    dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + list(inputs),
+    dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + guarded,
                            capture_output=True, text=True).stdout.strip()
+    stray = _untracked_in(generator_dir(generator)) if generator is not None else []
+    if stray:
+        dirty = "\n".join(([dirty] if dirty else []) + ["?? " + e for e in stray])
     if dirty:
         raise SystemExit("an input is modified or untracked relative to HEAD; commit it before recording:\n" + dirty)
     return rev
@@ -121,6 +201,25 @@ def tool_versions() -> dict:
         "ciel": pin("CIEL_VERSION"),
         "python": platform.python_version(),
     }
+
+
+def klt_provenance_bullet(prov: dict, versions: dict) -> str:
+    """The record's `klt provenance` bullet, built once for every sim+synth core.
+
+    Five generators carried a byte-identical (drbg's: near-identical) copy of this
+    f-string, so a change to what the records say about their tools had to be made
+    five times. main() exposes the result as ctx.klt_provenance; no generator
+    writes the bullet itself. No trailing newline: a body interpolates it as a line.
+    """
+    return (
+        f"- **klt provenance**: klt `{prov['klt_version']}` pinned at `{versions['klt_pin']}`; "
+        f"pdk `{prov['pdk']['name']}` {prov['pdk']['version']}; "
+        f"liberty `{prov['deck']['name']}` {prov['deck']['content_hash']}; "
+        f"synthesis input {prov['input']['content_hash']}. "
+        f"Tool versions: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, "
+        f"`yosys.wasm` {versions['yosys_wasm']}), Icarus Verilog {versions['icarus']}, "
+        f"cocotb {versions['cocotb']}, ciel {versions['ciel']}, Python {versions['python']}."
+    )
 
 
 def previous_record(experiment: str) -> str | None:
@@ -148,14 +247,16 @@ def previous_record(experiment: str) -> str | None:
     return ids[-1] if ids else None
 
 
-def write_record(experiment: str, rev: str, inputs, meta_extra: dict, body: str) -> Path:
+def write_record(experiment: str, rev: str, inputs, meta_extra: dict, body: str,
+                 generator=None) -> Path:
     """Append-only record: record-meta comment, then `body` (bullets from Claim on).
 
-    The shared flow helpers are hashed in too, whether or not `inputs` names them.
+    The shared flow helpers are hashed in too, whether or not `inputs` names them,
+    and `generator`'s own directory is hashed in by shared_inputs().
     `{rid}` and `{timestamp}` in body are substituted.
     """
     supersedes = previous_record(experiment)
-    inputs = shared_inputs(inputs)
+    inputs = shared_inputs(inputs, generator)
     now = datetime.datetime.now(datetime.timezone.utc)
     rid = f"{now:%Y%m%d-%H%M%S}-{rev[:7]}"
     meta = {
@@ -179,16 +280,22 @@ def write_record(experiment: str, rev: str, inputs, meta_extra: dict, body: str)
     return out
 
 
-def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None) -> int:
+def main(*, name, experiment, inputs, generator, author, body, extra_check=None, argv=None) -> int:
     """Verdict, and unless --check-only an append-only record, for one core.
 
     name:        core directory under verification/rtl/ (also the verdict label)
-    inputs:      repo-relative paths specific to this core, hashed into the
-                 record; the last entry (scripts/setup-env.sh) is excluded from
-                 the dirty-input guard. The shared flow helpers are added by
-                 shared_inputs() and must not be listed here
+    inputs:      repo-relative paths OUTSIDE this core's own directory, hashed
+                 into the record. The files beside the generator and the shared
+                 flow helpers are added by shared_inputs() and must not be
+                 listed here; of those, scripts/setup-env.sh is hashed but
+                 exempt from the dirty-input guard
+    generator:   the calling make_record.py (pass `__file__`); the tracked files
+                 in its directory are the derived part of the input list
     author:      text after the timestamp in the record
-    body:        callable(ctx) -> the record's bullets from Claim through Links
+    body:        callable(ctx) -> the record's bullets from Claim through Links.
+                 ctx carries args, sim, syn, prov, versions, summary, the
+                 extra_check data as ctx.extra, and the ready-made
+                 ctx.klt_provenance bullet, which no body rebuilds
     extra_check: optional callable(out_dir) -> (ok, verdict_text, data); the
                  verdict text is appended to the PASS/FAIL line and data is
                  exposed to body as ctx.extra
@@ -214,7 +321,7 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
         return 0
 
     check_pdk(args.pdk_root)
-    rev = require_clean_inputs(inputs[:-1])
+    rev = require_clean_inputs(inputs, generator)
     prov = syn["provenance"]
     versions = tool_versions()
     versions = {
@@ -234,8 +341,8 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
     log = REPO / f"verification/rtl/{name}/.klt/functional-verification/test_icarus.log"
     m = re.search(r"SUMMARY (.*)", log.read_text()) if log.exists() else None
     ctx = SimpleNamespace(args=args, sim=sim, syn=syn, prov=prov, versions=versions,
-                          wasm=versions["yosys_wasm"], extra=extra,
+                          klt_provenance=klt_provenance_bullet(prov, versions), extra=extra,
                           summary=m.group(1).strip() if m else "see sim.json")
     tail = f"- **Timestamp / author**: {{timestamp}}, {author}.\n"
-    write_record(experiment, rev, inputs, meta_extra, body(ctx) + tail)
+    write_record(experiment, rev, inputs, meta_extra, body(ctx) + tail, generator)
     return 0
