@@ -9,6 +9,8 @@
 #                                                       # verification/records/sha256-core-sim-synth/records/
 #   ./verification/rtl/sha256/run.sh --million-a        # also run the FIPS 180-4 million-`a` KAT
 #                                                       # (about 2M cycles, ~10 min in Icarus)
+#   ./verification/rtl/sha256/run.sh --sim-only         # the positive simulations only: stop before
+#                                                       # synthesis (what scripts/ci-verify.sh runs)
 #   ./verification/rtl/sha256/run.sh --negative-control # K[17] flipped by one bit: MUST fail
 #                                                       # (exit 0 only if the bench catches it); also
 #                                                       # omits hh from the scrub list: test_scrub MUST fail
@@ -23,15 +25,17 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=sha256
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; MILLION=0; NEG=0
+RECORD=0; MILLION=0; NEG=0; SIM_ONLY=0
 for arg in "$@"; do
   case "${arg}" in
     --record) RECORD=1 ;;
     --million-a) MILLION=1 ;;
     --negative-control) NEG=1 ;;
+    --sim-only) SIM_ONLY=1 ;;
     *) echo "unknown option: ${arg}" >&2; exit 2 ;;
   esac
 done
+core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
 
 core_flow_setup
 if [ "${NEG}" = 1 ]; then
@@ -56,5 +60,4 @@ if [ "${MILLION}" = 1 ]; then
   klt functional-verification sim-million-a-request.json --format json > "${OUT}/million.json"
   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("million-a:", d["status"])' "${OUT}/million.json"
 fi
-core_flow_synth
-core_flow_verdict "${RECORD}"
+core_flow_finish "${SIM_ONLY}" "${RECORD}"

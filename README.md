@@ -99,9 +99,9 @@ measurements/  silicon characterization (empty until tape-out)
 
 ## Reproduce
 
-CI (`.github/workflows/ci.yml`) needs no Docker; only `verify` provisions the PDK. Each job calls an
-`npm run` script (`verify`: `scripts/ci-verify.sh`), so a developer runs exactly what CI runs (Python 3.13 and
-`pytest` for the model job):
+CI (`.github/workflows/ci.yml`) needs no Docker; only `verify` provisions the PDK. Every job runs one command
+a developer can run unchanged -- the three `npm run` scripts below, and `./scripts/ci-verify.sh` for `verify`
+(there is no `npm run verify`). Python 3.13 and `pytest` for the model job:
 
 ```
 npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script, pin check

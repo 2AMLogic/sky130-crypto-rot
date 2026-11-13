@@ -12,7 +12,9 @@
 # stays local"; change those documents together with this file if a heavy leg
 # moves into CI.
 #
-# Each job calls an `npm run` script so a developer runs exactly what CI runs.
+# Every job runs one command a developer can run unchanged: `npm run lint`,
+# `npm run test` and `npm run check:reuse` for the three tool-light jobs, and
+# ./scripts/ci-verify.sh for `verify` (there is no `npm run verify`).
 name: CI
 
 on:
