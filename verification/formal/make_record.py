@@ -25,7 +25,6 @@ INPUTS = (
     "verification/formal/run.sh",
     "verification/formal/make_record.py",
     "spec/key-isolation-properties.md",
-    "scripts/setup-env.sh",
 )
 
 NOTES = {
@@ -50,7 +49,7 @@ def main() -> int:
     if not rows or any(r[3] != "0" for r in rows):
         print("formal: not recording, a task did not meet its expectation", file=sys.stderr)
         return 1
-    rev = rc.require_clean_inputs(INPUTS[:-1])
+    rev = rc.require_clean_inputs(INPUTS)
     v = rc.tool_versions()
     v["sby"] = rc.run(str(rc.REPO / ".venv/bin/yowasp-sby"), "--version")
     table = "\n".join(
@@ -71,7 +70,7 @@ def main() -> int:
 - **Links**: `verification/formal/`, `spec/key-isolation-properties.md`, `rtl/drbg/`, `rtl/trng_if/`.
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #45).
 """
-    rc.write_record(EXPERIMENT, rev, INPUTS[:-1], {"tool_versions": v}, body)
+    rc.write_record(EXPERIMENT, rev, INPUTS, {"tool_versions": v}, body)
     return 0
 
 

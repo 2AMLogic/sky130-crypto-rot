@@ -28,8 +28,10 @@ _WASM_HASH = ("import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha25
               "open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
 
 # The shared flow helpers every record implicitly depends on. No generator lists
-# them in its own INPUTS: shared_inputs() adds them, so which files a record
-# hashes and dirty-checks cannot drift between cores.
+# them in its own INPUTS: shared_inputs() adds them by name, so which files a
+# record hashes and dirty-checks cannot drift between cores. SETUP_ENV is the
+# one exception to "hashed and guarded": every record hashes it and reports its
+# tool pins, but require_clean_inputs() exempts it from the dirty-input guard.
 RECORD_LIB = "flow/common/record_lib.py"
 CORE_FLOW = "flow/common/core_flow.sh"
 SETUP_ENV = "scripts/setup-env.sh"
@@ -80,30 +82,32 @@ def _runs_core_flow(path: str) -> bool:
 def shared_inputs(inputs) -> list:
     """`inputs` plus the shared flow helpers, which no generator lists by hand.
 
-    record_lib.py is always added -- every generator imports it, and it is what
-    hashes the inputs and writes the record. core_flow.sh is added when the flow's
-    own run.sh (already one of `inputs`) sources it, so the record follows what the
-    flow actually runs rather than a hand-copied line. Entries already present are
-    not duplicated, and a trailing scripts/setup-env.sh stays last so the "last
-    entry is exempt from the dirty-input guard" convention still holds.
+    record_lib.py and setup-env.sh are always added -- every generator imports the
+    first, and tool_versions() reads every pin it reports out of the second.
+    core_flow.sh is added when the flow's own run.sh (already one of `inputs`)
+    sources it, so the record follows what the flow actually runs rather than a
+    hand-copied line. Entries already present are not duplicated, so the result is
+    idempotent.
     """
     out = list(inputs)
-    tail = [out.pop()] if out and out[-1] == SETUP_ENV else []
     extra = [CORE_FLOW] if any(_runs_core_flow(p) for p in out) else []
-    for path in extra + [RECORD_LIB]:
+    for path in extra + [RECORD_LIB, SETUP_ENV]:
         if path not in out:
             out.append(path)
-    return out + tail
+    return out
 
 
 def require_clean_inputs(inputs) -> str:
     """HEAD revision, after refusing if any input is modified or untracked.
 
-    The shared flow helpers are guarded too, whether or not `inputs` names them.
+    The shared flow helpers are guarded too, whether or not `inputs` names them,
+    with one exemption: scripts/setup-env.sh is hashed into every record but is
+    not guarded. The exemption is applied here, by name, so it reads the same way
+    for every generator instead of each caller slicing a positional entry off.
     """
-    inputs = shared_inputs(inputs)
+    guarded = [p for p in shared_inputs(inputs) if p != SETUP_ENV]
     rev = run("git", "-C", str(REPO), "rev-parse", "HEAD")
-    dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + list(inputs),
+    dirty = subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + guarded,
                            capture_output=True, text=True).stdout.strip()
     if dirty:
         raise SystemExit("an input is modified or untracked relative to HEAD; commit it before recording:\n" + dirty)
@@ -184,9 +188,9 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
 
     name:        core directory under verification/rtl/ (also the verdict label)
     inputs:      repo-relative paths specific to this core, hashed into the
-                 record; the last entry (scripts/setup-env.sh) is excluded from
-                 the dirty-input guard. The shared flow helpers are added by
-                 shared_inputs() and must not be listed here
+                 record. The shared flow helpers are added by shared_inputs()
+                 and must not be listed here; of those, scripts/setup-env.sh is
+                 hashed but exempt from the dirty-input guard
     author:      text after the timestamp in the record
     body:        callable(ctx) -> the record's bullets from Claim through Links
     extra_check: optional callable(out_dir) -> (ok, verdict_text, data); the
@@ -214,7 +218,7 @@ def main(*, name, experiment, inputs, author, body, extra_check=None, argv=None)
         return 0
 
     check_pdk(args.pdk_root)
-    rev = require_clean_inputs(inputs[:-1])
+    rev = require_clean_inputs(inputs)
     prov = syn["provenance"]
     versions = tool_versions()
     versions = {
