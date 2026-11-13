@@ -3,6 +3,27 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-13
+
+- **PR #148**: chore(manifests): cover the 8 unlisted klt request files in item 9
+- **PR #145**: test(cold-start): cover the drbg, trng_if and P-7/P-8/P-9 benches and re-attest item 9
+- **PR #142**: feat(records): derive `supersedes` from the tracked record trail
+- **PR #139**: chore(trng_if): stop tracking the klt requests mk_req.py rewrites every run
+- **PR #140**: ci: fail signoff when an item 9 or 10 attestation envelope goes stale
+- **PR #132**: lint: derive the bash -n set from git ls-files, one file per invocation
+- **PR #135**: fix(manifests): re-attest item-10 envelope so hygiene hashes match main
+- **PR #128**: refactor: add the shared flow helpers to record inputs in record_lib, not per core
+- **PR #126**: ci: run the pin and record-lib checker self-tests from the model job
+- **Issue #144** (closed): item-9 inventory omits the sha256 and hmac scrub request files that the cold start runs
+- **Issue #131** (closed): cold-start-benches.sh says it runs every bench behind a record but skips drbg, trng_if and the P-7/P-8/P-9 formal run; item 9 is attested on 4 of 6 RTL benches
+- **Issue #137** (closed): Records always say 'Supersedes: none': the field is hardcoded at 6 sites while 7 of 16 records re-run an earlier one; derive it in write_record()
+- **Issue #136** (closed): trng_if bench tracks eight request files that run.sh regenerates from mk_req.py on every run: keep the generator, untrack its output
+- **Issue #133** (closed): Attestation envelopes go stale silently: no CI check re-hashes them (item 9 drifted again after #93, item 10 within a day)
+- **Issue #127** (closed): lint: bash -n checks 1 of 13 tracked scripts; ci.yml header names 4 of 6 benches
+- **Issue #130** (closed): item-10 attestation envelope hashes for README.md and ci.yml differ from the tree on main
+- **Issue #124** (closed): Define shared flow helpers in record INPUTS once: core_flow.sh/record_lib.py are hashed in some cores, missing in others
+- **Issue #122** (closed): Wire test_record_lib.py and test_check_pins.py into CI: 13 tests no job runs
+
 ### 2026-11-12
 
 - **PR #119**: Bump Repo Skills 0.25.10 -> 0.26.1

@@ -58,7 +58,14 @@ Issues carrying `loom:curated`.
 ## Proposed (Architect / Hermit)
 
 - **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)*
-- **#122**: Wire test_record_lib.py and test_check_pins.py into CI: 13 tests no job runs *(hermit)*
+- **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)*
+- **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
+- **#138**: Remove the positional setup-env.sh convention from record generators: applied three ways, and three record families never hash it *(hermit)*
+- **#141**: Move drbg/make_record.py onto record_lib.main(): last hand-rolled sim+synth record driver, and it records pinned instead of measured tool versions *(hermit)*
+- **#143**: setup-env.sh carries upstream leftovers: issue refs #141/#143 that point at unrelated issues here, another design's slack figure in a FATAL message, and a usage line the parser rejects *(hermit)*
+- **#146**: Derive record generators' own-directory inputs instead of hand-listing them: 67 lines in eight generators, and hmac already misses a request file *(hermit)*
+- **#147**: Remove the hand-kept per-core status lists from README.md: all three say only SHA-256 exists, and rtl/README.md already carries the current list *(hermit)*
+- **#149**: Remove the fixed 'hmac clear does not clear the SHA-256 datapath' limitation from the key-ladder record generators: RTL has scrubbed it since a77caa3, and the next --record would write it as evidence *(hermit)*
 
 ## Epics
 
@@ -76,6 +83,6 @@ _None._
 | PRs awaiting review | 1 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 2 |
-| Architect / Hermit proposals | 2 |
+| Architect / Hermit proposals | 9 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
