@@ -32,7 +32,9 @@
 # instead; the stub benches still run, and the real-sibling half of the
 # trng-if-sim record is then not covered.
 #
-# Wall time is about 19 minutes, dominated by the SHA-256 million-`a` KAT.
+# Wall time is about 18 minutes, dominated by the SHA-256 million-`a` KAT
+# (1092 s measured for the `klt signoff --attest 9` run that produced the
+# committed envelope, against the 1800 s that command allows).
 
 set -euo pipefail
 

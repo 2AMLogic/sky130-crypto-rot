@@ -63,7 +63,7 @@ uvx --from "klayout-tools==0.8.0" klt signoff --attest 9 \
     -o manifests/inventories/item-9.envelope.json
 ```
 
-Runs `scripts/cold-start-benches.sh` (about 19 minutes: setup, model KATs, the
+Runs `scripts/cold-start-benches.sh` (about 18 minutes: setup, model KATs, the
 SHA-256 (with million-`a`), AES, DRBG, HMAC, key-ladder and TRNG-interface RTL
 benches with their negative controls, and the P-7/P-8/P-9 formal run). That
 covers every record under `verification/records/` except three, which the
