@@ -70,10 +70,10 @@ if [ "${NEG}" = 1 ] && [ "${GATE_LEVEL}" = 1 ]; then
 fi
 if [ "${NEG}" = 1 ]; then
   echo "== negative control: SHA256_NEG_SCRUB omits hh from the scrub list; test_scrub must fail =="
-  core_flow_negctl_one sim-scrub-negctl-request.json scrub-negctl.json \
+  core_flow_negctl_one sim-scrub-request.json SHA256_NEG_SCRUB scrub-negctl.json \
     "scrub negative control:" 'first failing scrub check: [^&]*' \
     "hh left out of the scrub"
-  core_flow_negctl "SHA256_NEG_CTRL flips one K constant" "constant"
+  core_flow_negctl SHA256_NEG_CTRL "flips one K constant" "constant"
 fi
 
 # scrub runs first: make_record.py reads the SUMMARY line from the last klt log

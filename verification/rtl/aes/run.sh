@@ -59,7 +59,7 @@ if [ "${NEG}" = 1 ] && [ "${GATE_LEVEL}" = 1 ]; then
   core_flow_gate_negctl AES_NEG_CTRL test_aes_core \
     "AES_NEG_CTRL flips one S-box output bit" "S-box"
 fi
-[ "${NEG}" = 1 ] && core_flow_negctl "AES_NEG_CTRL flips one S-box output bit" "S-box"
+[ "${NEG}" = 1 ] && core_flow_negctl AES_NEG_CTRL "flips one S-box output bit" "S-box"
 
 core_flow_sim
 core_flow_finish "${SIM_ONLY}" "${RECORD}"

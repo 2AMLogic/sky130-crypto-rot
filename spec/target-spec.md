@@ -102,6 +102,9 @@ changes if it is ever added. Verification: FORMAL P-12 (netlist).
 | Status model | `STATUS` register (state, busy, error, per-slot valid/locked, TRNG gated/alarm mirrors, seeded flag); one level-sensitive `irq` output = (done or error or alarm) & mask | polled only | per-source irq | TB |
 | Key data | no register ever returns key, seed or DRBG state | same | - | FORMAL P-1..P-4 |
 
+The register map (offsets, access types, `STATUS` layout, key-load window) is
+decision record 0009.
+
 ## 7. Timing and area
 
 All rows are **target, unmeasured**.
