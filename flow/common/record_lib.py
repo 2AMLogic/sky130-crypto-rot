@@ -222,6 +222,131 @@ def klt_provenance_bullet(prov: dict, versions: dict) -> str:
     )
 
 
+def open_pdks_revision(pdk_root: Path) -> str:
+    """The open_pdks revision the installed sky130A tree names in its SOURCES.
+
+    check_pdk() already refuses a tree whose SOURCES does not name the pinned
+    commit, so by the time a record is written this is that commit -- it is read
+    back rather than printed from the pin so the record states what was on disk.
+    """
+    for line in (pdk_root / "sky130A/SOURCES").read_text().splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[0] == "open_pdks":
+            return parts[1]
+    raise SystemExit(f"{pdk_root}/sky130A/SOURCES names no open_pdks revision")
+
+
+#: The klayout-tools issues for the two tool gaps the gate-level mode meets,
+#: linked from every gate-level record per this repo's friction protocol.
+#:
+#: #4196 -- a `klt synthesize` request cannot set a preprocessor define, so the
+#: negative control's `ifdef cannot be applied at synthesis through the
+#: request. Already filed and closed COMPLETED upstream (2026-10-27): later klt
+#: has a `defines` key, so this repo meets it only through its KLT_VERSION pin,
+#: and a pin bump retires the generated wrapper. Linked, not re-filed.
+#:
+#: #5684 -- `klt synthesize` and `klt functional-verification` do not compose:
+#: simulating a synthesis run's own netlist means hand-rendering a request
+#: around a per-run path, including the hash check that makes the verdict mean
+#: anything. Filed from this work (the gap is the tool's, described there
+#: without this design's detail).
+_KLT_DEFINES_GAP = "#4196"
+_KLT_CHAIN_GAP = "#5684"
+
+#: The Design-provenance text every sim+synth record shared verbatim before
+#: issue #179, and still the whole of it when no gate-level run happened.
+_RTL_PROVENANCE = ("RTL, pre-synthesis simulation (Icarus); the synthesis figure is "
+                   "the `klt synthesize` output for the same source.")
+
+
+def gate_level_bullets(gate: dict | None, pdk_root: Path, name: str) -> tuple[str, str]:
+    """``(provenance text, gate-level bullet)`` for one core's record.
+
+    Both cores say exactly the same things about a gate-level run -- what it
+    simulated, which cell models, which delay model, that it is pre-layout with
+    no SDF -- so the text lives here for the same reason
+    klt_provenance_bullet() does: five near-identical copies of a claim about
+    the tools is five places to update when the claim changes.
+
+    ``gate`` is flow/build/<core>/gate.json, written by core_flow_gate(), or
+    None when no gate-level run happened. In that case the provenance text is
+    byte-for-byte the one the records carried before issue #179, ending "No
+    gate-level simulation was run.", and the bullet is the empty string: a
+    record never implies a netlist simulation it does not have.
+
+    The cell-model hashes are computed here, at record time, from the paths the
+    request actually named. They are NOT copied from any pin or prose: the
+    models are outside the repo, so they are not in the record's dirty-checked
+    `inputs` list, and the hash is the only thing that identifies which models
+    the simulation elaborated.
+    """
+    if gate is None:
+        return f"{_RTL_PROVENANCE} No gate-level simulation was run.", ""
+    models = ", ".join(f"`{Path(p).name}` {sha256(Path(p))}" for p in gate["cell_models"])
+    # `tc`, not `name`: `name` is the core, and a genexp variable that shadowed
+    # it would read as though the negative-control command below named a testcase.
+    ran = ", ".join(
+        f"`{tc}` ({run['passed_count']}/{run['test_count']} passed, "
+        f"{run['tests'][0]['sim_time_ns'] / 1000:.1f} us simulated)"
+        for tc, run in sorted(gate["testcases"].items()))
+    skipped = ("; **not run at gate level**: " +
+               ", ".join(f"`{k}` ({v})" for k, v in sorted(gate["excluded"].items()))
+               if gate["excluded"] else
+               "; no testcase of this bench was left out of the gate-level run")
+    defines = ", ".join(f"`{k}`" if v is None else f"`{k}` = `{v}`"
+                        for k, v in gate["defines"].items())
+    return (
+        f"{_RTL_PROVENANCE} The same bench was then re-run against that netlist "
+        "(see Gate-level simulation below), so the vectors are claimed on the "
+        "mapped gates and not only on the RTL.",
+        f"- **Gate-level simulation**: the same cocotb bench, unmodified, against "
+        f"the synthesized netlist -- `{gate['netlist_path']}`, "
+        f"sha256:{gate['netlist_sha256']}, {gate['instance_count']} "
+        f"`sky130_fd_sc_hd` instances -- read back from this run's own `klt "
+        f"synthesize` report and re-hashed before the request was built, so a "
+        f"stale netlist left by an earlier run cannot be simulated in its "
+        f"place. That "
+        f"path is per-run scratch (`klt synthesize` claims a fresh "
+        f"`.klt/synthesize/run-<uuid>/` each time) and is gitignored, so the "
+        f"sha256 above, not the path, is the netlist's identity. Cell "
+        f"models: {models}, from the `sky130A` install at open_pdks "
+        f"`{open_pdks_revision(pdk_root)}`; the vendored "
+        f"`verification/gate-level/common/sky130_fd_sc_hd_sim_defines.v` is "
+        f"**not** used -- the pinned klt forwards `options.defines` itself. "
+        f"Delay model: {defines} -- the PDK's zero-delay behavioural models "
+        f"(Icarus implements neither `$setuphold` nor `$recrem`'s "
+        f"delayed-signal outputs, so the `specify` timing models simulate as "
+        f"all-`x`), with each flop's output one `#1` = 1 ns off the clock edge "
+        f"that produced it, against this bench's 20 ns clock. **Pre-layout, no "
+        f"SDF back-annotation**: `options.sdf` is "
+        f"`{json.dumps(gate['sdf'])}`, so this is a "
+        f"functional check of the mapped gates and makes NO timing claim; the "
+        f"SDF-annotated post-route run is issue #82. Status "
+        f"`{gate['status']}` -- ran {ran}{skipped}. Gate-level negative "
+        f"control: `./verification/rtl/{name}/run.sh --gate-level "
+        f"--negative-control` synthesizes the corrupted build and runs the "
+        f"bench on THAT netlist, and exits 0 only because the bench caught it "
+        f"-- `klt` exited non-zero AND the cocotb results XML named the first "
+        f"failing vector, the two-part test of issue #151. The corruption is a "
+        f"`` `ifdef `` in the RTL and a netlist carries no preprocessor, so it "
+        f"has to be applied at synthesis -- and the pinned `klt synthesize` "
+        f"request has no `defines` key (the pin's allowed keys are schema, "
+        f"engine, sources, hdl_toplevel, pdk, constraints, structural, "
+        f"baseline, arithmetic, run_id, outputs, parameters). The flow "
+        f"therefore generates a wrapper that defines the macro and "
+        f"`` `include ``s the RTL, and uses it as that synthesis run's only "
+        f"source. Per this repo's friction protocol that tool gap is "
+        f"`2AMLogic/klayout-tools` {_KLT_DEFINES_GAP}, which is already filed "
+        f"and closed COMPLETED upstream: a `synthesize` `defines` key exists "
+        f"in later klt, so the wrapper is a consequence of the "
+        f"`KLT_VERSION` pin, not of an open gap, and a pin bump retires it. "
+        f"The second gap this mode meets -- that `klt synthesize` and `klt "
+        f"functional-verification` do not compose, so simulating a synthesis "
+        f"run's own netlist means hand-rendering a request around a per-run "
+        f"path, hash check included -- was not already filed and is "
+        f"`2AMLogic/klayout-tools` {_KLT_CHAIN_GAP}.\n")
+
+
 def previous_record(experiment: str) -> str | None:
     """Id of the newest record git already tracks for `experiment`, else None.
 
@@ -295,7 +420,14 @@ def main(*, name, experiment, inputs, generator, author, body, extra_check=None,
     body:        callable(ctx) -> the record's bullets from Claim through Links.
                  ctx carries args, sim, syn, prov, versions, summary, the
                  extra_check data as ctx.extra, and the ready-made
-                 ctx.klt_provenance bullet, which no body rebuilds
+                 ctx.klt_provenance bullet, which no body rebuilds. For the
+                 gate-level mode (issue #179) it also carries ctx.gate (the
+                 parsed flow/build/<core>/gate.json, or None), and two
+                 ready-made pieces of text no body rebuilds either:
+                 ctx.gate_provenance, the Design-provenance sentence, which
+                 still reads "No gate-level simulation was run." when there
+                 was none; and ctx.gate_level, the Gate-level-simulation
+                 bullet, which is the empty string when there was none
     extra_check: optional callable(out_dir) -> (ok, verdict_text, data); the
                  verdict text is appended to the PASS/FAIL line and data is
                  exposed to body as ctx.extra
@@ -311,9 +443,17 @@ def main(*, name, experiment, inputs, generator, author, body, extra_check=None,
     st = syn["structural"]
     clean = st["latches"] == 0 and st["comb_loops"] == 0 and st["multi_driven"] == 0
     ok = sim["status"] == "pass" and syn["status"] == "ok" and clean
+    # gate.json exists only when run.sh --gate-level ran; core_flow_finish
+    # removes it first, so it is always this run's. A gate-level failure fails
+    # the verdict: a netlist that does not compute the vectors is not a PASS
+    # whatever the RTL did.
+    gate_path = args.out_dir / "gate.json"
+    gate = json.loads(gate_path.read_text()) if gate_path.exists() else None
+    gate_txt = "" if gate is None else f" gate-level={gate['status']}"
+    ok = ok and (gate is None or gate["status"] == "pass")
     extra_ok, extra_txt, extra = extra_check(args.out_dir) if extra_check else (True, "", None)
     ok = ok and extra_ok
-    print(f"{name}: simulation={sim['status']}{extra_txt} synthesis={syn['status']} "
+    print(f"{name}: simulation={sim['status']}{extra_txt}{gate_txt} synthesis={syn['status']} "
           f"latches={st['latches']} -> {'PASS' if ok else 'FAIL'}")
     if not ok:
         return 1
@@ -338,10 +478,29 @@ def main(*, name, experiment, inputs, generator, author, body, extra_check=None,
         "deck": {"name": prov["deck"]["name"], "content_hash": prov["deck"]["content_hash"]},
         "tool_versions": versions,
     }
+    if gate is not None:
+        # The cell models are outside the repo, so they cannot ride in the
+        # record's `inputs` list (repo-relative, dirty-checked). They go in the
+        # provenance block instead, hashed here at record time.
+        meta_extra["gate_level"] = {
+            "netlist_path": gate["netlist_path"],
+            "netlist_sha256": gate["netlist_sha256"],
+            "instance_count": gate["instance_count"],
+            "cell_models": [{"path": p, "content_hash": sha256(Path(p))}
+                            for p in gate["cell_models"]],
+            "open_pdks": open_pdks_revision(args.pdk_root),
+            "defines": gate["defines"],
+            "sdf": gate["sdf"],
+            "status": gate["status"],
+            "testcases_run": sorted(gate["testcases"]),
+            "testcases_not_run": gate["excluded"],
+        }
     log = REPO / f"verification/rtl/{name}/.klt/functional-verification/test_icarus.log"
     m = re.search(r"SUMMARY (.*)", log.read_text()) if log.exists() else None
+    gate_provenance, gate_bullet = gate_level_bullets(gate, args.pdk_root, name)
     ctx = SimpleNamespace(args=args, sim=sim, syn=syn, prov=prov, versions=versions,
                           klt_provenance=klt_provenance_bullet(prov, versions), extra=extra,
+                          gate=gate, gate_provenance=gate_provenance, gate_level=gate_bullet,
                           summary=m.group(1).strip() if m else "see sim.json")
     tail = f"- **Timestamp / author**: {{timestamp}}, {author}.\n"
     write_record(experiment, rev, inputs, meta_extra, body(ctx) + tail, generator)
