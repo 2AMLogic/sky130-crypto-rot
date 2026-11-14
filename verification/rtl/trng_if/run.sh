@@ -5,19 +5,32 @@
 # of the sibling and against the sibling's own RTL at its pinned commit.
 #
 #   ./scripts/setup-env.sh                              # once: .venv, pinned yosys, PDK
-#   ./verification/rtl/trng_if/run.sh                   # stub benches + real-sibling bench
+#   ./verification/rtl/trng_if/run.sh                   # stub benches + BOTH real-sibling benches
 #   ./verification/rtl/trng_if/run.sh --record          # same, then write a record under
 #                                                       # verification/records/trng-if-sim/records/
 #   ./verification/rtl/trng_if/run.sh --skip-real       # stub benches only (a record says so)
+#   ./verification/rtl/trng_if/run.sh --skip-real-full  # stub + shortened sibling only (ditto)
 #   ./verification/rtl/trng_if/run.sh --negative-control  # five corrupted builds: every one MUST fail
 #                                                       # (the run stops at the first it does not)
 #
 # The sibling's RTL is fetched by fetch_trng.sh at the commit in reuse.lock.json
-# and its sha256 is checked; it is never committed here. For the real-sibling
-# bench its start-up length (16 samples), conditioner block (64 raw bits) and
-# RCT cutoff (16) are shortened by parameter so the bench finishes; none of the
-# behavior this block depends on (stream protocol, gated/startup_done/alarm,
-# register map) changes.
+# and its sha256 is checked; it is never committed here. It is then simulated
+# TWICE against drbg_top, over the same fetched file:
+#
+#   real       -- start-up length (16 samples), conditioner block (64 raw bits)
+#                 and RCT cutoff (16) shortened by parameter, which is what
+#                 makes the alarm, recovery and negative-control cases
+#                 affordable; none of the behavior this block depends on
+#                 (stream protocol, gated/startup_done/alarm, register map)
+#                 changes.
+#   real-full  -- NO parameter overrides at all, so the start-up gate and the
+#                 one-pop-per-sample-period handshake also run at the lengths
+#                 the sibling's own RTL declares at the pin (issue #180). This
+#                 is NOT opt-in: it measured 9-10 s here against about 18 min
+#                 for scripts/cold-start-benches.sh as a whole, so the default
+#                 run covers it and the record it writes claims it. The elapsed
+#                 seconds are captured per run and quoted in the record, so a
+#                 future pin that makes it expensive shows up as data.
 
 set -euo pipefail
 
@@ -25,18 +38,21 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=trng_if
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; NEG=0; REAL=1
+RECORD=0; NEG=0; REAL=1; REAL_FULL=1
 for arg in "$@"; do
   case "${arg}" in
     --record) RECORD=1 ;;
     --negative-control) NEG=1 ;;
+    # --skip-real drops BOTH sibling benches; --skip-real-full keeps the
+    # shortened one and drops only the unshortened pass.
     --skip-real) REAL=0 ;;
+    --skip-real-full) REAL_FULL=0 ;;
     *) echo "unknown option: ${arg}" >&2; exit 2 ;;
   esac
 done
 
 core_flow_setup
-# The eight sim-*-request.json files the benches below read are mk_req.py's
+# The nine sim-*-request.json files the benches below read are mk_req.py's
 # output, not tracked copies of it: they are gitignored and rewritten on
 # every run, and mk_req.py is the request input make_record.py hashes.
 python3 -I mk_req.py
@@ -87,6 +103,21 @@ if [ "${REAL}" = 1 ]; then
   summaries | tee "${OUT}/summary-real.txt"
 else
   echo "== real-sibling bench SKIPPED (--skip-real); a record will say so =="
+fi
+
+rm -f "${OUT}/real-full.json" "${OUT}/summary-real-full.txt" "${OUT}/real-full-wall.txt"
+if [ "${REAL}" = 1 ] && [ "${REAL_FULL}" = 1 ]; then
+  echo "== drbg_top vs the sibling's RTL with NO parameter overrides =="
+  # SECONDS is reset so the elapsed time below is this simulation alone; it is
+  # the measured wall time make_record.py quotes, rather than hand-typed prose.
+  SECONDS=0
+  sim sim-real-full-request.json "${OUT}/real-full.json"
+  echo "${SECONDS}" > "${OUT}/real-full-wall.txt"
+  status "${OUT}/real-full.json"
+  echo "wall time: ${SECONDS} s"
+  summaries | tee "${OUT}/summary-real-full.txt"
+else
+  echo "== unshortened-sibling bench SKIPPED (--skip-real/--skip-real-full); a record will say so =="
 fi
 
 if [ "${RECORD}" = 1 ]; then
