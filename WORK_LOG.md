@@ -3,8 +3,22 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-14
+
+- **PR #162**: fix(verification): make every negative control prove the bench caught the fault
+- **Issue #151** (closed): Run the drbg, trng_if and sha256-scrub negative controls through core_flow_negctl_one: three hand-rolled copies remain, and the drbg one counts any klt failure as caught
+
 ### 2026-11-13
 
+- **PR #168**: docs: replace environment.md's SHA-256-only flow text with pointers to the maintained lists
+- **PR #166**: refactor: give run.sh a --sim-only mode and drop ci-verify's own bench list
+- **PR #152**: refactor: drive the drbg record from record_lib.main(), build the klt-provenance bullet once
+- **PR #157**: refactor(records): derive each generator's own-directory inputs from git
+- **PR #160**: chore: drop the analog-template .gitignore rules, re-ignoring flow report logs
+- **PR #156**: docs: drop the stale per-core status lists from README.md
+- **PR #154**: docs(keyladder): drop the scrubbed-datapath limitation from the record generators
+- **PR #153**: docs: correct inherited upstream text in setup-env.sh
+- **PR #155**: refactor: add setup-env.sh to record inputs by name, not by position
 - **PR #148**: chore(manifests): cover the 8 unlisted klt request files in item 9
 - **PR #145**: test(cold-start): cover the drbg, trng_if and P-7/P-8/P-9 benches and re-attest item 9
 - **PR #142**: feat(records): derive `supersedes` from the tracked record trail
@@ -14,6 +28,15 @@ triage role. Entries are grouped by date, newest first.
 - **PR #135**: fix(manifests): re-attest item-10 envelope so hygiene hashes match main
 - **PR #128**: refactor: add the shared flow helpers to record inputs in record_lib, not per core
 - **PR #126**: ci: run the pin and record-lib checker self-tests from the model job
+- **Issue #167** (closed): Remove the SHA-256-only flow description from docs/environment.md: three passages predate the other five cores, and one cites a PATH export that run.sh does not contain
+- **Issue #158** (closed): Remove the hand-kept positive-simulation list from scripts/ci-verify.sh: give run.sh a --sim-only mode so CI runs each core's own list
+- **Issue #141** (closed): Move drbg/make_record.py onto record_lib.main(): last hand-rolled sim+synth record driver, and it records pinned instead of measured tool versions
+- **Issue #146** (closed): Derive record generators' own-directory inputs instead of hand-listing them: 67 lines in eight generators, and hmac already misses a request file
+- **Issue #159** (closed): Remove the analog-template rules from .gitignore: they describe an ngspice sim tree this repo never had, and one un-ignores every log under a flow's reports directory
+- **Issue #147** (closed): Remove the hand-kept per-core status lists from README.md: all three say only SHA-256 exists, and rtl/README.md already carries the current list
+- **Issue #149** (closed): Remove the fixed 'hmac clear does not clear the SHA-256 datapath' limitation from the key-ladder record generators: RTL has scrubbed it since a77caa3, and the next --record would write it as evidence
+- **Issue #143** (closed): setup-env.sh carries upstream leftovers: issue refs #141/#143 that point at unrelated issues here, another design's slack figure in a FATAL message, and a usage line the parser rejects
+- **Issue #138** (closed): Remove the positional setup-env.sh convention from record generators: applied three ways, and three record families never hash it
 - **Issue #144** (closed): item-9 inventory omits the sha256 and hmac scrub request files that the cold start runs
 - **Issue #131** (closed): cold-start-benches.sh says it runs every bench behind a record but skips drbg, trng_if and the P-7/P-8/P-9 formal run; item 9 is attested on 4 of 6 RTL benches
 - **Issue #137** (closed): Records always say 'Supersedes: none': the field is hardcoded at 6 sites while 7 of 16 records re-run an earlier one; derive it in write_record()
