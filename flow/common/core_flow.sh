@@ -29,17 +29,45 @@ core_flow_setup() {
   cd "${HERE}"
 }
 
-# core_flow_negctl_one <request> <json name> <result label> <grep pattern> <what the bench wrongly passed>
-# Runs one corrupted build; exits 1 if the bench passes it, else prints the
-# status and the first failing check. Does not exit 0 itself: the caller may
-# chain several controls.
+# core_flow_negctl_one <request> <json name> <result label> <grep pattern> \
+#                      <what the bench wrongly passed> [evidence file]
+#
+# Runs one corrupted build and demands TWO things of it: `klt` must exit
+# non-zero, AND <grep pattern> must match in <evidence file> -- the bench's own
+# report of the failure it caught. A non-zero `klt` exit on its own is not
+# evidence: a build that never elaborated (a missing source, a renamed define,
+# a malformed request) exits non-zero too, and a negative control that "passes"
+# for that reason has tested nothing (issue #151). The evidence file is removed
+# before the run, so a stale report left behind by an earlier control -- `klt`
+# does not clear this directory when a build fails -- cannot stand in for this
+# control's own.
+#
+# <evidence file> defaults to the cocotb results XML, which carries the failing
+# assertion text: the aes, sha256, hmac and keyladder benches give that text a
+# distinctive prefix ("first failing vector: ...") and match on it. The drbg and
+# trng_if benches assert with an unprefixed message, so they pass the cocotb log
+# instead and match their own "SUMMARY ... failures=<n>" line with a non-zero n.
+#
+# Does not exit 0 itself: the caller may chain several controls. Chaining stops
+# at the first control the bench fails to catch (exit 1) rather than running the
+# rest -- one uncaught fault already fails the run, and stopping leaves that
+# control as the last thing printed. Every caller chains on this helper.
 core_flow_negctl_one() {
+  local evidence="${6:-.klt/functional-verification/results_icarus.xml}"
+  local caught
+  rm -f "${evidence}"
   if klt functional-verification "${1}" --format json > "${OUT}/${2}"; then
     echo "FAIL: the bench passed with ${5}" >&2
     exit 1
   fi
+  caught="$(grep -o "${4}" "${evidence}" 2>/dev/null | head -1 || true)"
+  if [ -z "${caught}" ]; then
+    echo "FAIL: ${5}: klt exited non-zero but ${evidence} reports no caught" \
+         "failure -- the build, not the bench, may have failed" >&2
+    exit 1
+  fi
   _json_line "${OUT}/${2}" '"'"${3}"'", d["status"], "(expected fail)"'
-  grep -o "${4}" .klt/functional-verification/results_icarus.xml | head -1
+  echo "${caught}"
 }
 
 # core_flow_negctl <what is corrupted> <noun> -- exit 0 only if the bench catches it.
