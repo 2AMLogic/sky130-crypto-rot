@@ -236,13 +236,22 @@ def open_pdks_revision(pdk_root: Path) -> str:
     raise SystemExit(f"{pdk_root}/sky130A/SOURCES names no open_pdks revision")
 
 
-#: The klayout-tools issue for the one tool gap the gate-level mode meets: a
-#: `klt synthesize` request cannot set a preprocessor define, so the negative
-#: control's `ifdef cannot be applied at synthesis through the request. Already
-#: filed and closed COMPLETED upstream (2026-10-27) -- later klt has a
-#: `defines` key -- so this repo meets it only through its KLT_VERSION pin. The
-#: records link it rather than a duplicate, per the friction protocol.
-_KLT_GAP_ISSUE = "#4196"
+#: The klayout-tools issues for the two tool gaps the gate-level mode meets,
+#: linked from every gate-level record per this repo's friction protocol.
+#:
+#: #4196 -- a `klt synthesize` request cannot set a preprocessor define, so the
+#: negative control's `ifdef cannot be applied at synthesis through the
+#: request. Already filed and closed COMPLETED upstream (2026-10-27): later klt
+#: has a `defines` key, so this repo meets it only through its KLT_VERSION pin,
+#: and a pin bump retires the generated wrapper. Linked, not re-filed.
+#:
+#: #5684 -- `klt synthesize` and `klt functional-verification` do not compose:
+#: simulating a synthesis run's own netlist means hand-rendering a request
+#: around a per-run path, including the hash check that makes the verdict mean
+#: anything. Filed from this work (the gap is the tool's, described there
+#: without this design's detail).
+_KLT_DEFINES_GAP = "#4196"
+_KLT_CHAIN_GAP = "#5684"
 
 #: The Design-provenance text every sim+synth record shared verbatim before
 #: issue #179, and still the whole of it when no gate-level run happened.
@@ -324,10 +333,15 @@ def gate_level_bullets(gate: dict | None, pdk_root: Path, name: str) -> tuple[st
         f"therefore generates a wrapper that defines the macro and "
         f"`` `include ``s the RTL, and uses it as that synthesis run's only "
         f"source. Per this repo's friction protocol that tool gap is "
-        f"`2AMLogic/klayout-tools` {_KLT_GAP_ISSUE}, which is already filed "
+        f"`2AMLogic/klayout-tools` {_KLT_DEFINES_GAP}, which is already filed "
         f"and closed COMPLETED upstream: a `synthesize` `defines` key exists "
         f"in later klt, so the wrapper is a consequence of the "
-        f"`KLT_VERSION` pin, not of an open gap, and a pin bump retires it.\n")
+        f"`KLT_VERSION` pin, not of an open gap, and a pin bump retires it. "
+        f"The second gap this mode meets -- that `klt synthesize` and `klt "
+        f"functional-verification` do not compose, so simulating a synthesis "
+        f"run's own netlist means hand-rendering a request around a per-run "
+        f"path, hash check included -- was not already filed and is "
+        f"`2AMLogic/klayout-tools` {_KLT_CHAIN_GAP}.\n")
 
 
 def previous_record(experiment: str) -> str | None:

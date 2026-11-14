@@ -450,7 +450,8 @@ def test_gate_bullet_links_the_klayout_tools_tool_gap(tmp_path):
     """The friction protocol: the gap is linked from the record (AC6)."""
     _, bullet = record_lib.gate_level_bullets(_gate(tmp_path), tmp_path, "aes")
     assert "2AMLogic/klayout-tools" in bullet
-    assert record_lib._KLT_GAP_ISSUE in bullet
+    assert record_lib._KLT_DEFINES_GAP in bullet
+    assert record_lib._KLT_CHAIN_GAP in bullet
 
 
 def test_at_least_two_cores_have_a_gate_level_mode():

@@ -4,6 +4,9 @@
 `2AMLogic/sky130-modexp` at the commit pinned in
 [`reuse.lock.json`](../reuse.lock.json); do not edit it here. Adoption
 decisions: [`spec/decision-records/0001-modexp-tooling-adoption.md`](../spec/decision-records/0001-modexp-tooling-adoption.md).
+It still has **no caller**: the aes and sha256 `--gate-level` mode selects the
+same cell models through `options.defines`, which the pinned `klt` forwards
+natively, so its removal (#134) remains a decision about an uncalled file.
 
 `model/` holds the Python golden reference models and `vectors/` the published
 known-answer vectors with provenance sidecars;
@@ -15,10 +18,10 @@ checked against which vectors. See the repo README for scope.
 | Where | What |
 |---|---|
 | CI `lint` | `python3 -m compileall verification flow`; one `bash -n` per tracked project `*.sh` (the `git ls-files` set, excluding the tool-managed `.loom/`, `.claude/`, `.agents/` and `loom.sh`); `check_pins.py` (the pins in `scripts/setup-env.sh` appear in `docs/environment.md`, agree with the `pins` block of `manifests/inventories/item-9.json`, and every hand-copied `klayout-tools` version literal in `.github/workflows/signoff.yml`, `manifests/README.md` and `README.md` equals `KLT_VERSION`) |
-| CI `model` | the whole `npm run test` pytest run: `verification/model` over the committed vectors (`model/README.md` lists them), plus the checker self-tests `test_check_pins.py`, `test_check_reuse.py` and `test_record_lib.py` (pin resolution and the PDK-pin and dirty-input guards in `flow/common/record_lib.py`) |
+| CI `model` | the whole `npm run test` pytest run: `verification/model` over the committed vectors (`model/README.md` lists them), plus the checker self-tests `test_check_pins.py`, `test_check_reuse.py`, `test_record_lib.py` (pin resolution, the PDK-pin and dirty-input guards, and the gate-level record text in `flow/common/record_lib.py`) and `test_core_flow.py` (the gate-level refusals in `flow/common/core_flow.sh`: a stale netlist, a non-`ok` synthesis, and a bench testcase declared neither run nor excluded) |
 | CI `reuse` | `check_reuse.py` re-hashes each `reuse.lock.json` file that has a local copy against its `sha256`; its self-test runs in `model` |
 | CI `verify` | only on PRs touching `rtl/`, `verification/`, `flow/` or the env pins: `scripts/setup-env.sh`, then `scripts/ci-verify.sh` (about 8 min): the sha256, aes, drbg, hmac, keyladder and trng_if benches and each `*_NEG_*` negative control (must fail; including `HMAC_NEG_CTRL`, `HMAC_NEG_SCRUB`, `KL_NEG_MASK`, `KL_NEG_LOCK`, `KL_NEG_ZEROIZE`), and `verification/formal/run.sh` (its `reach_*`/`neg_*` tasks must fail) |
-| Local only | synthesis, sha256 `--million-a` (about 10 min), `verification/formal/keyladder` (its `neg_net` task synthesizes; over 30 min), place-and-route, DRC, LVS, `klt signoff --manifest` |
+| Local only | synthesis, sha256 `--million-a` (about 10 min), the aes and sha256 `--gate-level` mode (the same benches re-run on the `klt synthesize` netlist; aes about 80 s, sha256 about 28 min, and its negative control the same again), `verification/formal/keyladder` (its `neg_net` task synthesizes; over 30 min), place-and-route, DRC, LVS, `klt signoff --manifest` |
 
 Dated evidence that `verify` behaves as the table says (throwaway draft PRs,
 closed unmerged, 2026-10-31, against `70b0a85`):
