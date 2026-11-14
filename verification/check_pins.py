@@ -1,7 +1,7 @@
 """Check that scripts/setup-env.sh's pins agree with the repo's hand copies.
 
-Two copies are checked, both against the pin block of the script (between the
-`# --- pinned versions` line and the closing `# ----` rule):
+Three copy sets are checked, all against the pin block of the script (between
+the `# --- pinned versions` line and the closing `# ----` rule):
 
 * **docs/environment.md** — every `NAME="value"` assignment in the block must
   have its value appear in the doc's "Pinned versions" section. A missing
@@ -15,6 +15,16 @@ Two copies are checked, both against the pin block of the script (between the
   `pins.tools."icarus-verilog"` is deliberately NOT checked: it has no
   counterpart in the pin block, because scripts/setup-env.sh only probes for
   Icarus as a host package and never pins it.
+
+* **the klt version literals hand-copied into commands and prose** --
+  `.github/workflows/signoff.yml`, `manifests/README.md` and `README.md`
+  (`KLT_LITERAL_FILES`). Every `klayout-tools==<version>` literal and every
+  backticked `` `v<version>` `` release tag in those files must equal
+  `KLT_VERSION`. These are embedded in `pip`/`uvx` command lines and prose
+  rather than in a structured block, so they are matched by regex
+  (`KLT_LITERALS`) rather than mapped by key. A listed file that is missing,
+  unreadable, or carries no literal at all fails: a checker that silently
+  matches nothing after a rename is the drift this guards against.
 
     python3 verification/check_pins.py [setup-env.sh [environment.md [item-9.json]]]
 
@@ -38,6 +48,31 @@ INVENTORY_PINS = {
     ("tools", "ciel"): "CIEL_VERSION",
     ("pdk", "revision"): "CIEL_SKY130_VERSION",
 }
+
+# Files carrying a hand copy of the klt pin in command or prose form, checked
+# against KLT_VERSION. Resolved against REPO_ROOT by main().
+#
+# docs/environment.md is deliberately NOT here: check() already guards its
+# "Pinned versions" table, and its changelog section names older versions on
+# purpose (the `dac2b5da` -> PyPI move), so an equality rule would false-fail.
+# scripts/setup-env.sh is not here either: its three `klayout-tools==${KLT_VERSION}`
+# sites are interpolations of the source of truth, not hand copies. Generated
+# artifacts (manifests/*.signoff.json, inventories/*.envelope.json,
+# verification/records/**) are tool output already bound by the signoff job.
+KLT_LITERAL_FILES = (
+    ".github/workflows/signoff.yml",
+    "manifests/README.md",
+    "README.md",
+)
+
+# `klayout-tools==X` as written in a pip/uvx command line or inline code, and
+# the backticked release tag `vX` the vendored tiers doc cites. The tag form
+# requires two dotted components so that the `actions/checkout@v4` and
+# `actions/setup-python@v5` refs in signoff.yml cannot match it.
+KLT_LITERALS = (
+    re.compile(r"""klayout-tools==([0-9][^\s"'`]*)"""),
+    re.compile(r"`v([0-9]+\.[0-9]+[^`]*)`"),
+)
 
 
 def parse_pins(script_text):
@@ -99,6 +134,43 @@ def check_inventory(script_path, inventory_path):
     return errors
 
 
+def check_literals(script_path, literal_paths):
+    """Return a list of error strings (empty when every klt literal agrees)."""
+    pins = parse_pins(Path(script_path).read_text())
+    if not pins:
+        return [f"{script_path}: no pin block (or no assignments) found"]
+    if "KLT_VERSION" not in pins:
+        return [f'{script_path}: pin block has no KLT_VERSION assignment']
+    want = pins["KLT_VERSION"]
+    errors = []
+    for literal_path in literal_paths:
+        path = Path(literal_path)
+        try:
+            text = path.read_text()
+        except OSError as exc:
+            errors.append(
+                f"{path}: cannot be read ({exc.strerror}), so its klt literals "
+                f'cannot be checked against KLT_VERSION="{want}" in {script_path}'
+            )
+            continue
+        found = 0
+        for pattern in KLT_LITERALS:
+            for match in pattern.finditer(text):
+                found += 1
+                if match.group(1) != want:
+                    line = text.count("\n", 0, match.start()) + 1
+                    errors.append(
+                        f'{path}:{line}: klt literal "{match.group(1)}" disagrees '
+                        f'with KLT_VERSION="{want}" in {script_path}'
+                    )
+        if not found:
+            errors.append(
+                f"{path}: no klt version literal found (expected "
+                f'KLT_VERSION="{want}"); has the file moved or its wording changed?'
+            )
+    return errors
+
+
 def main(argv):
     script = Path(argv[1]) if len(argv) > 1 else REPO_ROOT / "scripts/setup-env.sh"
     doc = Path(argv[2]) if len(argv) > 2 else REPO_ROOT / "docs/environment.md"
@@ -106,12 +178,23 @@ def main(argv):
         Path(argv[3]) if len(argv) > 3
         else REPO_ROOT / "manifests/inventories/item-9.json"
     )
-    errors = check(script, doc) + check_inventory(script, inventory)
+    literals = [REPO_ROOT / p for p in KLT_LITERAL_FILES]
+    errors = (
+        check(script, doc)
+        + check_inventory(script, inventory)
+        + check_literals(script, literals)
+    )
     for e in errors:
         print(f"FAIL {e}")
     if errors:
         return 1
-    print(f"pins OK: {script.name} vs {doc.name} vs {inventory.name}")
+    # Repo-relative, not .name: manifests/README.md and README.md are distinct
+    # files whose basenames collide.
+    names = ", ".join(KLT_LITERAL_FILES)
+    print(
+        f"pins OK: {script.name} vs {doc.name} vs {inventory.name}; "
+        f"klt literals OK in {names}"
+    )
     return 0
 
 

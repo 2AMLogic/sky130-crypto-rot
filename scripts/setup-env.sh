@@ -41,10 +41,13 @@ cd "${REPO_ROOT}" || exit 1
 # --- pinned versions -- keep in sync with docs/environment.md -------------
 # This block is the source of truth for the pins, and the only hand-written
 # one. verification/check_pins.py (run by `npm run lint`) enforces that the
-# two hand copies agree with it: every constant here must appear in
-# docs/environment.md's "Pinned versions" table, and the `pins` block of
+# three hand-copy sets agree with it: every constant here must appear in
+# docs/environment.md's "Pinned versions" table; the `pins` block of
 # manifests/inventories/item-9.json -- which `klt signoff --attest 9` records
-# into the committed attestation envelope -- must name the same versions.
+# into the committed attestation envelope -- must name the same versions; and
+# every klt version literal hand-copied into a command or prose must equal
+# KLT_VERSION (.github/workflows/signoff.yml, manifests/README.md and
+# README.md -- see KLT_LITERAL_FILES in that checker).
 # Keep assignments in plain NAME="value" form so it can parse them.
 KLT_VERSION="0.8.0"
 CIEL_VERSION="2.6.1"
