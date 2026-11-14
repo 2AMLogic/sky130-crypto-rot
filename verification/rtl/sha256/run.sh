@@ -59,9 +59,9 @@ core_flow_check_opts "${SIM_ONLY}" "${RECORD}" "${GATE_LEVEL}"
 # testcase that reads all thirteen scrubbed registers hierarchically, so running
 # it is what shows those names survive synthesis as readable netlist wires. Not
 # test_million_a: ~2M cycles against behavioural cell models is impractical, and
-# the record names it as not run at gate level (AC2's carve-out).
+# the record names it as not run at gate level, with that reason.
 GATE_TESTCASES="test_scrub test_sha256_core"
-GATE_EXCLUDED="test_million_a=about 2M cycles against behavioural cell models; AC2's carve-out"
+GATE_EXCLUDED="test_million_a=about 2M cycles against behavioural cell models, hours rather than minutes; the RTL run still covers it under --million-a"
 
 core_flow_setup
 if [ "${NEG}" = 1 ] && [ "${GATE_LEVEL}" = 1 ]; then
