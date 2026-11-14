@@ -38,10 +38,10 @@ core_flow_setup
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative control: HMAC_NEG_CTRL flips one opad bit; the bench must fail =="
-  core_flow_negctl_one sim-negctl-request.json negctl.json "negative control:" \
+  core_flow_negctl_one sim-request.json HMAC_NEG_CTRL negctl.json "negative control:" \
     'first failing vector: [^&]*' "a corrupted opad constant"
   echo "== negative control: HMAC_NEG_SCRUB keeps clear away from the core; the bench must fail =="
-  core_flow_negctl_one sim-scrub-negctl-request.json scrub-negctl.json "scrub negative control:" \
+  core_flow_negctl_one sim-request.json HMAC_NEG_SCRUB scrub-negctl.json "scrub negative control:" \
     'first failing [a-z ]*: [^&]*' "clear not reaching the core"
   exit 0
 fi
