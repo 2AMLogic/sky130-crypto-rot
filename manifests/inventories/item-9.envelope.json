@@ -3,14 +3,14 @@
   "kind": "generic",
   "status": "pass",
   "t1_item": 9,
-  "summary": "T1 item 9 (Testbenches shipped): 50/50 attestation checks passed (klt signoff --attest)",
+  "summary": "T1 item 9 (Testbenches shipped): 56/56 attestation checks passed (klt signoff --attest)",
   "source": "manifests/inventories/item-9.json",
   "attestation": {
     "producer": "klt signoff --attest",
     "inventory_schema_version": 1,
     "hash_algorithm": "sha256-raw-bytes",
-    "check_count": 50,
-    "passed_count": 50,
+    "check_count": 56,
+    "passed_count": 56,
     "checks": [
       {
         "check": "present",
@@ -137,6 +137,48 @@
         "path": "verification/rtl/aes/test_aes_core.py",
         "passed": true,
         "content_hash": "sha256:bae19df0fd3413822264d3d6dba075c245565ce9410a87a6e3fdfb01caaa4b7d"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/crypto_rot_top/make_record.py",
+        "passed": true,
+        "content_hash": "sha256:c49049932a597e93c3d00d2b80ac9a0b42e608de27f6f90bf14398166fec968a"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/crypto_rot_top/run.sh",
+        "passed": true,
+        "content_hash": "sha256:de11fa1ac4b78cfa8840464bd180e1aa3cb8359182ae2ffe3bfa0d1e46049ff8"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/crypto_rot_top/sim-request.json",
+        "passed": true,
+        "content_hash": "sha256:e769a90e497969247839043f5ccbd82d45dc3bf9469ada2f87d04bcb58c080b8"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/crypto_rot_top/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:e088c631ca99d1d0de59961f3c70772af8402ac26697054b0dbb7772b5ec2e48"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/crypto_rot_top/tb_top.v",
+        "passed": true,
+        "content_hash": "sha256:0b774a87e3f4b3f4c867961f4be6993467bd1869938e75d672c70bb28ec5884a"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/crypto_rot_top/test_crypto_rot_top.py",
+        "passed": true,
+        "content_hash": "sha256:0675fdb6d4cef5642ec3ac471b15f11527c1584dfa1c39deb8f4a6ed3cf0e567"
       },
       {
         "check": "present",
@@ -385,7 +427,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:584a711675d9535b212b3073b83721a2364aeb53e408b1b75d16033d132ace8f"
+      "content_hash": "sha256:ed88dd8db6e584b138a3e42b80b0f6e04e0b34d8ddbe86c110e1d18f0a9ed002"
     }
   }
 }
