@@ -3,8 +3,8 @@
 The gate-level mode (issue #179) puts three refusals in the flow, and each one
 exists because the failure it prevents would otherwise read as a PASS:
 
-  * a stale netlist in a dirty flow/build/<core>/ would be simulated in place of
-    this run's, so the record's netlist hash would name gates nobody ran;
+  * a netlist left behind by an earlier run would be simulated in place of this
+    run's, so the record's netlist hash would name gates nobody ran;
   * a testcase in neither GATE_TESTCASES nor GATE_EXCLUDED would silently skip
     the gate-level run, which is exactly what AC5 forbids -- a check that reads
     an internal RTL signal name must either run at gate level or be named in
