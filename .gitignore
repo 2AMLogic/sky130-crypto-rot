@@ -1,26 +1,15 @@
-*.raw
 *.log
 *.vcd
 *.vvp
 __pycache__/
 .DS_Store
 
-# sim/ harness: per-corner ngspice logs under corners/ are committed evidence
-# (append-only record trail), so they escape the *.log rule.
-!sim/*/corners/**/*.log
-sim/build/
-# flow/ synthesis: per-record Yosys logs are committed evidence (the same
-# append-only rationale as sim/*/corners above), so they escape *.log too.
-!flow/*/reports/**/*.log
-# sim/harness scratch: generated ngspice decks, disposable (sim/harness/README.md)
-sim/.work/
-# machine-local PDK override (sim/harness/pdk.py); never committed
-sim/pdk.local.json
 # synthesis / P&R scratch
 flow/build/
-# cocotb/Icarus build + result artifacts (verification/)
-sim_build/
-results.xml
+# verification/rtl/trng_if klt requests: mk_req.py writes all eight of them
+# at the top of every run.sh invocation, so the generator is the only copy
+# the records hash and the only one tracked here.
+/verification/rtl/trng_if/sim-*-request.json
 # local klt install, created by the setup script
 .venv/
 # >>> loom-managed (do not edit) >>>
@@ -51,7 +40,6 @@ results.xml
 .loom/claims/
 .loom/locks/
 .loom/signals/
-.loom/sweep-dispatch-tap/
 .loom/status/
 .loom/retry-state/
 .loom/exit-codes/
@@ -102,11 +90,14 @@ results.xml
 .loom/gh-config-by-owner/
 .loom/gh-config-by-owner.*/
 .loom/gh-config-by-owner-*/
-.loom-local/
+/.loom-local/
 # <<< loom-managed <<<
 
 # Repo Skills machine-local install metadata (absolute source path + timestamp)
 .claude/skills/repo/.install-local.json
 
-# klt per-run scratch (flow/smoke)
+# klt per-run scratch, written next to each core's request
 .klt/
+
+# Repo Skills Codex-side machine-local install metadata (never committed)
+.agents/skills/repo/.install-local.json

@@ -7,6 +7,8 @@
 #   ./verification/rtl/keyladder/run.sh                      # cocotb + Icarus, then klt synthesize
 #   ./verification/rtl/keyladder/run.sh --record             # same, then write a record under
 #                                                       # verification/records/keyladder-sim-synth/records/
+#   ./verification/rtl/keyladder/run.sh --sim-only           # simulation only: stop before synthesis
+#                                                       # (what scripts/ci-verify.sh runs)
 #   ./verification/rtl/keyladder/run.sh --negative-control   # three controls (mask check, lock check,
 #                                                       # one slot omitted from zeroize): each MUST fail
 #                                                       # (exit 0 only if the bench catches all three)
@@ -18,55 +20,32 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${HERE}/../../.." && pwd)"
-OUT="${REPO_ROOT}/flow/build/keyladder"
-PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"
+NAME=keyladder
+source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; NEG=0
+RECORD=0; NEG=0; SIM_ONLY=0
 for arg in "$@"; do
   case "${arg}" in
     --record) RECORD=1 ;;
     --negative-control) NEG=1 ;;
+    --sim-only) SIM_ONLY=1 ;;
     *) echo "unknown option: ${arg}" >&2; exit 2 ;;
   esac
 done
+core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
 
-if [ ! -x "${REPO_ROOT}/.venv/bin/klt" ]; then
-  echo "error: ${REPO_ROOT}/.venv is not provisioned." >&2
-  echo "  -> run ./scripts/setup-env.sh first." >&2
-  exit 1
-fi
-# The venv's bin/ must lead $PATH so klt runs the pinned yosys, not a host one.
-export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
-
-mkdir -p "${OUT}"
-cd "${HERE}"
+core_flow_setup
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each must make the bench fail =="
-  for c in mask lock zeroize; do
-    if klt functional-verification "sim-negctl-${c}-request.json" --format json > "${OUT}/negctl-${c}.json"; then
-      echo "FAIL: the bench passed with negative control '${c}'" >&2
-      exit 1
-    fi
-    python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("negative control", sys.argv[2], ":", d["status"], "(expected fail)")' "${OUT}/negctl-${c}.json" "${c}"
-    grep -o 'first failing check: [^&]*' .klt/functional-verification/results_icarus.xml | head -1
+  # <control>:<define> pairs, not "KL_NEG_${c^^}": bash 3.2 (macOS) has no ^^.
+  for pair in "mask:KL_NEG_MASK" "lock:KL_NEG_LOCK" "zeroize:KL_NEG_ZEROIZE"; do
+    c="${pair%%:*}"
+    core_flow_negctl_one sim-request.json "${pair#*:}" "negctl-${c}.json" "negative control ${c} :" \
+      'first failing check: [^&]*' "negative control '${c}'"
   done
   exit 0
 fi
 
-echo "== RTL simulation (klt functional-verification: cocotb + Icarus) =="
-klt functional-verification sim-request.json --format json > "${OUT}/sim.json"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["status"], d["passed_count"], "/", d["test_count"], "tests")' "${OUT}/sim.json"
-grep -o 'SUMMARY[^<]*' .klt/functional-verification/test_icarus.log | head -1 || true
-
-echo "== synthesis (klt synthesize -> sky130_fd_sc_hd, tt_025C_1v80) =="
-klt synthesize synth-request.json --pdk sky130A --pdk-root "${PDK_ROOT}" \
-  --format json > "${OUT}/synth.json"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["status"], d["instance_count"], "instances", d["area_um2"], "um2")' "${OUT}/synth.json"
-
-if [ "${RECORD}" = 1 ]; then
-  python3 "${HERE}/make_record.py" --out-dir "${OUT}" --pdk-root "${PDK_ROOT}"
-else
-  python3 "${HERE}/make_record.py" --out-dir "${OUT}" --pdk-root "${PDK_ROOT}" --check-only
-fi
+core_flow_sim
+core_flow_finish "${SIM_ONLY}" "${RECORD}"

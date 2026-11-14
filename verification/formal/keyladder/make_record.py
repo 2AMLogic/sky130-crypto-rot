@@ -18,36 +18,27 @@ verification/records/keyladder-formal/records/. Standard library only.
 from __future__ import annotations
 
 import argparse
-import datetime
 import hashlib
 import json
-import platform
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO / "flow/common"))
+
+import record_lib  # noqa: E402
+from record_lib import pin, run  # noqa: E402
 EXPERIMENT = "keyladder-formal"
 HERE = "verification/formal/keyladder"
+# The inputs OUTSIDE this directory. The tracked files beside this generator
+# are derived by record_lib.own_inputs(), and the shared flow helpers by
+# shared_inputs(); neither is listed here (issues #124, #146).
 INPUTS = (
     "rtl/sha256/sha256_core.v",
     "rtl/hmac/hmac_sha256.v",
     "rtl/keyladder/keyladder.v",
-    f"{HERE}/props_slots.vh",
-    f"{HERE}/hmac_abstract.v",
-    f"{HERE}/p1_product.v",
-    f"{HERE}/p5.sby",
-    f"{HERE}/p6.sby",
-    f"{HERE}/p1.sby",
-    f"{HERE}/cover.sby",
-    f"{HERE}/cone.py",
-    f"{HERE}/gen.py",
-    f"{HERE}/latency_tb.v",
-    f"{HERE}/run.sh",
-    f"{HERE}/make_record.py",
     "spec/key-isolation-properties.md",
-    "scripts/setup-env.sh",
 )
 
 # property -> (mutation, what it breaks, the run that must fail). Checked below.
@@ -65,23 +56,6 @@ EXPECT = {
     ("p1", "rtl"): "BOUNDED", ("p1", "net"): "BOUNDED",
 }
 CONES = {"rtl": "pass", "net": "pass", "rtl_slotpath": "fail", "net_slotpath": "fail"}
-
-
-def sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def pin(name: str) -> str:
-    for line in (REPO / "scripts/setup-env.sh").read_text().splitlines():
-        if line.startswith(name + '="'):
-            return line.split('"')[1]
-    raise SystemExit(f"pin {name} not found in scripts/setup-env.sh")
-
-
-def run(*cmd: str) -> str:
-    out = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    text = (out.stdout + out.stderr).strip()
-    return text.splitlines()[0] if text else "unknown"
 
 
 def collect(stage: Path, sby: str, task: str) -> dict:
@@ -165,36 +139,26 @@ def main() -> int:
         return 0
 
     latency = int(m.group(1))
-    sources = (args.pdk_root / "sky130A/SOURCES").read_text()
-    if pin("CIEL_SKY130_VERSION") not in sources:
-        raise SystemExit("PDK tree does not name the pinned open_pdks commit; refusing to record")
+    record_lib.check_pdk(args.pdk_root)
     z3_sha = hashlib.sha256((REPO / ".venv/bin/z3").read_bytes()).hexdigest()
     if z3_sha != pin("Z3_BIN_SHA256"):
         raise SystemExit("z3 binary does not match the pin; refusing to record")
-    rev = run("git", "-C", str(REPO), "rev-parse", "HEAD")
-    if subprocess.run(["git", "-C", str(REPO), "status", "--porcelain", "--"] + list(INPUTS),
-                      capture_output=True, text=True).stdout.strip():
-        raise SystemExit("an input is modified relative to HEAD; commit it before recording")
-    now = datetime.datetime.now(datetime.timezone.utc)
-    rid = f"{now:%Y%m%d-%H%M%S}-{rev[:7]}"
-    venv_py = REPO / ".venv/bin/python3"
-    wasm = run(str(venv_py), "-c",
-               "import hashlib,os,yowasp_yosys as y;print('sha256:'+hashlib.sha256(open(os.path.join(os.path.dirname(y.__file__),'yosys.wasm'),'rb').read()).hexdigest())")
+    rev = record_lib.require_clean_inputs(INPUTS, generator=__file__)
+    tv = record_lib.tool_versions()
     versions = {
         "yosys": run(str(REPO / ".venv/bin/yosys"), "-V"),
-        "yowasp_yosys": pin("YOWASP_YOSYS_VERSION"),
-        "yosys_wasm": wasm,
+        "yowasp_yosys": tv["yowasp_yosys"],
+        "yosys_wasm": tv["yosys_wasm"],
         "sby": "SymbiYosys from the yowasp-yosys wheel (yowasp-sby)",
         "z3": run(str(REPO / ".venv/bin/z3"), "--version"),
         "z3_solver_wheel": pin("Z3_SOLVER_VERSION"),
         "z3_binary": "sha256:" + z3_sha,
-        "klt_pin": pin("KLT_VERSION"),
-        "icarus": run("iverilog", "-V"),
-        "python": platform.python_version(),
+        "klt_pin": tv["klt_pin"],
+        "icarus": tv["icarus"],
+        "python": tv["python"],
     }
-    meta = {"record_id": rid, "experiment": EXPERIMENT, "supersedes": None, "git_revision": rev,
-            "provenance": {"tool_versions": versions,
-                           "inputs": [{"path": p, "content_hash": sha256(REPO / p)} for p in INPUTS]}}
+    wasm = versions["yosys_wasm"]
+    meta_extra = {"tool_versions": versions}
 
     def row(sby, task, what, mode, depth):
         r = runs[(sby, task)]
@@ -245,14 +209,7 @@ def main() -> int:
         return (f"time limit reached: no difference in steps 0..{r['steps_checked'] - 1}; "
                 f"the configured depth {depth} was NOT reached") if r["steps_checked"] else r["status"]
 
-    body = f"""<!-- record-meta
-{json.dumps(meta, indent=2)}
--->
-
-# Record {rid}
-
-- **Record ID**: {rid}
-- **Claim**: bounded formal results for `rtl/keyladder/keyladder.v` (issue #56), and nothing beyond the depths and abstractions stated here. Rows are labelled with the `spec/key-isolation-properties.md` property they address. No security, certification or side-channel claim is made.
+    body = f"""- **Claim**: bounded formal results for `rtl/keyladder/keyladder.v` (issue #56), and nothing beyond the depths and abstractions stated here. Rows are labelled with the `spec/key-isolation-properties.md` property they address. No security, certification or side-channel claim is made.
 - **Design provenance**: P-5/P-6: RTL, and the `keyladder` module of the `klt synthesize` sky130_fd_sc_hd netlist (liberty corner `tt_025C_1v80`, pre-P&R) read through the PDK liberty functional models (`read_liberty -ignore_miss_func`); the netlist cells are modelled by Yosys from the liberty `function`/`ff` groups, no hand-written cell models. P-2 and P-1: RTL, and the full synthesized netlist.
 - **Run configuration**: `./scripts/setup-env.sh` then `./verification/formal/keyladder/run.sh --record`. Engine `smtbmc z3`, single solver, no portfolio. P-1 bounded depths configured: RTL {args.p1_depth_rtl}, netlist {args.p1_depth_net}.
 - **Property text**: P-5, P-6 and the covers are `{HERE}/props_slots.vh`, spliced unchanged into a generated COPY of `keyladder.v` (and of the netlist's `keyladder` module); `gen.py` checks the splice is a pure insertion. `rtl/keyladder/keyladder.v` is not modified. Registers named by the properties (`s0..s3 v0..v3 m0..m3 l0..l3 d0..d3 state dst par_root par_sel`) survive synthesis as named wires, so one text covers both.
@@ -284,7 +241,7 @@ Structural cone-of-influence check (`cone.py`) on the flattened design: bit-leve
 
 ### P-1 at the module boundary
 
-Two copies of `keyladder` share every input except the key material (`root_key`, `ld_data`; `cmd_ctx` is the 0003 public user_context and is shared); asserted: every output other than `hmac_key`/`aes_key` is equal in both copies in every cycle from the first post-reset cycle. The two copies start with independent free contents in the registers that have no reset (the SHA-256 datapath). The real HMAC and SHA-256 core are in the product (no abstraction).
+Two copies of `keyladder` share every input except the key material (`root_key`, `ld_data`; `cmd_ctx` is the 0003 public user_context and is shared); asserted: every output other than `hmac_key`/`aes_key` is equal in both copies in every cycle from the first post-reset cycle. The first cycle of the product is a reset (`p1_product.v` assumes `rst_n` low there), and every register of `keyladder`, `hmac_sha256` and `sha256_core` is assigned in a synchronous reset branch, so no register is free from the first post-reset cycle on. The cycle before that edge, where both copies' registers are free and independent, is outside the assertion. The real HMAC and SHA-256 core are in the product (no abstraction).
 
 - **Longest operation**: one root derivation takes {latency} clock cycles from the command to `done_pulse` (Icarus, `latency_tb.v`; +-1 for the edge convention). The earlier curation estimate was "at least 260" (the HMAC's hash work alone); the measured figure includes the byte-serial feed.
 - **RTL**: {p1_state(p1r, args.p1_depth_rtl)}.
@@ -308,18 +265,13 @@ The netlist negative controls are separate `klt synthesize` runs of the mutated 
 - Netlist results are for the `klt synthesize` output of this RTL at one liberty corner, read through Yosys's own liberty-derived models. Placed or routed netlists, scan/DFT structures and P-12 were not examined. P-13 (equivalence of netlist to RTL) was not attempted; the RTL and netlist rows are separate proofs of the same text, not one carried to the other.
 - P-5/P-6 are about the ladder's registers and release logic, over an abstract HMAC; they say nothing about the HMAC core. P-4 (release only to the permitted consumer) and bus-level behaviour are other issues'.
 - The slot properties are stated over the ports and named registers listed above; a property of a register this text does not name is not covered.
-- Known limitation carried from the issue #55 record: `hmac_sha256` `clear` does not clear the SHA-256 datapath registers; this record neither depends on nor changes that.
 - Nothing here is a certification, validation or side-channel claim.
 
 - **Tool versions**: Yosys {versions['yosys']} (yowasp-yosys {versions['yowasp_yosys']}, `yosys.wasm` {wasm}); SymbiYosys and `yosys-smtbmc` from the same wheel; {versions['z3']} (z3-solver {versions['z3_solver_wheel']}, binary {versions['z3_binary']}); klt pinned at `{versions['klt_pin']}` (synthesis); {versions['icarus']}; Python {versions['python']}.
 - **Links**: `{HERE}/`, `rtl/keyladder/keyladder.v`, `spec/key-isolation-properties.md` (P-1, P-2, P-5, P-6, Open questions 1-3), `verification/records/keyladder-sim-synth/`.
-- **Timestamp / author**: {now:%Y-%m-%dT%H:%M:%SZ}, Loom builder agent (issue #56).
-- **Supersedes**: none
+- **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #56).
 """
-    out = REPO / "verification/records" / EXPERIMENT / "records" / f"{rid}.md"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(body)
-    print("wrote", out.relative_to(REPO))
+    record_lib.write_record(EXPERIMENT, rev, INPUTS, meta_extra, body, generator=__file__)
     return 0
 
 

@@ -10,6 +10,7 @@
 #                                                       # verification/records/trng-if-sim/records/
 #   ./verification/rtl/trng_if/run.sh --skip-real       # stub benches only (a record says so)
 #   ./verification/rtl/trng_if/run.sh --negative-control  # five corrupted builds: every one MUST fail
+#                                                       # (the run stops at the first it does not)
 #
 # The sibling's RTL is fetched by fetch_trng.sh at the commit in reuse.lock.json
 # and its sha256 is checked; it is never committed here. For the real-sibling
@@ -21,8 +22,8 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${HERE}/../../.." && pwd)"
-OUT="${REPO_ROOT}/flow/build/trng_if"
+NAME=trng_if
+source "${HERE}/../../../flow/common/core_flow.sh"
 
 RECORD=0; NEG=0; REAL=1
 for arg in "$@"; do
@@ -34,38 +35,40 @@ for arg in "$@"; do
   esac
 done
 
-if [ ! -x "${REPO_ROOT}/.venv/bin/klt" ]; then
-  echo "error: ${REPO_ROOT}/.venv is not provisioned." >&2
-  echo "  -> run ./scripts/setup-env.sh first." >&2
-  exit 1
-fi
-export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
-
-mkdir -p "${OUT}"
-cd "${HERE}"
+core_flow_setup
+# The eight sim-*-request.json files the benches below read are mk_req.py's
+# output, not tracked copies of it: they are gitignored and rewritten on
+# every run, and mk_req.py is the request input make_record.py hashes.
 python3 -I mk_req.py
 
+BENCH_LOG=.klt/functional-verification/test_icarus.log
+# These benches assert with an unprefixed message, so what shows that the BENCH
+# (not the build) failed is their own SUMMARY line with a non-zero failure count;
+# the passing tests of the same elaboration log `failures=0` and do not match.
+NEG_EVIDENCE='SUMMARY.*failures=[1-9][0-9]*'
+
 sim() { klt functional-verification "$1" --format json > "$2"; }
-summaries() { grep -o 'SUMMARY[^<]*' .klt/functional-verification/test_icarus.log || true; }
-status() { python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["status"], d["passed_count"], "/", d["test_count"], "tests")' "$1"; }
+summaries() { grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" || true; }
+status() { _json_line "$1" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'; }
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each corrupted build MUST fail =="
-  bad=0
-  for spec in "sim-if-negctl-prev-request.json:a word accepted after a gated previous sample" \
-              "sim-if-negctl-discard-request.json:partial seed not discarded on gated" \
-              "sim-if-negctl-count-request.json:seed one word short" \
-              "sim-sys-negctl-zeroize-request.json:DRBG V survives the alarm zeroize" \
-              "sim-sys-negctl-interval-request.json:one request too many before RESEED_REQUIRED"; do
-    IFS=: read -r req label <<< "${spec}"
-    if sim "${req}" "${OUT}/negctl.json"; then
-      echo "FAIL: the bench passed with a corrupted build (${label})" >&2; bad=1
-    else
-      echo "negative control (${label}): bench failed as required"
-      summaries | grep -v ' failures=0' | head -1 | cut -c1-220
-    fi
-  done
-  exit "${bad}"
+  core_flow_negctl_one sim-if-negctl-prev-request.json '' negctl-prev.json \
+    "negative control (a word accepted after a gated previous sample):" "${NEG_EVIDENCE}" \
+    "a word accepted after a gated previous sample" "${BENCH_LOG}"
+  core_flow_negctl_one sim-if-negctl-discard-request.json '' negctl-discard.json \
+    "negative control (partial seed not discarded on gated):" "${NEG_EVIDENCE}" \
+    "a partial seed not discarded on gated" "${BENCH_LOG}"
+  core_flow_negctl_one sim-if-negctl-count-request.json '' negctl-count.json \
+    "negative control (seed one word short):" "${NEG_EVIDENCE}" \
+    "a seed one word short" "${BENCH_LOG}"
+  core_flow_negctl_one sim-sys-negctl-zeroize-request.json '' negctl-zeroize.json \
+    "negative control (DRBG V survives the alarm zeroize):" "${NEG_EVIDENCE}" \
+    "DRBG V surviving the alarm zeroize" "${BENCH_LOG}"
+  core_flow_negctl_one sim-sys-negctl-interval-request.json '' negctl-interval.json \
+    "negative control (one request too many before RESEED_REQUIRED):" "${NEG_EVIDENCE}" \
+    "one request too many before RESEED_REQUIRED" "${BENCH_LOG}"
+  exit 0
 fi
 
 echo "== trng_if alone vs the port-protocol stub (40:1 and 1000:1 clock ratios) =="

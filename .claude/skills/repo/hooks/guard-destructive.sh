@@ -46,6 +46,7 @@
 #   guards.decisionLog           REPO_GUARD_DECISION_LOG        LOOM_GUARD_DECISION_LOG        off (opt-in)
 #   (decision log path)          REPO_GUARD_DECISION_LOG_FILE   LOOM_GUARD_DECISION_LOG_FILE   <script-dir>/../logs/guard-decisions.log
 #   guards.rmScope               REPO_RM_SCOPE                  LOOM_RM_SCOPE                  repo
+#   guards.rmAllowDirs (config-only extend list)                —                              []
 #   guards.forceScope            REPO_FORCE_SCOPE               LOOM_FORCE_SCOPE               all
 #   (default-branch seam)        REPO_DEFAULT_BRANCH            LOOM_DEFAULT_BRANCH            resolved from git
 #   worktree.root (config key)   —                              LOOM_WORKTREE_ROOT             <repo>/.loom/worktrees
@@ -60,6 +61,14 @@
 # (SQL DDL) and cp/mv/tee/sed (#4178 write confinement) — can never be added,
 # regardless of config — see mask_ask_positional_args()'s header comment and
 # positional_mask_cmdre()'s consumer audit table.
+#
+# rmAllowDirs is a config-only array of absolute directories OUTSIDE the repo
+# where `rm` stays allowed under rmScope=repo (the narrower alternative to
+# rmScope:"off"). A target equal to, or under, a listed directory is admitted;
+# matching is lexical (normalize_abs_path, no symlink resolution) with a path
+# boundary. Entries that are not strings, not absolute, `/`, $HOME, a single
+# segment (/var), or that contain `..` or `$` are ignored (fail closed). The
+# catastrophic floor (/, $HOME, /<one-segment>) always runs first.
 #
 # On/off toggles accept 0/false/no and 1/true/yes. rmScope accepts
 # repo|off|permissive; forceScope accepts all|protected|off. Loom-compat
@@ -707,7 +716,7 @@ guard_cfg_array() {
         [[ -n "$REPO_ROOT" && -f "$cfg" ]] || continue
         has=$(jq -r --arg k "$key" '((.guards? // {}) | has($k))' "$cfg" 2>/dev/null) || has="false"
         if [[ "$has" == "true" ]]; then
-            jq -r --arg k "$key" '(.guards[$k] // []) | .[]' "$cfg" 2>/dev/null
+            jq -r --arg k "$key" '(.guards[$k] // []) | if type == "array" then .[] else empty end' "$cfg" 2>/dev/null
             return 0
         fi
     done
@@ -4118,7 +4127,9 @@ toggle_hint_for_tag() {
         cloud-cli:*)                  env="REPO_GUARD_CLOUD=0";              key='"guards.cloudCli": false' ;;
         reversible-gh:*)              env="REPO_GUARD_REVERSIBLE_GH=1";      key='"guards.reversibleGh": true' ;;
         cargo-clean-scope-outside-repo) env="REPO_GUARD_CARGO_CLEAN=0";      key='"guards.cargoCleanScope": false' ;;
-        rm-scope-unresolved-var|rm-scope-outside-repo) env="REPO_RM_SCOPE=off"; key='"guards.rmScope": "off"' ;;
+        rm-scope-outside-repo)        env="REPO_RM_SCOPE=off";               key='"guards.rmScope": "off"'
+                                      printf '\nNarrower option: list the directory in "guards.rmAllowDirs" (absolute paths) in .claude/skills/repo/config.json to keep rmScope=repo everywhere else.' ;;
+        rm-scope-unresolved-var)      env="REPO_RM_SCOPE=off";               key='"guards.rmScope": "off"' ;;
         force-op:*)                   env="REPO_FORCE_SCOPE=off";            key='"guards.forceScope": "off"' ;;
         stash-scope:*)                env="REPO_GUARD_STASH_SCOPE=0";        key='"guards.stashScope": false' ;;
         worktree-write-confinement*)  env="REPO_GUARD_WORKTREE_ISOLATION=0"; key='"guards.worktreeIsolation": false' ;;
@@ -4644,9 +4655,77 @@ done < <(lifecycle_or_cloud_reason "$COMMAND_NO_COMMENT")
 # vendored copy has always scanned the redacted copy here; the raw scan was the
 # single largest source of behavioral divergence between the two guards.
 SQL_DDL_PATTERN='DROP DATABASE|DROP TABLE|DROP SCHEMA|TRUNCATE TABLE'
-if echo "$COMMAND_ASK_SCAN" | grep -qiE "$SQL_DDL_PATTERN" && sql_guard_enabled; then
-    matched=$(echo "$COMMAND_ASK_SCAN" | grep -oiE "$SQL_DDL_PATTERN" | head -1)
-    deny "BLOCKED: Command matches dangerous pattern: ${matched:-SQL DDL statement}" "sql-ddl"
+
+# Heredoc bodies fed to an inert text consumer (cat/tee/gh/git) are prose, not
+# SQL (#721) — `cat > body.md <<'EOF' ... EOF`, `gh ... --body-file - <<EOF`.
+# Self-contained awk (the shared heredoc lexer, _MASKHEREDOC_AWK, is defined
+# further down this file, after this straight-line check runs). A body is
+# blanked ONLY when ALL hold, so this can only narrow a deny in the clear case:
+#   - nothing is chained after the heredoc marker on the opener line: no `|`,
+#     `;`, `&&`, `||` or `&` (fd dups like `2>&1` excepted) — `cat <<EOF | duckdb`
+#     pipes the body into an arbitrary, unlisted client, so any onward command
+#     keeps the body visible (allowlist shape, not a client denylist);
+#   - the command owning the heredoc is positional: nothing precedes the marker
+#     but one simple command whose FIRST word is cat/tee/gh/git (no `|`, `;`,
+#     `&` before it), so `cat x | duckdb <<EOF` / `git log && client <<EOF`
+#     keep the body visible; AND the line names no SQL client or
+#     interpreter (psql/mysql/sqlite3/wrangler/turso/bash/sh/python/xargs/...),
+#     kept as a second layer;
+#   - the block is CLOSED (delimiter line found) — unterminated stays visible;
+#   - the body has no `$(` or backtick (an unquoted delimiter would expand it).
+# LIMITATION: the guard does not follow file contents. Write-then-execute
+# (`cat > x.sql <<EOF ... EOF` followed by `psql -f x.sql`) is allowed; this
+# mask must not be read as covering that case.
+_sql_scan_mask_heredocs() {
+    printf '%s' "$1" | awk '
+    { lines[NR] = $0 }
+    END {
+        nl = NR
+        for (i = 1; i <= nl; i++) {
+            line = lines[i]
+            p = index(line, "<<")
+            if (p == 0 || substr(line, p + 2, 1) == "<") continue
+            rest = substr(line, p + 2)
+            sub(/^-/, "", rest); sub(/^[ \t]+/, "", rest)
+            sub(/^["\047]/, "", rest)
+            if (match(rest, /^[A-Za-z_][A-Za-z0-9_]*/) == 0) continue
+            delim = substr(rest, 1, RLENGTH)
+            after = substr(rest, RLENGTH + 1)
+            gsub(/[0-9]*>&[0-9-]*/, "", after)
+            if (after ~ /[|;&]/) continue
+            before = substr(line, 1, p - 1)
+            gsub(/[0-9]*>&[0-9-]*/, "", before)
+            if (before ~ /[|;&]/) continue
+            if (before !~ /^[ \t]*(cat|tee|gh|git)([ \t]|$)/) continue
+            if (line ~ /(^|[^A-Za-z0-9_.-])(psql|mysql|sqlite3|wrangler|turso|bash|zsh|sh|dash|ksh|python[0-9.]*|perl|ruby|node|xargs|eval|source)([ \t;&|)]|$)/) continue
+            closeat = 0
+            for (j = i + 1; j <= nl; j++) {
+                t = lines[j]; sub(/^\t+/, "", t)
+                if (t == delim) { closeat = j; break }
+            }
+            if (closeat == 0) continue
+            live = 0
+            for (j = i + 1; j < closeat; j++)
+                if (index(lines[j], "$(") || index(lines[j], "`")) live = 1
+            if (live) continue
+            for (j = i + 1; j < closeat; j++) lines[j] = ""
+            i = closeat
+        }
+        out = lines[1]
+        for (i = 2; i <= nl; i++) out = out "\n" lines[i]
+        printf "%s", out
+    }' 2>/dev/null || printf '%s' "$1"
+}
+
+_SQL_SCAN="$COMMAND_ASK_SCAN"
+if [[ "$_SQL_SCAN" == *"<<"* && "$_SQL_SCAN" == *$'\n'* ]]; then
+    _SQL_SCAN=$(_sql_scan_mask_heredocs "$COMMAND_ASK_SCAN")
+fi
+if echo "$_SQL_SCAN" | grep -qiE "$SQL_DDL_PATTERN" && sql_guard_enabled; then
+    matched=$(echo "$_SQL_SCAN" | grep -oiE "$SQL_DDL_PATTERN" | head -1)
+    # Name the matching line (truncated) so the operator can see what tripped.
+    matched_line=$(echo "$_SQL_SCAN" | grep -iE "$SQL_DDL_PATTERN" | head -1 | tr -s ' \t' ' ' | cut -c1-80)
+    deny "BLOCKED: Command matches dangerous pattern: ${matched:-SQL DDL statement} (in: ${matched_line})" "sql-ddl"
 fi
 
 # =============================================================================
@@ -4878,6 +4957,27 @@ normalize_abs_path() {
     fi
 }
 
+# guards.rmAllowDirs: validated, normalized, cached list (newline-separated).
+_RM_ALLOW_DIRS_DONE=""
+_RM_ALLOW_DIRS_CACHE=""
+rm_allow_dirs() {
+    if [[ -z "$_RM_ALLOW_DIRS_DONE" ]]; then
+        _RM_ALLOW_DIRS_DONE=1
+        local raw ent home=""
+        [[ -n "${HOME:-}" && "$HOME" == /* ]] && home=$(normalize_abs_path "$HOME")
+        raw=$(guard_cfg_array rmAllowDirs) || raw=""
+        while IFS= read -r ent; do
+            [[ "$ent" == /* && "$ent" != *..* && "$ent" != *'$'* ]] || continue
+            ent=$(normalize_abs_path "$ent")
+            [[ "$ent" == /* && "$ent" != "/" ]] || continue
+            [[ "$ent" =~ ^/[^/]+$ ]] && continue
+            [[ -n "$home" && "$ent" == "$home" ]] && continue
+            _RM_ALLOW_DIRS_CACHE+="$ent"$'\n'
+        done <<< "$raw"
+    fi
+    printf '%s' "$_RM_ALLOW_DIRS_CACHE"
+}
+
 # =============================================================================
 # _rm_scope_in_scope() — is an ABSOLUTE, already-normalized path inside the
 # guards.rmScope=repo containment area (repo root, worktree areas, or the
@@ -4923,6 +5023,15 @@ _rm_scope_in_scope() {
         */claude-*/*/scratchpad/*)
             return 0 ;;
     esac
+
+    # guards.rmAllowDirs (config-only): path-boundary match, checked last.
+    local _ad
+    while IFS= read -r _ad; do
+        [[ -n "$_ad" ]] || continue
+        if [[ "$path" == "$_ad" || "$path" == "$_ad"/* ]]; then
+            return 0
+        fi
+    done < <(rm_allow_dirs)
 
     return 1
 }
@@ -7768,7 +7877,7 @@ function mask_heredoc_bodies_selective(s,   out, lines, nl, i, j, line, trimmed,
                     first = 1
                     for (j = i + 1; j < closeat; j++) {
                         if (first) {
-                            lines[j] = "> ."
+                            lines[j] = "> __loom_opaque_heredoc_write__"
                             first = 0
                         } else {
                             body = lines[j]
@@ -8179,7 +8288,7 @@ extract_write_targets() {
                 }
                 continue
             }
-            if (mt ~ /^[0-9]*>>?[^ \t&]/) {
+            if (mt ~ /^[0-9]*>>?[^ \t&(>]/) {
                 op = toks[j]
                 sub(/^[0-9]*>>?/, "", op)
                 if (op != "") print curcwd SEP resolve_var(op)
@@ -8645,7 +8754,7 @@ extract_write_targets() {
                     if (j + 1 <= m && toks[j+1] != "" && mtoks[j+1] !~ /^&/) {
                         stdout_redir[j+1] = 1
                     }
-                } else if (mt ~ /^[0-9]*>>?[^ \t&]/) {
+                } else if (mt ~ /^[0-9]*>>?[^ \t&(>]/) {
                     stdout_redir[j] = 1
                 }
             }
@@ -8705,11 +8814,27 @@ extract_write_targets() {
                     }
                     continue
                 }
-                if (mt ~ /^[0-9]*>>?[^ \t&]/) {
+                if (mt ~ /^[0-9]*>>?[^ \t&(>]/) {
                     # Attached form (`>file`, `2>file`, `>>file`).
                     op = toks[j]
                     sub(/^[0-9]*>>?/, "", op)
                     if (op != "") print curcwd SEP resolve_var(op)
+                    continue
+                }
+                # repo#785: `>(cmd)` / `2>(cmd)` / `>>(cmd)` is process
+                # substitution, not a redirect to a file named `(cmd)`, so the
+                # attached-form test above excludes it. The INNER command is
+                # still judged: `>(tee F)` writes F, so its operands are write
+                # targets. (A bare `>` followed by a separate `(x)` token is
+                # judged as written by the bare-operator branch above.)
+                if (mt ~ /^[0-9]*>>?\(tee$/) {
+                    for (k = j + 1; k <= m; k++) {
+                        if (toks[k] == "" || toks[k] ~ /^-/) continue
+                        op = toks[k]
+                        sub(/\)+$/, "", op)
+                        if (op != "") print curcwd SEP resolve_var(op)
+                        if (toks[k] ~ /\)$/) break
+                    }
                 }
             }
             # repo#600: an unresolvable command word (or a cd behind a group /
@@ -9043,7 +9168,7 @@ if echo "$COMMAND" | grep -qE 'rm[[:space:]]+-[a-zA-Z]*[rf]|[)`][[:space:]]+-[a-
                        { [[ "$ABS_PATH" == "$_rm_scratch_root" ]] || [[ "$ABS_PATH" == "$_rm_scratch_root"/* ]]; }; then
                         _rm_scratch_hint=" This path is under the session-scratch root ($_rm_scratch_root), but this session cannot prove it owns it. The only removable path there is <root>/<this session's id> -- or something under it -- and that directory must be a real (non-symlink) directory holding a regular file named $SESSION_SCRATCH_MARKER whose 'session=' line names that same id. The root itself is never removable, and another session's directory never is."
                     fi
-                    deny "BLOCKED: rm target outside repo scope (guards.rmScope=repo; set guards.rmScope:\"off\" in .claude/skills/repo/config.json to opt out): ${ABS_PATH}${_rm_scratch_hint}" "rm-scope-outside-repo"
+                    deny "BLOCKED: rm target outside repo scope (guards.rmScope=repo; add the directory to guards.rmAllowDirs in .claude/skills/repo/config.json to allow it, or set guards.rmScope:\"off\" to opt out entirely): ${ABS_PATH}${_rm_scratch_hint}" "rm-scope-outside-repo"
                 fi
             fi
         fi
@@ -9610,6 +9735,16 @@ if worktree_isolation_guard_enabled && \
     while IFS=$'\037' read -r _wcwd _wtarget; do
         [[ -z "$_wtarget" ]] && continue
 
+        # mask_heredoc_bodies_selective() (#331) stands in for the target of a
+        # write-marker interpreter heredoc with a sentinel word. Judge it as
+        # the cwd (`.`), exactly as before, but remember it so the final
+        # deny can say what actually happened (#722).
+        _wopaque=0
+        if [[ "$_wtarget" == "__loom_opaque_heredoc_write__" ]]; then
+            _wopaque=1
+            _wtarget="."
+        fi
+
         # Same-command $VAR/${VAR} resolution (#4881) happens inside
         # extract_write_targets(): a target whose leading `$NAME`/`${NAME}`
         # matched an assignment earlier in the SAME command arrives here
@@ -9972,6 +10107,9 @@ if worktree_isolation_guard_enabled && \
         # base is resolved off the same main-checkout root so the "a managed
         # worktree exists" gate stays consistent with the containment test.
         if _wt_isolation_in_play; then
+            if [[ "$_wopaque" -eq 1 ]]; then
+                deny "BLOCKED: this interpreter heredoc (python/perl/ruby/node <<EOF) performs a file write whose target this guard cannot determine from the script body, so it is treated as writing to the working directory '${_wabs}' — which resolves to the main repository checkout ('${_WT_MAIN_ROOT}'), and a Loom-managed worktree exists elsewhere in this repository (#722). The script may well write somewhere else; the guard fails closed because it does not parse paths out of arbitrary source. Run it from your issue worktree ($(_wt_worktree_hint)), write the file with the Write tool, or use a literal-path non-heredoc form. ${_WT_OPTOUT_HINT} (#4178)" "worktree-write-confinement-opaque-heredoc" "$(_wt_confinement_context "$_wabs" "$_wabsp")"
+            fi
             deny "BLOCKED: Bash-tool write to '${_wabs}' resolves to the main repository checkout ('${_WT_MAIN_ROOT}'), but a Loom-managed worktree exists elsewhere in this repository (this check cannot verify it belongs to the acting session — see #4245). This is a worktree-isolation bypass via Bash redirection/tee/sed -i/cp/mv/mkdir/touch/ln/install — do NOT retry the write through Bash. cd into your issue worktree ($(_wt_worktree_hint)) and write there instead. ${_WT_OPTOUT_HINT} (#4178)" "worktree-write-confinement" "$(_wt_confinement_context "$_wabs" "$_wabsp")"
         fi
     done <<< "$WRITE_TARGETS"

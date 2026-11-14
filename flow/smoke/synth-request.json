@@ -1,8 +1,0 @@
-{
-  "schema": "klt.synthesize.request/1",
-  "engine": "yosys",
-  "sources": ["adder.v"],
-  "hdl_toplevel": "adder",
-  "pdk": { "cell_library": "sky130_fd_sc_hd", "corner": "tt_025C_1v80" },
-  "constraints": { "clock_period_ns": null }
-}

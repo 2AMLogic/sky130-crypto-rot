@@ -3,35 +3,56 @@
   "kind": "generic",
   "status": "pass",
   "t1_item": 9,
-  "summary": "T1 item 9 (Testbenches shipped): 34/34 attestation checks passed (klt signoff --attest)",
+  "summary": "T1 item 9 (Testbenches shipped): 50/50 attestation checks passed (klt signoff --attest)",
   "source": "manifests/inventories/item-9.json",
   "attestation": {
     "producer": "klt signoff --attest",
     "inventory_schema_version": 1,
     "hash_algorithm": "sha256-raw-bytes",
-    "check_count": 34,
-    "passed_count": 34,
+    "check_count": 50,
+    "passed_count": 50,
     "checks": [
       {
         "check": "present",
         "role": "testbench",
-        "path": "flow/smoke/run.sh",
+        "path": "flow/common/core_flow.sh",
         "passed": true,
-        "content_hash": "sha256:4d782bd0795d60fdae48b3a762741d6dd834e75f02415467173fa9d31326c0ea"
+        "content_hash": "sha256:6f31248a1fa211fc3c5c1519d1d657aa25d66fe517f319a057f61f1769f2e58d"
       },
       {
         "check": "present",
         "role": "testbench",
-        "path": "flow/smoke/sim-request.json",
+        "path": "verification/formal/fv_drbg.v",
         "passed": true,
-        "content_hash": "sha256:ed6118eafcedacd089bf358080a398e54a878a872555f062693b9582e239dc6a"
+        "content_hash": "sha256:93e95308c0fed6f351ca5a86200e4aba5f17e91347d2cff822e04a16b350a5c6"
       },
       {
         "check": "present",
         "role": "testbench",
-        "path": "flow/smoke/test_adder.py",
+        "path": "verification/formal/fv_p9.v",
         "passed": true,
-        "content_hash": "sha256:d321061a9795fb52dbae9814014ac2ebfe6a2674352fc943fb8be708b7565b46"
+        "content_hash": "sha256:6c6abc6b492def01324ad0ced4ccc3d366154b004123d9e29ed5f1877722815f"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/formal/p7_p8.sby",
+        "passed": true,
+        "content_hash": "sha256:5bda77dfb636878e74c13b084d139325aae5d63574bbfa4c66aec62fc43dde04"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/formal/p9.sby",
+        "passed": true,
+        "content_hash": "sha256:a23cf6e18bd16248131433c3f43ebaca20b81fd52a301687815bcc5db2b05202"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/formal/run.sh",
+        "passed": true,
+        "content_hash": "sha256:123530af9165cf65b3dfd763ac4a6296b44acc7e6cbb04992cdc3800a512e507"
       },
       {
         "check": "present",
@@ -94,14 +115,7 @@
         "role": "testbench",
         "path": "verification/rtl/aes/run.sh",
         "passed": true,
-        "content_hash": "sha256:2650fd7244faaf83747f082a6aec5c7f8effa2661683c86d0f6a83d12b830c59"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/aes/sim-negctl-request.json",
-        "passed": true,
-        "content_hash": "sha256:37dbbb0b839800951c260c2ce8fa713d648568cdf334e88ff2837e4cf95de5b1"
+        "content_hash": "sha256:fdd58488210d00dbab65b2e078ba8049b88e023ef480a95100d861b0abb82fbf"
       },
       {
         "check": "present",
@@ -113,6 +127,13 @@
       {
         "check": "present",
         "role": "testbench",
+        "path": "verification/rtl/aes/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:9e298ad29f72543fcedbb01dd781ae91d9f36094074ea57a2e61934a23c53cb3"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
         "path": "verification/rtl/aes/test_aes_core.py",
         "passed": true,
         "content_hash": "sha256:bae19df0fd3413822264d3d6dba075c245565ce9410a87a6e3fdfb01caaa4b7d"
@@ -120,16 +141,51 @@
       {
         "check": "present",
         "role": "testbench",
-        "path": "verification/rtl/hmac/run.sh",
+        "path": "verification/rtl/drbg/run.sh",
         "passed": true,
-        "content_hash": "sha256:63a266f69cc7cf5bf11407ecb4080264de64f89c0041eae30518d881aa7365ca"
+        "content_hash": "sha256:d61c26f94d551ca3ee53ff0b01746feff2d996a00b9f5eb8d05fb008ae41ae7c"
       },
       {
         "check": "present",
         "role": "testbench",
-        "path": "verification/rtl/hmac/sim-negctl-request.json",
+        "path": "verification/rtl/drbg/sim-cavp-request.json",
         "passed": true,
-        "content_hash": "sha256:cd38590df355bda086f5d876d9188085698ec459c7aa74eb6e30bbbc343bad03"
+        "content_hash": "sha256:beb127bead5b3f84e8b90981c518ee72c7587e98e3c396748802d9f2885707ce"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/drbg/sim-request.json",
+        "passed": true,
+        "content_hash": "sha256:d12790124b992609b4fcc1b5d1cd6d8de073c97c822a5c96384fd0baad5e297f"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/drbg/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:550e971d2377521f49ad1e6484f5522e21ae46881e56e0492c9fc3e059c14a2a"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/drbg/tb_drbg.v",
+        "passed": true,
+        "content_hash": "sha256:9c6a463148ceb694e081add5ae6b90f1ee31f589e60aac686257894e7c0e9aa0"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/drbg/test_drbg.py",
+        "passed": true,
+        "content_hash": "sha256:61bc167056b1f83bcd7ec2503082460276fe84d37a43955123528e25e98168aa"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/hmac/run.sh",
+        "passed": true,
+        "content_hash": "sha256:f71c2ae892e5891a6a87b464e9c1477cb513b980a18329d043950a9127abc2a0"
       },
       {
         "check": "present",
@@ -141,37 +197,23 @@
       {
         "check": "present",
         "role": "testbench",
+        "path": "verification/rtl/hmac/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:9a4a5f1151396a6e8495afe6a1272396b5d4641b9f617f64d5855ce1955d8cd0"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
         "path": "verification/rtl/hmac/test_hmac_sha256.py",
         "passed": true,
-        "content_hash": "sha256:993f4e4e9b61c3e24db5553bba37f42ec6eb4fdc4ecc7822ccc410701bb797d7"
+        "content_hash": "sha256:3d8c5b9cf839f360bdad0417595de5bb8c5307186a51dae00f250834257adf2f"
       },
       {
         "check": "present",
         "role": "testbench",
         "path": "verification/rtl/keyladder/run.sh",
         "passed": true,
-        "content_hash": "sha256:bf8e10c0e74d76568e49e869c4f8b8e324fc3c05caecd04d030be27c2fcc3e67"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/keyladder/sim-negctl-lock-request.json",
-        "passed": true,
-        "content_hash": "sha256:f55b8e9ae57c9c9fe3a1ca0d9854347abc58c0247f55031687f825e57ef51d77"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/keyladder/sim-negctl-mask-request.json",
-        "passed": true,
-        "content_hash": "sha256:49011de996d72f27b4fec69cda541d9885c89dfbf787990179dffee0d6606317"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
-        "path": "verification/rtl/keyladder/sim-negctl-zeroize-request.json",
-        "passed": true,
-        "content_hash": "sha256:9ea5c8fed3292a247a8b968f3b19400d5a514785ce5d6c358dc7e3559fe716f9"
+        "content_hash": "sha256:bc6287332bfd818683f9b30cc770f01afbe02ce25d94b22b8a581b3900c86abd"
       },
       {
         "check": "present",
@@ -179,6 +221,13 @@
         "path": "verification/rtl/keyladder/sim-request.json",
         "passed": true,
         "content_hash": "sha256:4b473286700bd5e1adaa86a19840ad2ad28e0224117300054fa5c3e5c0e13404"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/keyladder/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:4e5437b2cb5ee4d56e10fcf0b73b7fd71131886f320510c55e0febb8609d226f"
       },
       {
         "check": "present",
@@ -192,7 +241,7 @@
         "role": "testbench",
         "path": "verification/rtl/sha256/run.sh",
         "passed": true,
-        "content_hash": "sha256:7c6a19855f281339c624dc08a118927741f72f0c52be5ec368d16c3126843841"
+        "content_hash": "sha256:9c14c4efa6777ce09de757a2c3539b5de2d40e5c1327ed3885c728bee3299ed5"
       },
       {
         "check": "present",
@@ -204,13 +253,6 @@
       {
         "check": "present",
         "role": "testbench",
-        "path": "verification/rtl/sha256/sim-negctl-request.json",
-        "passed": true,
-        "content_hash": "sha256:dbc203ecfd950185622cc440fc1cefa8250a8651349ecda4efb16b42e0ccf440"
-      },
-      {
-        "check": "present",
-        "role": "testbench",
         "path": "verification/rtl/sha256/sim-request.json",
         "passed": true,
         "content_hash": "sha256:f464516408fb80a77969b9f7529baca84ebafa7922546067694b5ba497243202"
@@ -218,9 +260,79 @@
       {
         "check": "present",
         "role": "testbench",
+        "path": "verification/rtl/sha256/sim-scrub-request.json",
+        "passed": true,
+        "content_hash": "sha256:65c33a6e51a6db054fcb9449cf0ca97d570b0f659ab28f34206a11c01cfca3cc"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/sha256/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:48199cea42f08baca7315baacbc73ffcd3d6fd216d1c60cd6a8b58e14008319a"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
         "path": "verification/rtl/sha256/test_sha256_core.py",
         "passed": true,
-        "content_hash": "sha256:737b5e807f9c647e6731c098c693eb89e78a4f4aceafee1fe0df5b6deabd33bf"
+        "content_hash": "sha256:70d2bdb41ac6d31d23a3eb211c529b88bb92425f736c2a5484bf6a0ccd9dea63"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/fetch_trng.sh",
+        "passed": true,
+        "content_hash": "sha256:1bdd3ed4aa9d8a2fec74bc9bd1d9b1e633b9e0ba8522f86ae8b754430ef88dac"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/mk_req.py",
+        "passed": true,
+        "content_hash": "sha256:01c8e0479ff1b8c3e6d87094117b04f4e504cb6e4ae3287a575e1cd535bb9d3a"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/run.sh",
+        "passed": true,
+        "content_hash": "sha256:bc1c560d1230780d60a2db8e5a97dc9418a24f05b5222996e3ecccf78e8e358b"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/tb_sys.v",
+        "passed": true,
+        "content_hash": "sha256:f170975921c7cb46ef9d2d0cb76c5eb132f324fd3b8f7c3289861513e12fdfa0"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/tb_trng_if.v",
+        "passed": true,
+        "content_hash": "sha256:2f0ffea18123bb4c890f5bbcb2e4646f015dee3b2e4d6c3447e9edf92eb0aa8f"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/test_sys.py",
+        "passed": true,
+        "content_hash": "sha256:a970de7296309430b110f47a4c9b51bd44d3f0b15b9a893d0c2d64c9fa2c7e94"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/test_trng_if.py",
+        "passed": true,
+        "content_hash": "sha256:84fe43107a5e5fc2201639c613129b264906b7b7b0cce6512b72d011d73ea339"
+      },
+      {
+        "check": "present",
+        "role": "testbench",
+        "path": "verification/rtl/trng_if/trngmodel.py",
+        "passed": true,
+        "content_hash": "sha256:68534a4fec42ca5bdecbba50dbc1b8fe7530c3321bb555796e3b949d95e7fd09"
       },
       {
         "check": "present",
@@ -237,7 +349,8 @@
         ],
         "cwd": ".",
         "exit_status": 0,
-        "passed": true
+        "passed": true,
+        "local_only": true
       },
       {
         "check": "pin",
@@ -256,7 +369,7 @@
           "ciel": "2.6.1",
           "cocotb": "2.1.0",
           "icarus-verilog": "13.0",
-          "klayout-tools": "dac2b5daceb69a2068d9d2ee190d7afe37b29af7",
+          "klayout-tools": "0.8.0",
           "yowasp-yosys": "0.68.0.0.post1208"
         }
       }
@@ -272,7 +385,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:a8e27890afd88f6f5a9b5ec2ef56f6ff7cead4209d75045bc7e46cf3e3a9eb92"
+      "content_hash": "sha256:584a711675d9535b212b3073b83721a2364aeb53e408b1b75d16033d132ace8f"
     }
   }
 }

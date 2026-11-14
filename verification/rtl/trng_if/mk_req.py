@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Regenerate the klt request files in this directory (stdlib only)."""
+"""Regenerate the klt request files in this directory (stdlib only).
+
+The eight sim-*-request.json files are generated, not tracked: run.sh writes
+them before any simulation and .gitignore keeps them out of the tree, so this
+script is the single source for them and the input make_record.py hashes.
+"""
 import json
 from pathlib import Path
 

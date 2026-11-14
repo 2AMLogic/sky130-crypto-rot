@@ -30,13 +30,19 @@
 // Message length is counted in a 61-bit byte counter (2^64 bits, the FIPS
 // 180-4 limit); a longer message wraps the length field.
 //
-// Synchronous active-low reset on control state only. The data path
-// (block buffer, working variables, H) is not reset; it is fully written
-// before it is read.
+// Synchronous active-low reset and synchronous scrub. Both clear the same
+// register list (control state, block buffer, working variables, H), so
+// nothing derived from a message survives either. scrub is a one-cycle
+// request: asserted on a rising edge it zeroes the whole list at that edge,
+// from any state, and overrides in_valid for that edge (nothing is accepted).
+// Tie it low if unused. The data path is also fully written before it is
+// read, so clearing it costs no function; it exists so a keyed (HMAC) pass
+// can be wiped.
 
 module sha256_core (
     input  wire         clk,
     input  wire         rst_n,
+    input  wire         scrub,
 
     input  wire         in_valid,
     output wire         in_ready,
@@ -202,7 +208,8 @@ module sha256_core (
     };
 
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if (!rst_n || scrub) begin
+            // The one clear list for reset and scrub (key-isolation P-10).
             state  <= S_COLLECT;
             fresh  <= 1'b1;
             final_blk <= 1'b0;
@@ -211,6 +218,12 @@ module sha256_core (
             dvalid <= 1'b0;
             len    <= 61'd0;
             t      <= 6'd0;
+            w      <= 512'd0;
+`ifndef SHA256_NEG_SCRUB
+            // Negative control (SHA256_NEG_SCRUB) omits hh from the clear.
+            hh     <= 256'd0;
+`endif
+            {a, b, c, d, e, f, g, h} <= 256'd0;
         end else begin
             case (state)
                 S_COLLECT: if (accept) begin

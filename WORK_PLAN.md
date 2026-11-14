@@ -8,22 +8,21 @@ The region between the markers is machine-generated and overwritten wholesale.
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
 
-- **#40**: chore: retire the adder smoke flow in favour of the SHA-256 core flow
-- **#65**: feat(rtl): add scrub input to sha256_core clearing w, hh and a-h
-- **#66**: refactor(verification): share record and driver scaffolding across core flows
-- **#69**: feat(rtl): CTR_DRBG core and TRNG interface with benches and P-7/P-8/P-9 formal
+_None._
 
 ## Very Important
 
 `loom:very-important` (one counts per workspace); every stage takes these first.
 
-_None._
+- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
 
 ## Important
 
 `loom:important`; taken before unlabelled work.
 
 - **#46**: T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
+- **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
+- **#88**: T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
 
 ## Ready
 
@@ -35,37 +34,36 @@ _None._
 
 Issues currently being built (`loom:building`).
 
-- **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow
-- **#45**: T1 item 1 (design sources): CTR_DRBG (AES-128, df) and sky130-trng interface RTL, with SP 800-90A KATs
-- **#61**: sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state
-- **#64**: Dedupe record-generation scaffolding shared by the aes and sha256 verification flows
+- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
+- **#164**: Bring the item-9 inventory's hand-copied tool pins under check_pins.py: its klayout-tools pin is still the git revision setup-env.sh dropped on 2026-10-27
+- **#165**: Read the key-ladder formal record's Depth column from sby's config.sby: it is hand-copied five ways, and PROVE_DEPTH mislabels three P-6 rows
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-_None._
+- **#90**: spec: add register map decision record 0009 with table lint
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#40**: chore: retire the adder smoke flow in favour of the SHA-256 core flow
-- **#65**: feat(rtl): add scrub input to sha256_core clearing w, hh and a-h
-- **#66**: refactor(verification): share record and driver scaffolding across core flows
-- **#69**: feat(rtl): CTR_DRBG core and TRNG interface with benches and P-7/P-8/P-9 formal
+- **#171**: feat(verification): check the item-9 inventory's pins against setup-env.sh and re-attest
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
-- **#45**: T1 item 1 (design sources): CTR_DRBG (AES-128, df) and sky130-trng interface RTL, with SP 800-90A KATs *(curated)*
-- **#61**: sha256_core reset leaves w/hh/a-h intact; hmac_sha256 clear does not scrub key-derived hash state *(curated)*
+- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top *(curated)*
+- **#163**: manifests: item-9 inventory does not cover flow/common/core_flow.sh, the shared bench driver all six run.sh scripts source *(curated)*
 
 ## Proposed (Architect / Hermit)
 
-- **#36**: Retire the adder smoke flow: superseded by the SHA-256 core flow *(hermit)*
+- **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)*
+- **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)*
+- **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
+- **#161**: Remove the 12 hand-copied negative-control request files: each is its positive request plus one define, so derive them at run time *(hermit)*
 
 ## Epics
 
@@ -75,14 +73,14 @@ _None._
 
 | Bucket | Count |
 |------|-------|
-| Operator merge-risk holds | 4 |
-| Very important | 0 |
-| Important | 1 |
+| Operator merge-risk holds | 0 |
+| Very important | 1 |
+| Important | 3 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 4 |
-| PRs awaiting review | 0 |
-| Approved PRs awaiting merge | 4 |
+| In Progress (`loom:building`) | 3 |
+| PRs awaiting review | 1 |
+| Approved PRs awaiting merge | 1 |
 | Curated | 3 |
-| Architect / Hermit proposals | 1 |
+| Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->

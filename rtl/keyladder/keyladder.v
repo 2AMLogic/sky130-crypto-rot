@@ -53,11 +53,10 @@
 // zeroize (highest priority, synchronous): clears every slot value, valid,
 // mask, lock and depth, the captured derivation parameters (root-select,
 // parent, destination, mask, ctx), the load counter, and aborts the
-// sequencer with an HMAC `clear` (k0 and inner in hmac_sha256 are zeroed). A
-// derivation in flight is dropped: no partial key is written. Limitation: the
-// SHA-256 core datapath registers (w, hh, a..h) inside hmac_sha256 are not
-// cleared by `clear` (rtl/sha256/sha256_core.v resets control only); this
-// block cannot fix that and does not claim it.
+// sequencer with an HMAC `clear` (k0 and inner in hmac_sha256 are zeroed, and
+// hmac_sha256 scrubs the SHA-256 core datapath registers w, hh, a..h through
+// the core's `scrub` port). A derivation in flight is dropped: no partial key
+// is written.
 //
 // The key-bearing registers are exactly: s0..s3 (slot values), and the
 // internal hmac_sha256 key/digest state. Control registers: v0..v3, m0..m3,
