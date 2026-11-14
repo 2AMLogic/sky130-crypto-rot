@@ -39,8 +39,12 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}" || exit 1
 
 # --- pinned versions -- keep in sync with docs/environment.md -------------
-# Enforced by verification/check_pins.py (run by `npm run lint`): every
-# constant in this block must appear in that doc's "Pinned versions" table.
+# This block is the source of truth for the pins, and the only hand-written
+# one. verification/check_pins.py (run by `npm run lint`) enforces that the
+# two hand copies agree with it: every constant here must appear in
+# docs/environment.md's "Pinned versions" table, and the `pins` block of
+# manifests/inventories/item-9.json -- which `klt signoff --attest 9` records
+# into the committed attestation envelope -- must name the same versions.
 # Keep assignments in plain NAME="value" form so it can parse them.
 KLT_VERSION="0.8.0"
 CIEL_VERSION="2.6.1"

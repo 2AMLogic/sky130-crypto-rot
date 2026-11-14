@@ -143,7 +143,7 @@
         "role": "testbench",
         "path": "verification/rtl/drbg/run.sh",
         "passed": true,
-        "content_hash": "sha256:b9357bf556415d7360a60ba36933a2866f96119cc26710e93ddd95e00c38b510"
+        "content_hash": "sha256:5db18295815f0ab1798e1cc39e36546f9cb04c390be139dd7c656b59fd6bdfac"
       },
       {
         "check": "present",
@@ -304,7 +304,7 @@
         "role": "testbench",
         "path": "verification/rtl/sha256/run.sh",
         "passed": true,
-        "content_hash": "sha256:5946dea78100709d033e1fd2230973becced75064734d90be7741f1ff7a10e8a"
+        "content_hash": "sha256:385ef64c9fb3de9b4bc33e3cb11d9c5d4f17b5c108485771ffee0322dbc44efd"
       },
       {
         "check": "present",
@@ -374,7 +374,7 @@
         "role": "testbench",
         "path": "verification/rtl/trng_if/run.sh",
         "passed": true,
-        "content_hash": "sha256:bcf1c4959acfe24f268902b94daa788f58a266c6f2ad48f4e764bc21da41738b"
+        "content_hash": "sha256:5b6e2fc4e8e5c7c43a407d73f81c42f8f46fcd0b63a1209a9955218da5bb0730"
       },
       {
         "check": "present",
@@ -446,7 +446,7 @@
           "ciel": "2.6.1",
           "cocotb": "2.1.0",
           "icarus-verilog": "13.0",
-          "klayout-tools": "dac2b5daceb69a2068d9d2ee190d7afe37b29af7",
+          "klayout-tools": "0.8.0",
           "yowasp-yosys": "0.68.0.0.post1208"
         }
       }
@@ -462,7 +462,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:0b5c2dcb4d0a8bcc2f167b474eecc4f9f7c5ac540b8a6c812d681f1152275577"
+      "content_hash": "sha256:c407e0f949deacf8d8884de88d90cdb02f309637a67914794c613d0a457415b7"
     }
   }
 }
