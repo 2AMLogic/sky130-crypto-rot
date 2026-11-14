@@ -38,8 +38,10 @@ core_flow_setup
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each must make the bench fail =="
-  for c in mask lock zeroize; do
-    core_flow_negctl_one "sim-negctl-${c}-request.json" "negctl-${c}.json" "negative control ${c} :" \
+  # <control>:<define> pairs, not "KL_NEG_${c^^}": bash 3.2 (macOS) has no ^^.
+  for pair in "mask:KL_NEG_MASK" "lock:KL_NEG_LOCK" "zeroize:KL_NEG_ZEROIZE"; do
+    c="${pair%%:*}"
+    core_flow_negctl_one sim-request.json "${pair#*:}" "negctl-${c}.json" "negative control ${c} :" \
       'first failing check: [^&]*' "negative control '${c}'"
   done
   exit 0

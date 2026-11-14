@@ -89,10 +89,12 @@ def test_every_tracked_file_beside_the_generator_is_an_effective_input(maker):
     """The rule is uniform, so own_inputs() derives it (issue #146).
 
     This is what the hand-written lists were for and what one of them had already
-    lost: verification/rtl/hmac/sim-scrub-negctl-request.json is run by the bench
+    lost: verification/rtl/hmac/sim-scrub-negctl-request.json was run by the bench
     and was absent from that generator's INPUTS, so the next hmac record would
     have neither hashed nor dirty-checked the request defining its scrub
-    negative control.
+    negative control. That file is gone as of issue #161 -- the control is now
+    derived from sim-request.json -- but the rule it motivated still holds for
+    every tracked file beside a generator.
     """
     directory = Path(maker).parent.as_posix()
     tracked = [p for p in subprocess.run(

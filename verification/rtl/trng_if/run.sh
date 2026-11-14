@@ -53,19 +53,19 @@ status() { _json_line "$1" 'd["status"], d["passed_count"], "/", d["test_count"]
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each corrupted build MUST fail =="
-  core_flow_negctl_one sim-if-negctl-prev-request.json negctl-prev.json \
+  core_flow_negctl_one sim-if-negctl-prev-request.json '' negctl-prev.json \
     "negative control (a word accepted after a gated previous sample):" "${NEG_EVIDENCE}" \
     "a word accepted after a gated previous sample" "${BENCH_LOG}"
-  core_flow_negctl_one sim-if-negctl-discard-request.json negctl-discard.json \
+  core_flow_negctl_one sim-if-negctl-discard-request.json '' negctl-discard.json \
     "negative control (partial seed not discarded on gated):" "${NEG_EVIDENCE}" \
     "a partial seed not discarded on gated" "${BENCH_LOG}"
-  core_flow_negctl_one sim-if-negctl-count-request.json negctl-count.json \
+  core_flow_negctl_one sim-if-negctl-count-request.json '' negctl-count.json \
     "negative control (seed one word short):" "${NEG_EVIDENCE}" \
     "a seed one word short" "${BENCH_LOG}"
-  core_flow_negctl_one sim-sys-negctl-zeroize-request.json negctl-zeroize.json \
+  core_flow_negctl_one sim-sys-negctl-zeroize-request.json '' negctl-zeroize.json \
     "negative control (DRBG V survives the alarm zeroize):" "${NEG_EVIDENCE}" \
     "DRBG V surviving the alarm zeroize" "${BENCH_LOG}"
-  core_flow_negctl_one sim-sys-negctl-interval-request.json negctl-interval.json \
+  core_flow_negctl_one sim-sys-negctl-interval-request.json '' negctl-interval.json \
     "negative control (one request too many before RESEED_REQUIRED):" "${NEG_EVIDENCE}" \
     "one request too many before RESEED_REQUIRED" "${BENCH_LOG}"
   exit 0
