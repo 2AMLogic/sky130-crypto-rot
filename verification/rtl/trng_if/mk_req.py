@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate the klt request files in this directory (stdlib only).
 
-The eight sim-*-request.json files are generated, not tracked: run.sh writes
+The nine sim-*-request.json files are generated, not tracked: run.sh writes
 them before any simulation and .gitignore keeps them out of the tree, so this
 script is the single source for them and the input make_record.py hashes.
 """
@@ -34,6 +34,10 @@ OUT = {
     "sim-sys-negctl-zeroize-request": req(SYS, "tb_sys", "test_sys", ["DRBG_NEG_ZEROIZE"], "test_sys"),
     "sim-sys-negctl-interval-request": req(SYS, "tb_sys", "test_sys", ["DRBG_NEG_INTERVAL"], "test_sys"),
     "sim-real-request": req(REAL, "tb_sys", "test_sys", ["REAL_TRNG"], "test_sys_real"),
+    # Same sources and the same bench file; REAL_TRNG_FULL drops every parameter
+    # override on the sibling (tb_sys.v). Every request above pins its testcase,
+    # so a third testcase in test_sys.py cannot leak into them.
+    "sim-real-full-request": req(REAL, "tb_sys", "test_sys", ["REAL_TRNG", "REAL_TRNG_FULL"], "test_sys_real_full"),
 }
 for name, doc in OUT.items():
     (HERE / f"{name}.json").write_text(json.dumps(doc, indent=2) + "\n")

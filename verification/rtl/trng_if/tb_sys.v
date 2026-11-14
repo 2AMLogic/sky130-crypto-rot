@@ -1,14 +1,23 @@
 // Bench wrapper: drbg_top (trng_if + ctr_drbg + aes_core). Default: sibling
 // pins are ports driven by the Python stub (trngmodel.py), reseed interval 3
 // so RESEED_REQUIRED is reachable. With REAL_TRNG the pinned sibling
-// trng_digital is instantiated (fetched at its pin by fetch_trng.sh; its
-// start-up length and conditioner block are shortened by parameter so the
-// bench finishes, which changes no behavior this block depends on) and only
-// raw_bit/raw_valid are driven from outside.
+// trng_digital is instantiated (fetched at its pin by fetch_trng.sh) and only
+// raw_bit/raw_valid are driven from outside. REAL_TRNG alone shortens the
+// sibling's start-up length, conditioner block and RCT cutoff by parameter so
+// the bench finishes, which changes no behavior this block depends on; adding
+// REAL_TRNG_FULL passes NO parameter overrides at all, so the sibling runs at
+// whatever defaults its own RTL declares at the pinned commit (issue #180).
+// The overrides are selected as a whole list by a macro, not per parameter, so
+// the full build cannot silently freeze a value this repo does not own.
 `ifdef REAL_TRNG
 `define SYS_INT 65536
 `else
 `define SYS_INT 3
+`endif
+`ifdef REAL_TRNG_FULL
+`define SIB_PARAMS
+`else
+`define SIB_PARAMS #(.C_RCT(16), .STARTUP(16), .COND_BITS(64))
 `endif
 module tb_sys (
     input  wire         clk,
@@ -52,7 +61,7 @@ module tb_sys (
 );
     drbg_top #(.INST_WORDS(16), .RESEED_WORDS(8), .RESEED_INTERVAL(`SYS_INT)) u (.*);
 `ifdef REAL_TRNG
-    trng_digital #(.C_RCT(16), .STARTUP(16), .COND_BITS(64)) sib (
+    trng_digital `SIB_PARAMS sib (
         .clk(trng_clk), .rst_n(trng_rst_n), .raw_bit(raw_bit), .raw_valid(raw_valid),
         .bus_addr(trng_bus_addr), .bus_we(trng_bus_we), .bus_re(trng_bus_re),
         .bus_wdata(trng_bus_wdata), .bus_rdata(),

@@ -13,6 +13,15 @@ test_sys_real  -- REAL_TRNG: the pinned sibling RTL (fetched by fetch_trng.sh)
                   instantiate/generate/model check on its conditioned words, a
                   health-test alarm forced through the raw tap, the recovery
                   sequence against the real register map, and re-instantiation.
+test_sys_real_full
+               -- REAL_TRNG + REAL_TRNG_FULL: the same pinned sibling RTL with
+                  NO parameter overrides, so at the start-up length, conditioner
+                  block and RCT cutoff its own RTL declares. Instantiate (16
+                  words), generates checked against the model, reseed (8 words),
+                  plus the start-up gate check and the simulated time to the
+                  first and sixteenth pop. The alarm/recovery half is left to
+                  test_sys_real: it is independent of those three parameters and
+                  would roughly double this run (issue #180).
 """
 
 import os
@@ -23,6 +32,7 @@ from pathlib import Path
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, RisingEdge
+from cocotb.utils import get_sim_time
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
@@ -49,6 +59,9 @@ class Sys:
         self.fails = []
         self.real = real
         self.pops = []                       # words popped from the sibling, in order
+        self.startup_gate_violations = 0     # pops seen while startup_done was 0
+        self.t_first_pop_ns = None           # simulated time of pop 1
+        self.t_seed_done_ns = None           # simulated time of pop 16 (last instantiate word)
         self.stub = None if real else TrngStub(dut, ratio)
         self.blocks = []
         self.done_seen = 0
@@ -78,12 +91,25 @@ class Sys:
                 self.done_seen += 1
 
     async def sample_pops(self):
-        """Real-sibling mode: record each word moved at a sample-clock rising edge."""
+        """Real-sibling mode: record each word moved at a sample-clock rising edge.
+
+        Also the start-up gate check: trng_if drives out_ready from `take`, which
+        requires startup_done at that t_fall, so a word that moves while the
+        sibling still reports startup_done = 0 is a real violation of
+        spec/trng-interface.md section 3.2 and not a bench artifact.
+        """
         d = self.d
         while True:
             await RisingEdge(d.trng_clk)
             if bit(d.trng_out_ready) and bit(d.trng_out_valid) and bit(d.rst_n):
+                if not bit(d.trng_startup_done):
+                    self.startup_gate_violations += 1
+                    self.fails.append(f"word {len(self.pops) + 1} popped before startup_done")
                 self.pops.append(bit(d.trng_out_data))
+                if len(self.pops) == 1:
+                    self.t_first_pop_ns = get_sim_time(unit="ns")
+                elif len(self.pops) == 16:
+                    self.t_seed_done_ns = get_sim_time(unit="ns")
 
     async def boot(self):
         d = self.d
@@ -300,4 +326,28 @@ async def test_sys_real(dut):
     s.check(err == 0 and err2 == 0 and blocks_bytes(blocks, 512) == s.model.generate(64), "re-instantiate from the real sibling after recovery")
     first = s.fails[0] if s.fails else None
     dut._log.info(f"SUMMARY sys real pops={len(s.pops)} first_failure={first} failures={len(s.fails)}")
+    assert not s.fails, s.fails[0]
+
+
+@cocotb.test()
+async def test_sys_real_full(dut):
+    """The pinned sibling at its own declared parameters -- no overrides at all."""
+    assert hasattr(dut, "raw_bit"), "test_sys_real_full needs the REAL_TRNG elaboration"
+    cocotb.start_soon(Clock(dut.clk, 20, unit="ns").start())
+    s = Sys(dut, real=True)
+    await s.boot()
+    # basic() is instantiate(16 words) -> generates 128/1024/40 bits against
+    # verification/model/ctr_drbg.py -> reseed(8 words) -> generate(256). The
+    # generates cost no TRNG samples, so this is the full AC-1 sequence at the
+    # price of the 24 conditioned words alone.
+    await basic(s)
+    s.check(len(s.pops) == 24, f"pops={len(s.pops)} (expected 16 instantiate + 8 reseed)")
+    s.check(s.t_first_pop_ns is not None and s.t_seed_done_ns is not None,
+            "simulated time to the first and sixteenth pop recorded")
+    us = lambda t: "n/a" if t is None else f"{t / 1000.0:.1f}"   # noqa: E731
+    first = s.fails[0] if s.fails else None
+    dut._log.info(f"SUMMARY sys real-full pops={len(s.pops)} "
+                  f"t_first_pop_us={us(s.t_first_pop_ns)} t_seed_done_us={us(s.t_seed_done_ns)} "
+                  f"startup_gate_violations={s.startup_gate_violations} "
+                  f"first_failure={first} failures={len(s.fails)}")
     assert not s.fails, s.fails[0]
