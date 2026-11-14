@@ -369,7 +369,7 @@
           "ciel": "2.6.1",
           "cocotb": "2.1.0",
           "icarus-verilog": "13.0",
-          "klayout-tools": "dac2b5daceb69a2068d9d2ee190d7afe37b29af7",
+          "klayout-tools": "0.8.0",
           "yowasp-yosys": "0.68.0.0.post1208"
         }
       }
@@ -385,7 +385,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:b73484a2b68a4b6fde2dd4c70671cceacb1f72811bd12a91da55a37b4e65b8af"
+      "content_hash": "sha256:584a711675d9535b212b3073b83721a2364aeb53e408b1b75d16033d132ace8f"
     }
   }
 }

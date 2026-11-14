@@ -35,6 +35,8 @@ _None._
 Issues currently being built (`loom:building`).
 
 - **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
+- **#164**: Bring the item-9 inventory's hand-copied tool pins under check_pins.py: its klayout-tools pin is still the git revision setup-env.sh dropped on 2026-10-27
+- **#165**: Read the key-ladder formal record's Depth column from sby's config.sby: it is hand-copied five ways, and PROVE_DEPTH mislabels three P-6 rows
 
 ## PRs Awaiting Review
 
@@ -46,7 +48,7 @@ PRs waiting on Judge (`loom:review-requested`).
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-_None._
+- **#171**: feat(verification): check the item-9 inventory's pins against setup-env.sh and re-attest
 
 ## Proposed
 
@@ -54,18 +56,14 @@ Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top *(curated)*
+- **#163**: manifests: item-9 inventory does not cover flow/common/core_flow.sh, the shared bench driver all six run.sh scripts source *(curated)*
 
 ## Proposed (Architect / Hermit)
 
 - **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)*
 - **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)*
 - **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
-- **#138**: Remove the positional setup-env.sh convention from record generators: applied three ways, and three record families never hash it *(hermit)*
-- **#141**: Move drbg/make_record.py onto record_lib.main(): last hand-rolled sim+synth record driver, and it records pinned instead of measured tool versions *(hermit)*
-- **#143**: setup-env.sh carries upstream leftovers: issue refs #141/#143 that point at unrelated issues here, another design's slack figure in a FATAL message, and a usage line the parser rejects *(hermit)*
-- **#146**: Derive record generators' own-directory inputs instead of hand-listing them: 67 lines in eight generators, and hmac already misses a request file *(hermit)*
-- **#147**: Remove the hand-kept per-core status lists from README.md: all three say only SHA-256 exists, and rtl/README.md already carries the current list *(hermit)*
-- **#149**: Remove the fixed 'hmac clear does not clear the SHA-256 datapath' limitation from the key-ladder record generators: RTL has scrubbed it since a77caa3, and the next --record would write it as evidence *(hermit)*
+- **#161**: Remove the 12 hand-copied negative-control request files: each is its positive request plus one define, so derive them at run time *(hermit)*
 
 ## Epics
 
@@ -79,10 +77,10 @@ _None._
 | Very important | 1 |
 | Important | 3 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 1 |
+| In Progress (`loom:building`) | 3 |
 | PRs awaiting review | 1 |
-| Approved PRs awaiting merge | 0 |
-| Curated | 2 |
-| Architect / Hermit proposals | 9 |
+| Approved PRs awaiting merge | 1 |
+| Curated | 3 |
+| Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->

@@ -68,6 +68,14 @@ stops with a pointer.
 script's pin block does not appear in the table above. The Re-verification and not-pinned notes
 below name versions on purpose and are not checked.
 
+The same checker guards the one other hand copy: the `pins` block of
+`manifests/inventories/item-9.json`, which `klt signoff --attest 9` records
+into the committed attestation envelope. It must name the same `klayout-tools`,
+`yowasp-yosys`, `cocotb` and `ciel` versions and the same PDK revision as the
+pin block. That block's `icarus-verilog` entry is not checked: Icarus is a host
+install `scripts/setup-env.sh` only probes for (see "Tools not pinned by
+`setup-env.sh`" below), so there is no pin to compare it against.
+
 ## Tools not pinned by `setup-env.sh`
 
 | Tool | Status |

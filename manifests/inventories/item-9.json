@@ -64,7 +64,7 @@
       "revision": "f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7"
     },
     "tools": {
-      "klayout-tools": "dac2b5daceb69a2068d9d2ee190d7afe37b29af7",
+      "klayout-tools": "0.8.0",
       "yowasp-yosys": "0.68.0.0.post1208",
       "icarus-verilog": "13.0",
       "cocotb": "2.1.0",
