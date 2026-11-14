@@ -283,10 +283,12 @@ def gate_level_bullets(gate: dict | None, pdk_root: Path, name: str) -> tuple[st
     if gate is None:
         return f"{_RTL_PROVENANCE} No gate-level simulation was run.", ""
     models = ", ".join(f"`{Path(p).name}` {sha256(Path(p))}" for p in gate["cell_models"])
+    # `tc`, not `name`: `name` is the core, and a genexp variable that shadowed
+    # it would read as though the negative-control command below named a testcase.
     ran = ", ".join(
-        f"`{name}` ({run['passed_count']}/{run['test_count']} passed, "
+        f"`{tc}` ({run['passed_count']}/{run['test_count']} passed, "
         f"{run['tests'][0]['sim_time_ns'] / 1000:.1f} us simulated)"
-        for name, run in sorted(gate["testcases"].items()))
+        for tc, run in sorted(gate["testcases"].items()))
     skipped = ("; **not run at gate level**: " +
                ", ".join(f"`{k}` ({v})" for k, v in sorted(gate["excluded"].items()))
                if gate["excluded"] else
