@@ -1,6 +1,7 @@
 import ast
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -346,3 +347,129 @@ def test_generator_does_not_hand_write_the_klt_provenance_bullet(maker):
     """Five byte-identical copies is what issue #141 found; main() builds it once."""
     text = (REPO / maker).read_text()
     assert "- **klt provenance**: klt `{prov[" not in text
+
+
+# ---------------------------------------------------------------------------
+# Gate-level mode (issue #179). The cores that have one are derived from which
+# run.sh declares GATE_TESTCASES, not hand-listed, so adding the mode to a
+# third core brings it under these tests without anyone remembering to.
+GATE_CORES = sorted(
+    p.parent.relative_to(REPO).as_posix()
+    for p in (REPO / "verification/rtl").glob("*/run.sh")
+    if re.search(r"^GATE_TESTCASES=", p.read_text(), re.M))
+
+GATE_JSON = {
+    "netlist_path": "verification/rtl/aes/.klt/synthesize/run-abc/aes_core_synth.v",
+    "netlist_sha256": "f8e48e9b",
+    "instance_count": 30204,
+    "cell_models": [],  # filled per test with real paths, which get hashed
+    "defines": {"FUNCTIONAL": None, "UNIT_DELAY": "#1"},
+    "sdf": None,
+    "status": "pass",
+    "testcases": {"test_aes_core": {"passed_count": 1, "test_count": 1,
+                                    "tests": [{"sim_time_ns": 74810.0}]}},
+    "excluded": {},
+}
+
+
+def _gate(tmp_path, **over):
+    """A gate.json dict whose cell_models are real files, so sha256() can run."""
+    gate = {**GATE_JSON, **over}
+    if not gate["cell_models"]:
+        model = tmp_path / "primitives.v"
+        model.write_text("// cell models\n")
+        gate["cell_models"] = [str(model)]
+    (tmp_path / "sky130A").mkdir(exist_ok=True)
+    (tmp_path / "sky130A/SOURCES").write_text("open_pdks f6eeac7dad08\n")
+    return gate
+
+
+def test_open_pdks_revision_reads_the_installed_tree(tmp_path):
+    (tmp_path / "sky130A").mkdir()
+    (tmp_path / "sky130A/SOURCES").write_text("sky130_fd_sc_hd xyz\nopen_pdks f6eeac7\n")
+    assert record_lib.open_pdks_revision(tmp_path) == "f6eeac7"
+
+
+def test_open_pdks_revision_refuses_a_tree_that_names_none(tmp_path):
+    (tmp_path / "sky130A").mkdir()
+    (tmp_path / "sky130A/SOURCES").write_text("sky130_fd_sc_hd xyz\n")
+    with pytest.raises(SystemExit, match="no open_pdks revision"):
+        record_lib.open_pdks_revision(tmp_path)
+
+
+def test_no_gate_run_keeps_the_pre_179_sentence_and_adds_no_bullet(tmp_path):
+    """A record must never imply a netlist simulation it does not have."""
+    provenance, bullet = record_lib.gate_level_bullets(None, tmp_path, "aes")
+    assert provenance.endswith("No gate-level simulation was run.")
+    assert provenance.startswith("RTL, pre-synthesis simulation (Icarus);")
+    assert bullet == ""
+
+
+def test_gate_bullet_states_netlist_models_delay_model_and_no_sdf(tmp_path):
+    """AC4: netlist hash, cell-model source and hash, delay model, pre-layout/no SDF."""
+    gate = _gate(tmp_path)
+    provenance, bullet = record_lib.gate_level_bullets(gate, tmp_path, "aes")
+    assert "the same bench was then re-run against that netlist" in provenance.lower()
+    assert "sha256:f8e48e9b" in bullet                      # netlist hash
+    assert "30204 `sky130_fd_sc_hd` instances" in bullet
+    assert "`primitives.v` " + record_lib.sha256(Path(gate["cell_models"][0])) in bullet
+    assert "open_pdks `f6eeac7dad08`" in bullet              # the installed revision
+    assert "`FUNCTIONAL`" in bullet and "`UNIT_DELAY` = `#1`" in bullet
+    assert "**Pre-layout, no SDF back-annotation**" in bullet
+    assert "`options.sdf` is `null`" in bullet, "a JSON field reads as JSON, not Python None"
+    assert "None" not in bullet
+    assert "makes NO timing claim" in bullet
+    assert "the sha256 above, not the path, is the netlist's identity" in bullet
+    assert bullet.startswith("- **Gate-level simulation**:")
+    assert bullet.endswith("\n")
+
+
+def test_gate_bullet_does_not_use_the_vendored_defines_file(tmp_path):
+    """#134's premise: options.defines is native at the pin, so it has no caller."""
+    _, bullet = record_lib.gate_level_bullets(_gate(tmp_path), tmp_path, "aes")
+    assert "is **not** used" in bullet
+    assert "sky130_fd_sc_hd_sim_defines.v" in bullet
+
+
+def test_gate_bullet_names_every_excluded_testcase_with_its_reason(tmp_path):
+    """AC5/AC2: a check not run at gate level is named in the record, not omitted."""
+    gate = _gate(tmp_path, excluded={"test_million_a": "about 2M cycles"})
+    _, bullet = record_lib.gate_level_bullets(gate, tmp_path, "sha256")
+    assert "**not run at gate level**: `test_million_a` (about 2M cycles)" in bullet
+    _, none = record_lib.gate_level_bullets(_gate(tmp_path), tmp_path, "aes")
+    assert "no testcase of this bench was left out" in none
+
+
+def test_gate_bullet_names_the_core_s_own_negative_control_command(tmp_path):
+    for core in ("aes", "sha256"):
+        _, bullet = record_lib.gate_level_bullets(_gate(tmp_path), tmp_path, core)
+        assert f"./verification/rtl/{core}/run.sh --gate-level --negative-control" in bullet
+
+
+def test_gate_bullet_links_the_klayout_tools_tool_gap(tmp_path):
+    """The friction protocol: the gap is linked from the record (AC6)."""
+    _, bullet = record_lib.gate_level_bullets(_gate(tmp_path), tmp_path, "aes")
+    assert "2AMLogic/klayout-tools" in bullet
+    assert record_lib._KLT_GAP_ISSUE in bullet
+
+
+def test_at_least_two_cores_have_a_gate_level_mode():
+    """Issue #179 delivers it for aes and sha256; guards the derivation above."""
+    assert {"verification/rtl/aes", "verification/rtl/sha256"} <= set(GATE_CORES)
+
+
+@pytest.mark.parametrize("core", GATE_CORES)
+def test_gate_core_declares_a_request_template_and_no_static_request(core):
+    """The netlist path is per-run, so the request cannot be a committed constant."""
+    assert (REPO / core / "sim-gate-request.json.in").is_file()
+    assert not (REPO / core / "sim-gate-request.json").exists()
+
+
+@pytest.mark.parametrize("core", GATE_CORES)
+def test_gate_core_generator_does_not_hand_write_the_gate_level_text(core):
+    """Both cores say the same things about a netlist run; main() builds them once."""
+    text = (REPO / core / "make_record.py").read_text()
+    assert "{ctx.gate_provenance}" in text
+    assert "{ctx.gate_level}" in text
+    assert "No gate-level simulation was run" not in text
+    assert "- **Gate-level simulation**" not in text

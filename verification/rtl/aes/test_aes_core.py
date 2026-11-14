@@ -34,11 +34,26 @@ class Dut:
         self.dut = dut
 
     async def idle(self):
+        """Power-up: one zeroize edge, asserted with a half period of set-up.
+
+        The first FallingEdge is not cosmetic and must not be dropped: without
+        it the zeroize write lands in the same simulation time step as the
+        clock's own first rising edge, and only a behavioural flop tolerates
+        that. In the synthesized netlist (`run.sh --gate-level`) the cleared
+        value reaches each flop's D pin through a real mux, which has not yet
+        settled when that coincident edge samples it, so every register stays
+        `x` for one more edge and the first vector reads `done` as `x`
+        (measured, issue #179). Settling onto a falling edge first gives the
+        assertion half a period of set-up and one zeroize edge then clears the
+        core at BOTH levels -- so the single-edge claim this bench makes about
+        zeroize is unchanged, and is now shown on the netlist too.
+        """
         d = self.dut
         d.start.value = 0
         d.decrypt.value = 0
         d.block_in.value = 0
         d.key_in.value = 0
+        await FallingEdge(d.clk)
         d.zeroize.value = 1
         await RisingEdge(d.clk)
         await FallingEdge(d.clk)
