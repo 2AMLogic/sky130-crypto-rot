@@ -211,3 +211,22 @@ def test_gate_template_runs_the_same_bench_and_toplevel_as_the_rtl_request(templ
     assert gate["engine"] == rtl["engine"] == "icarus"
     assert gate["options"]["random_seed"] == rtl["options"]["random_seed"]
     assert gate["options"]["timescale"] == rtl["options"]["timescale"]
+
+
+def test_an_empty_run_list_refuses_the_run():
+    """Everything excluded would pass a naive coverage check and run nothing."""
+    bench = REPO / "verification/rtl/aes/test_aes_core.py"
+    out = run_snippet("_GATE_COVERAGE_PY", str(bench), "", "test_aes_core=all of it")
+    assert out.returncode != 0 and "proves nothing" in out.stderr
+
+
+def test_gate_level_without_a_testcase_list_names_the_contract(tmp_path):
+    """GATE_LEVEL=1 with no GATE_TESTCASES must explain itself, not die on set -u."""
+    script = tmp_path / "drive.sh"
+    script.write_text(
+        "set -euo pipefail\n"
+        'HERE="%s/verification/rtl/aes"\nNAME=aes\nGATE_LEVEL=1\n'
+        'source "%s/flow/common/core_flow.sh"\ncore_flow_gate\n' % (REPO, REPO))
+    done = subprocess.run(["bash", str(script)], capture_output=True, text=True)
+    assert done.returncode == 2
+    assert "GATE_TESTCASES names no testcase" in done.stderr

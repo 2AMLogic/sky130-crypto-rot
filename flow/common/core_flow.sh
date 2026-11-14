@@ -201,6 +201,9 @@ import re, sys
 bench, run_names, excluded = sys.argv[1:4]
 found = set(re.findall(r"@cocotb\.test\(\)\s*\n\s*async def (\w+)", open(bench).read()))
 run = set(run_names.split())
+if not run:
+    raise SystemExit("gate-level: GATE_TESTCASES is empty -- a gate-level run with "
+                     "no testcase in it proves nothing about the netlist")
 skip = {}
 for entry in excluded.split("\n"):
     entry = entry.strip()
@@ -241,6 +244,12 @@ print("gate-level testcase coverage: run " + " ".join(sorted(run)) +
 # is what makes a non---gate-level record say no gate-level simulation was run.
 core_flow_gate() {
   local tc req
+  if [ -z "${GATE_TESTCASES:-}" ]; then
+    echo "error: GATE_LEVEL=1 but GATE_TESTCASES names no testcase." >&2
+    echo "  A core's run.sh sets both: which testcases run at gate level, and" >&2
+    echo "  (in GATE_EXCLUDED, as <name>=<reason>) which do not and why." >&2
+    exit 2
+  fi
   echo "== gate-level simulation (same bench, sky130_fd_sc_hd netlist, FUNCTIONAL + UNIT_DELAY #1, no SDF) =="
   python3 -c "${_GATE_COVERAGE_PY}" \
     "${HERE}/$(_json_line "${HERE}/sim-request.json" 'd["testbench"]["module"]').py" \
