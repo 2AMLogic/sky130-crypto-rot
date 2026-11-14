@@ -15,7 +15,10 @@
 # they reached is recorded, which is not a failure; a counterexample is.
 #
 # Knobs (environment): PDK_ROOT, P1_DEPTH_RTL (24), P1_DEPTH_NET (10), P1_TIMEOUT_S (1500),
-# P6_NET_DEPTH (2), PROVE_DEPTH (16). Solver runs are single-threaded, one at a time.
+# P6_NET_DEPTH (2), PROVE_DEPTH (16; P-5 only -- p6.sby fixes its own RTL and
+# negative-control depths). Solver runs are single-threaded, one at a time.
+# The record's Depth column is not taken from these knobs: make_record.py reads each
+# run's depth from the config.sby sby wrote into that run's work directory (issue #165).
 
 set -euo pipefail
 
@@ -156,12 +159,8 @@ for t in cover neg_rtl neg_net rtl net; do sby_run p1.sby "$t"; done
 
 # ---- 4. verdict (and record) ----------------------------------------------------------
 cd "${REPO_ROOT}"
-if [ "${RECORD}" = 1 ]; then
-  python3 "${HERE}/make_record.py" --stage "${STAGE}" --pdk-root "${PDK_ROOT}" \
-    --p1-depth-rtl "${P1_DEPTH_RTL}" --p1-depth-net "${P1_DEPTH_NET}" \
-    --prove-depth "${PROVE_DEPTH}" --p6-net-depth "${P6_NET_DEPTH}"
-else
-  python3 "${HERE}/make_record.py" --stage "${STAGE}" --pdk-root "${PDK_ROOT}" --check-only \
-    --p1-depth-rtl "${P1_DEPTH_RTL}" --p1-depth-net "${P1_DEPTH_NET}" \
-    --prove-depth "${PROVE_DEPTH}" --p6-net-depth "${P6_NET_DEPTH}"
-fi
+CHECK_ONLY=""
+[ "${RECORD}" = 1 ] || CHECK_ONLY="--check-only"
+# ${CHECK_ONLY} is deliberately unquoted: it is empty or the single flag (as ${task} in
+# sby_run above). The generator takes no depths -- it reads them from the runs.
+python3 "${HERE}/make_record.py" --stage "${STAGE}" --pdk-root "${PDK_ROOT}" ${CHECK_ONLY}
