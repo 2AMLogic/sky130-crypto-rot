@@ -13,7 +13,8 @@
 # expectation, which for its reach_*/neg_* tasks means FAILING.
 #
 # Records this covers: sha256-core-sim-synth, aes-core-sim-synth, drbg-sim-synth,
-# hmac-sha256-sim-synth, keyladder-sim-synth, trng-if-sim, drbg-trng-formal.
+# hmac-sha256-sim-synth, keyladder-sim-synth, crypto-rot-top-sim, trng-if-sim,
+# drbg-trng-formal.
 #
 # Records this does NOT cover, and why:
 #   * keyladder-formal -- verification/formal/keyladder/run.sh. Its bounded
@@ -49,7 +50,7 @@ cd "${REPO_ROOT}"
 .venv/bin/python verification/check_reuse.py
 .venv/bin/python -m pytest verification/test_check_reuse.py
 
-for core in sha256 aes drbg hmac keyladder trng_if; do
+for core in sha256 aes drbg hmac keyladder crypto_rot_top trng_if; do
   if [ "${core}" = sha256 ]; then
     ./verification/rtl/sha256/run.sh --million-a
   else

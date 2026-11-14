@@ -1,0 +1,27 @@
+{
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "../../../rtl/sha256/sha256_core.v",
+    "../../../rtl/hmac/hmac_sha256.v",
+    "../../../rtl/keyladder/keyladder.v",
+    "../../../rtl/aes/aes_core.v",
+    "../../../rtl/drbg/ctr_drbg.v",
+    "../../../rtl/trng_if/trng_if.v",
+    "../../../rtl/drbg/drbg_top.v",
+    "../../../rtl/crypto_rot_top.v",
+    "tb_top.v"
+  ],
+  "hdl_toplevel": "tb_top",
+  "testbench": {
+    "module": "test_crypto_rot_top"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": [
+      "1ns",
+      "1ps"
+    ],
+    "random_seed": 1
+  }
+}
