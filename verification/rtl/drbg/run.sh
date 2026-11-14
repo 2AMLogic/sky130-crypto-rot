@@ -55,19 +55,19 @@ summary_line() { grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" | head -1 || true; }
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each corrupted build MUST fail =="
   DRBG_BENCH_MODE=shipped core_flow_negctl_one \
-    sim-negctl-df-request.json negctl-df.json \
+    sim-request.json DRBG_NEG_DF negctl-df.json \
     "negative control (K0 bit flipped in the df):" "${NEG_EVIDENCE}" \
     "K0 bit flipped in the df" "${BENCH_LOG}"
   DRBG_BENCH_MODE=shipped core_flow_negctl_one \
-    sim-negctl-upd-request.json negctl-upd.json \
+    sim-request.json DRBG_NEG_UPD negctl-upd.json \
     "negative control (one bit of V flipped in Update):" "${NEG_EVIDENCE}" \
     "one bit of V flipped in Update" "${BENCH_LOG}"
   DRBG_BENCH_MODE=shipped core_flow_negctl_one \
-    sim-negctl-interval-request.json negctl-interval.json \
+    sim-request.json DRBG_NEG_INTERVAL negctl-interval.json \
     "negative control (one request too many before RESEED_REQUIRED):" "${NEG_EVIDENCE}" \
     "one request too many before RESEED_REQUIRED" "${BENCH_LOG}"
   DRBG_BENCH_MODE=cavp core_flow_negctl_one \
-    sim-negctl-cavp-request.json negctl-cavp.json \
+    sim-cavp-request.json DRBG_NEG_UPD negctl-cavp.json \
     "negative control (CAVP replay with Update corrupted):" "${NEG_EVIDENCE}" \
     "the CAVP replay with Update corrupted" "${BENCH_LOG}"
   exit 0

@@ -34,7 +34,7 @@ done
 core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
 
 core_flow_setup
-[ "${NEG}" = 1 ] && core_flow_negctl "AES_NEG_CTRL flips one S-box output bit" "S-box"
+[ "${NEG}" = 1 ] && core_flow_negctl AES_NEG_CTRL "flips one S-box output bit" "S-box"
 
 core_flow_sim
 core_flow_finish "${SIM_ONLY}" "${RECORD}"
