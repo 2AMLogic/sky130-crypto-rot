@@ -318,7 +318,7 @@
         "role": "testbench",
         "path": "verification/rtl/trng_if/test_sys.py",
         "passed": true,
-        "content_hash": "sha256:f82638b87fd5b2d6da7d6db0c2728525d4e4ee5ab56d59c9dc99bdf43b3cf65b"
+        "content_hash": "sha256:048404bd0061f79a16e6d837f70a4d8ba1eefe365dc16f74006523fdf2a33358"
       },
       {
         "check": "present",
