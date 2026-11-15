@@ -15,7 +15,8 @@ ratified. [`rtl/README.md`](rtl/README.md) is the maintained list of which RTL
 blocks exist and which script verifies each; what has a recorded result is
 [`verification/records/`](verification/records/), and
 [`scripts/cold-start-benches.sh`](scripts/cold-start-benches.sh) is the one
-command that runs the benches behind those records. The top-level integration,
+command that runs the benches behind those records, and
+[`docs/roadmap.md`](docs/roadmap.md) is the plan and its reasons. The top-level integration,
 the register interface, layout, DRC and LVS have no committed result yet.
 
 **Built agent-native.** Every specification, decision record, testbench, and
