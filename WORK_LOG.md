@@ -5,6 +5,11 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-15
 
+- **PR #209**: fix(verification): trng_if record names the real skip flag; cite spec 3.4
+- **Issue #202** (closed): trng_if bench: wrong spec cross-reference (3.2 should be 3.4) and a --skip-real record naming the wrong skip flag
+- **PR #205**: formal: re-prove P-7/P-8/P-9 on the klt synthesize sky130_fd_sc_hd netlist (run.sh --netlist)
+- **Issue #177** (closed): Re-prove P-7, P-8 and P-9 on the synthesized netlist: the spec marks all three netlist-provable and the record covers RTL only
+- **Issue #169** (closed): Live run of verification/formal/keyladder/run.sh to confirm #165's depth reader against real sby work directories
 - **PR #201**: refactor(rtl): drop the never-driven ack_q declaration from drbg_top
 - **PR #190**: feat(verification): simulate the pinned TRNG sibling at its own parameters
 - **Issue #192** (closed): Remove the dead ack_q register from drbg_top.v: declared beside two live flops, never driven or read since its first commit
