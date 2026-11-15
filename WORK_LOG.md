@@ -5,6 +5,10 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-15
 
+- **PR #201**: refactor(rtl): drop the never-driven ack_q declaration from drbg_top
+- **PR #190**: feat(verification): simulate the pinned TRNG sibling at its own parameters
+- **Issue #192** (closed): Remove the dead ack_q register from drbg_top.v: declared beside two live flops, never driven or read since its first commit
+- **Issue #180** (closed): Run drbg_top against sky130-trng's RTL at its unshortened parameters: the real-sibling bench shortens start-up and the conditioner block
 - **PR #200**: refactor(verification): parse setup-env.sh's pin block once, in record_lib.parse_pins
 - **Issue #189** (closed): Collapse the two parsers of setup-env.sh's pin block: record_lib.pin() ignores the block bounds, and the pin-name list is hand-copied three ways
 
