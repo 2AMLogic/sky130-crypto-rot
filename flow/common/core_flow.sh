@@ -29,10 +29,46 @@ core_flow_setup() {
   cd "${HERE}"
 }
 
-# core_flow_negctl_one <request> <json name> <result label> <grep pattern> \
-#                      <what the bench wrongly passed> [evidence file]
+# core_flow_negctl_request <base request> <define> -- the base request document
+# with <define> added to options.defines (value null, as `-D<define>` would),
+# on stdout. An empty <define> yields the base document unchanged.
 #
-# Runs one corrupted build and demands TWO things of it: `klt` must exit
+# This is what makes a negative control a control. A control is only evidence
+# if it runs the SAME bench on the SAME sources as the positive run with
+# exactly one fault injected, and until issue #161 that held only by hand: each
+# control had its own tracked copy of the positive request, so a source added
+# to sim-request.json and not to its copies left a control that failed for an
+# unrelated reason (a missing module) and was still counted as "caught".
+# Deriving the control from the positive request makes "same bench, one fault"
+# true by construction. verification/rtl/trng_if/mk_req.py reached the same
+# conclusion from the other direction (issue #136).
+core_flow_negctl_request() {
+  python3 -I -c 'import json, sys
+doc = json.load(open(sys.argv[1]))
+if sys.argv[2]:
+    doc.setdefault("options", {}).setdefault("defines", {})[sys.argv[2]] = None
+json.dump(doc, sys.stdout, indent=2)' "${1}" "${2}"
+}
+
+# core_flow_negctl_one <base request> <define> <json name> <result label> \
+#                      <grep pattern> <what the bench wrongly passed> \
+#                      [evidence file]
+#
+# Derives <base request> + <define> (above) and feeds it to `klt` on stdin, so
+# the corrupted request is never a file in the tree. Relative `sources` paths
+# in a stdin request resolve against the working directory and `klt` writes its
+# artifacts there too -- verified against the pinned klayout-tools 0.8.0 -- and
+# core_flow_setup has already `cd`-ed to the bench's own directory, which is
+# what the tracked request files resolved against. A caller that runs these
+# steps from anywhere else must pass <base request> and <evidence file> to
+# match. The derived document is also written to ${OUT} so a failing run can be
+# read back; nothing reads it, and it is build scratch, not tracked evidence.
+#
+# An empty <define> runs <base request> unchanged: verification/rtl/trng_if
+# generates its requests with the fault already in them (mk_req.py), so it
+# needs the evidence discipline below without the derivation.
+#
+# Demands TWO things of the run: `klt` must exit
 # non-zero, AND <grep pattern> must match in <evidence file> -- the bench's own
 # report of the failure it caught. A non-zero `klt` exit on its own is not
 # evidence: a build that never elaborated (a missing source, a renamed define,
@@ -53,28 +89,36 @@ core_flow_setup() {
 # rest -- one uncaught fault already fails the run, and stopping leaves that
 # control as the last thing printed. Every caller chains on this helper.
 core_flow_negctl_one() {
-  local evidence="${6:-.klt/functional-verification/results_icarus.xml}"
-  local caught
-  rm -f "${evidence}"
-  if klt functional-verification "${1}" --format json > "${OUT}/${2}"; then
-    echo "FAIL: the bench passed with ${5}" >&2
+  local evidence="${7:-.klt/functional-verification/results_icarus.xml}"
+  local request caught
+  # Not `local request=$(...)`: that would discard the generator's exit status.
+  if ! request="$(core_flow_negctl_request "${1}" "${2}")"; then
+    echo "FAIL: could not derive ${1}${2:+ + ${2}} -- the control never ran" >&2
     exit 1
   fi
-  caught="$(grep -o "${4}" "${evidence}" 2>/dev/null | head -1 || true)"
+  printf '%s\n' "${request}" > "${OUT}/${3%.json}-request.json"
+  rm -f "${evidence}"
+  if printf '%s\n' "${request}" \
+      | klt functional-verification - --format json > "${OUT}/${3}"; then
+    echo "FAIL: the bench passed with ${6}" >&2
+    exit 1
+  fi
+  caught="$(grep -o "${5}" "${evidence}" 2>/dev/null | head -1 || true)"
   if [ -z "${caught}" ]; then
-    echo "FAIL: ${5}: klt exited non-zero but ${evidence} reports no caught" \
+    echo "FAIL: ${6}: klt exited non-zero but ${evidence} reports no caught" \
          "failure -- the build, not the bench, may have failed" >&2
     exit 1
   fi
-  _json_line "${OUT}/${2}" '"'"${3}"'", d["status"], "(expected fail)"'
+  _json_line "${OUT}/${3}" '"'"${4}"'", d["status"], "(expected fail)"'
   echo "${caught}"
 }
 
-# core_flow_negctl <what is corrupted> <noun> -- exit 0 only if the bench catches it.
+# core_flow_negctl <define> <what it corrupts> <noun> -- exit 0 only if the
+# bench catches it. The one-control shape: sim-request.json plus <define>.
 core_flow_negctl() {
-  echo "== negative control: ${1}; the bench must fail =="
-  core_flow_negctl_one sim-negctl-request.json negctl.json "negative control:" \
-    'first failing vector: [^&]*' "a corrupted ${2}"
+  echo "== negative control: ${1} ${2}; the bench must fail =="
+  core_flow_negctl_one sim-request.json "${1}" negctl.json "negative control:" \
+    'first failing vector: [^&]*' "a corrupted ${3}"
   exit 0
 }
 

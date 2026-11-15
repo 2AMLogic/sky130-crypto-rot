@@ -11,6 +11,10 @@ Reads the SymbiYosys work directories and the P-2 cone results under --stage. Fa
   * the bounded module-boundary P-1 runs PASS to their depth or stop at the time limit
     (the depth reached is recorded); a counterexample or error is a failure.
 
+Every depth in the record is read from the `config.sby` that sby wrote into the run's
+own work directory, so the Depth column is the configuration that ran rather than a
+value passed in beside it (issue #165). A run whose config.sby names no depth fails.
+
 With no --check-only it also writes an append-only record under
 verification/records/keyladder-formal/records/. Standard library only.
 """
@@ -58,10 +62,48 @@ EXPECT = {
 CONES = {"rtl": "pass", "net": "pass", "rtl_slotpath": "fail", "net_slotpath": "fail"}
 
 
+def sby_depth(d: Path) -> int | None:
+    """The depth SymbiYosys actually ran this task at, from its own work directory.
+
+    sby writes the resolved per-task configuration it executed to `<d>/config.sby`,
+    with the `[tasks]` prefixes already applied, next to the `status` and
+    `logfile.txt` this module already reads. Taking `depth` from there is what makes
+    the record's Depth column the configuration that ran (issue #165).
+
+    Parsed the way sby's own `[options]` reader parses it: trailing `#` comments
+    stripped, blank and comment lines skipped, last assignment wins.
+
+    Returns None when the file or the option is absent. sby's own default depth (20)
+    is deliberately NOT assumed: a record must state the depth that ran, and no run
+    in this flow is configured at that default, so a missing value is a broken run
+    rather than a 20. judge() fails such a run.
+    """
+    cfg = d / "config.sby"
+    if not cfg.exists():
+        return None
+    depth, section = None, None
+    for raw in cfg.read_text().splitlines():
+        m = re.match(r"^\s*\[(.*)\]\s*$", raw)
+        if m:
+            head = m.group(1).strip().split()
+            section = head[0] if head else None
+            continue
+        if section != "options":
+            continue
+        line = re.sub(r"\s*(\s#.*)?$", "", raw)
+        if not line or line.startswith("#"):
+            continue
+        entries = line.split(maxsplit=1)
+        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
+            depth = int(entries[1])
+    return depth
+
+
 def collect(stage: Path, sby: str, task: str) -> dict:
     d = stage / (sby if sby == "cover" else f"{sby}_{task}")
     r = {"sby": sby, "task": task, "status": "MISSING", "elapsed_s": None, "steps_checked": None,
-         "induction_step": None, "cex_step": None, "trace": None, "covers": None}
+         "induction_step": None, "cex_step": None, "trace": None, "covers": None,
+         "depth": sby_depth(d)}
     st = d / "status"
     if not st.exists():
         return r
@@ -88,6 +130,8 @@ def collect(stage: Path, sby: str, task: str) -> dict:
 def judge(res: dict) -> tuple[bool, str]:
     exp = EXPECT[(res["sby"], res["task"])]
     s = res["status"]
+    if s != "MISSING" and res["depth"] is None:
+        return False, f"{s}, but the run's config.sby names no depth: the Depth column cannot be filled"
     if exp == "PASS":
         return s == "PASS", f"expected PASS, got {s}"
     if exp == "FAIL":
@@ -100,10 +144,6 @@ def main() -> int:
     ap.add_argument("--stage", type=Path, required=True)
     ap.add_argument("--pdk-root", type=Path, required=True)
     ap.add_argument("--check-only", action="store_true")
-    ap.add_argument("--p1-depth-rtl", type=int, required=True)
-    ap.add_argument("--p1-depth-net", type=int, required=True)
-    ap.add_argument("--prove-depth", type=int, required=True)
-    ap.add_argument("--p6-net-depth", type=int, required=True)
     args = ap.parse_args()
     st = args.stage
 
@@ -160,8 +200,9 @@ def main() -> int:
     wasm = versions["yosys_wasm"]
     meta_extra = {"tool_versions": versions}
 
-    def row(sby, task, what, mode, depth):
+    def row(sby, task, what, mode):
         r = runs[(sby, task)]
+        depth = r["depth"]
         if r["status"] == "PASS":
             how = []
             if r["induction_step"] is not None:
@@ -176,22 +217,21 @@ def main() -> int:
         t = f"{r['elapsed_s']} s" if r["elapsed_s"] is not None else "n/a"
         return f"| {what} | {mode} | {depth} | {res} | {t} |"
 
-    P = args.prove_depth
     rows = [
-        row("p5", "rtl", "P-5 on RTL", "prove (BMC + k-induction), abstract HMAC", P),
-        row("p5", "net", "P-5 on netlist", "prove, abstract HMAC", P),
-        row("p5", "neg_rtl", "P-5 negative control, RTL (mask check dropped)", "prove", P),
-        row("p5", "neg_net", "P-5 negative control, netlist from the mutant", "prove", P),
-        row("p6", "rtl", "P-6 on RTL", "prove, abstract HMAC", P),
-        row("p6", "net", "P-6 on netlist", "prove, abstract HMAC", args.p6_net_depth),
-        row("p6", "neg_rtl", "P-6 negative control, RTL (lock check dropped)", "prove", P),
-        row("p6", "neg_net", "P-6 negative control, netlist from the mutant", "prove", P),
-        row("cover", "cover", "P-5/P-6 non-vacuity covers (RTL)", "cover", 80),
-        row("p1", "cover", "P-1 product non-vacuity covers", "cover", 32),
-        row("p1", "rtl", "P-1 module boundary on RTL (real HMAC/SHA-256)", "bmc", args.p1_depth_rtl),
-        row("p1", "net", "P-1 module boundary on netlist", "bmc", args.p1_depth_net),
-        row("p1", "neg_rtl", "P-1 negative control, RTL (slot -> busy path)", "bmc", 32),
-        row("p1", "neg_net", "P-1 negative control, netlist from the mutant", "bmc", 32),
+        row("p5", "rtl", "P-5 on RTL", "prove (BMC + k-induction), abstract HMAC"),
+        row("p5", "net", "P-5 on netlist", "prove, abstract HMAC"),
+        row("p5", "neg_rtl", "P-5 negative control, RTL (mask check dropped)", "prove"),
+        row("p5", "neg_net", "P-5 negative control, netlist from the mutant", "prove"),
+        row("p6", "rtl", "P-6 on RTL", "prove, abstract HMAC"),
+        row("p6", "net", "P-6 on netlist", "prove, abstract HMAC"),
+        row("p6", "neg_rtl", "P-6 negative control, RTL (lock check dropped)", "prove"),
+        row("p6", "neg_net", "P-6 negative control, netlist from the mutant", "prove"),
+        row("cover", "cover", "P-5/P-6 non-vacuity covers (RTL)", "cover"),
+        row("p1", "cover", "P-1 product non-vacuity covers", "cover"),
+        row("p1", "rtl", "P-1 module boundary on RTL (real HMAC/SHA-256)", "bmc"),
+        row("p1", "net", "P-1 module boundary on netlist", "bmc"),
+        row("p1", "neg_rtl", "P-1 negative control, RTL (slot -> busy path)", "bmc"),
+        row("p1", "neg_net", "P-1 negative control, netlist from the mutant", "bmc"),
     ]
     cone_rows = []
     for name, label in (("rtl", "RTL"), ("net", "synthesized netlist"),
@@ -203,7 +243,20 @@ def main() -> int:
 
     p1r, p1n = runs[("p1", "rtl")], runs[("p1", "net")]
 
-    def p1_state(r, depth):
+    def shared_depth(*keys) -> str:
+        """The depth shared by several runs, for prose that names a single number.
+
+        Distinct values are all listed rather than collapsed to one, so a per-task
+        depth added to a .sby file later cannot leave this sentence claiming a depth
+        that only some of the runs it names actually used.
+        """
+        return " / ".join(str(x) for x in sorted({runs[k]["depth"] for k in keys}))
+
+    p5_depth = shared_depth(("p5", "rtl"), ("p5", "net"))
+    p6_net_depth = runs[("p6", "net")]["depth"]
+
+    def p1_state(r):
+        depth = r["depth"]
         if r["status"] == "PASS":
             return f"no non-key-output difference in steps 0..{depth} (BMC depth {depth} completed)"
         return (f"time limit reached: no difference in steps 0..{r['steps_checked'] - 1}; "
@@ -211,7 +264,7 @@ def main() -> int:
 
     body = f"""- **Claim**: bounded formal results for `rtl/keyladder/keyladder.v` (issue #56), and nothing beyond the depths and abstractions stated here. Rows are labelled with the `spec/key-isolation-properties.md` property they address. No security, certification or side-channel claim is made.
 - **Design provenance**: P-5/P-6: RTL, and the `keyladder` module of the `klt synthesize` sky130_fd_sc_hd netlist (liberty corner `tt_025C_1v80`, pre-P&R) read through the PDK liberty functional models (`read_liberty -ignore_miss_func`); the netlist cells are modelled by Yosys from the liberty `function`/`ff` groups, no hand-written cell models. P-2 and P-1: RTL, and the full synthesized netlist.
-- **Run configuration**: `./scripts/setup-env.sh` then `./verification/formal/keyladder/run.sh --record`. Engine `smtbmc z3`, single solver, no portfolio. P-1 bounded depths configured: RTL {args.p1_depth_rtl}, netlist {args.p1_depth_net}.
+- **Run configuration**: `./scripts/setup-env.sh` then `./verification/formal/keyladder/run.sh --record`. Engine `smtbmc z3`, single solver, no portfolio. P-1 bounded depths configured: RTL {p1r["depth"]}, netlist {p1n["depth"]}.
 - **Property text**: P-5, P-6 and the covers are `{HERE}/props_slots.vh`, spliced unchanged into a generated COPY of `keyladder.v` (and of the netlist's `keyladder` module); `gen.py` checks the splice is a pure insertion. `rtl/keyladder/keyladder.v` is not modified. Registers named by the properties (`s0..s3 v0..v3 m0..m3 l0..l3 d0..d3 state dst par_root par_sel`) survive synthesis as named wires, so one text covers both.
 - **Abstraction (P-5, P-6 only)**: `hmac_sha256` is replaced by `hmac_abstract.v`, whose every output is an unconstrained per-cycle input. Any behaviour of the real core is a behaviour of the stand-in, and these two properties constrain only the ladder's own registers, so a proof over the stand-in holds for the real core. The run starts in the post-reset state (every register named above at its reset value; the HMAC/SHA-256 datapath free).
 
@@ -221,11 +274,11 @@ def main() -> int:
 |---|---|---|---|---|
 {chr(10).join(rows)}
 
-"Induction closed (smtbmc tried steps N..M)" is the solver's own log line (the last "Trying induction in step" before "Temporal induction successful"); the BMC base case of the same run is configured to the depth in the Depth column. The P-6 netlist run is configured at depth {args.p6_net_depth} because its BMC base case grows steeply beyond about 11 steps on the mapped design (a run at depth 16 was stopped by hand at step 12 after more than five minutes in that step); its proof rests on the induction, which closes with the invariants below. P-6 on RTL also closes at induction depth 1 (checked by hand at depths 1, 2, 3).
+"Induction closed (smtbmc tried steps N..M)" is the solver's own log line (the last "Trying induction in step" before "Temporal induction successful"); the BMC base case of the same run is configured to the depth in the Depth column. The P-6 netlist run is configured at depth {p6_net_depth} because its BMC base case grows steeply beyond about 11 steps on the mapped design (a run at depth 16 was stopped by hand at step 12 after more than five minutes in that step); its proof rests on the induction, which closes with the invariants below. P-6 on RTL also closes at induction depth 1 (checked by hand at depths 1, 2, 3).
 
 ### P-5 (slot used only if the use-mask bit is set at the time of use)
 
-Statement (`props_slots.vh`, `-DP5`): `hmac_key != 0` implies `hmac_req`, the slot valid, and mask bit 2; `aes_key != 0` implies `aes_req`, the slot valid and mask bit 1 (decrypt) or 0 (encrypt); in the START state with a slot parent, the parent is valid with mask bit 3 (KDF-parent). Proven at BMC depth {P} plus induction, on RTL and on the netlist (rows above). It needs no strengthening invariant: the statement is combinational over the current state.
+Statement (`props_slots.vh`, `-DP5`): `hmac_key != 0` implies `hmac_req`, the slot valid, and mask bit 2; `aes_key != 0` implies `aes_req`, the slot valid and mask bit 1 (decrypt) or 0 (encrypt); in the START state with a slot parent, the parent is valid with mask bit 3 (KDF-parent). Proven at BMC depth {p5_depth} plus induction, on RTL and on the netlist (rows above). It needs no strengthening invariant: the statement is combinational over the current state.
 
 ### P-6 (locked slot cannot be written or have its mask changed until zeroize/reset)
 
@@ -244,8 +297,8 @@ Structural cone-of-influence check (`cone.py`) on the flattened design: bit-leve
 Two copies of `keyladder` share every input except the key material (`root_key`, `ld_data`; `cmd_ctx` is the 0003 public user_context and is shared); asserted: every output other than `hmac_key`/`aes_key` is equal in both copies in every cycle from the first post-reset cycle. The first cycle of the product is a reset (`p1_product.v` assumes `rst_n` low there), and every register of `keyladder`, `hmac_sha256` and `sha256_core` is assigned in a synchronous reset branch, so no register is free from the first post-reset cycle on. The cycle before that edge, where both copies' registers are free and independent, is outside the assertion. The real HMAC and SHA-256 core are in the product (no abstraction).
 
 - **Longest operation**: one root derivation takes {latency} clock cycles from the command to `done_pulse` (Icarus, `latency_tb.v`; +-1 for the edge convention). The earlier curation estimate was "at least 260" (the HMAC's hash work alone); the measured figure includes the byte-serial feed.
-- **RTL**: {p1_state(p1r, args.p1_depth_rtl)}.
-- **Netlist**: {p1_state(p1n, args.p1_depth_net)}.
+- **RTL**: {p1_state(p1r)}.
+- **Netlist**: {p1_state(p1n)}.
 - **Not proven**: a derivation (about {latency} cycles) is NOT covered by the bounded runs above unless a configured depth reached {latency}; per the spec's Open question 1 the property stays at the depth reached. No induction claim is made for P-1: it would need the equality of every control register of both copies as a strengthening invariant, which was not attempted.
 - **Structural complement, not a substitute for the bounded result**: the P-2 cone check above also finds none of the key inputs, slot registers, HMAC K0/inner or SHA-256 datapath registers in the sequential fan-in of any non-key output. A non-key output is therefore a function of non-key inputs and non-key registers only, at every depth; this is a conservative sufficient condition and does not by itself show that the registers in those cones start equal in two runs (the bounded run covers reset-to-depth). Reading it as the unbounded P-1 would go beyond the evidence in two ways it does not close: register initial values without reset, and the soundness of the flattening/liberty modelling used here.
 - **Bus-level P-1** (`dat_o`/`ack`/`err`/`irq`) needs the bus front end and is issue #46's; it is not claimed here.
