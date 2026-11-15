@@ -25,17 +25,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=sha256
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; MILLION=0; NEG=0; SIM_ONLY=0
-for arg in "$@"; do
-  case "${arg}" in
-    --record) RECORD=1 ;;
-    --million-a) MILLION=1 ;;
-    --negative-control) NEG=1 ;;
-    --sim-only) SIM_ONLY=1 ;;
-    *) echo "unknown option: ${arg}" >&2; exit 2 ;;
-  esac
-done
-core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
+MILLION=0; CORE_FLOW_EXTRA_OPTS="--million-a:MILLION"
+core_flow_parse_opts "$@"
 
 core_flow_setup
 if [ "${NEG}" = 1 ]; then
