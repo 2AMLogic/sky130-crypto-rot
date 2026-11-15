@@ -4,7 +4,7 @@
 and a CTR_DRBG seeded from `sky130-trng`) from a ratified spec toward DRC/LVS-clean sky130 GDS with
 an open flow, and its hard part is proving key isolation on the netlist rather than only in RTL.
 
-Status as of 2026-11-13, `main` @ `522931b`.
+Status as of 2026-11-15, `main` @ `a1b3ae1`.
 
 `WORK_PLAN.md` is the machine-generated view of label state and `WORK_LOG.md` the merge history;
 this file is the plan and its reasons. The verdict of record is
@@ -17,8 +17,8 @@ On the README's maturity ladder the block is at the **algorithm-core rung**, wit
 rung partly recorded and nothing beyond it claimed.
 
 - **Spec ratified for v1**: `spec/target-spec.md`, `spec/trng-interface.md`,
-  `spec/key-isolation-properties.md`, decision records 0001-0008. It defines no register map yet
-  (#89).
+  `spec/key-isolation-properties.md`, decision records 0001-0009. The register map is specified
+  (#89); the register RTL is not yet.
 - **Six RTL blocks, each with a bench, negative controls and a record** (`rtl/README.md`,
   `verification/records/`): `sha256_core`, `hmac_sha256`, `aes_core`, `keyladder`, `ctr_drbg` (+
   `drbg_top`), `trng_if`. Each sim+synth record is RTL simulation plus one `klt synthesize` run at
@@ -50,24 +50,24 @@ rung partly recorded and nothing beyond it claimed.
 | 10 Repo hygiene | met (attested; CI re-hashes both envelopes) | - |
 | 11 Power delivery | unmet | #53 |
 
-Since the cores landed (the last on 2026-10-29), most merged work has been on the evidence
+Since the last core was added (2026-10-27), most merged work has been on the evidence
 machinery: one record library, one bench driver, negative controls that must prove the fault was
 caught, and attestation envelopes that fail CI when they go stale.
 
 ## Now
 
-1. **Land the register map** (#89, PR #90). Done when `spec/decision-records/0009-register-map.md`
-   and its lint (`verification/check_regmap.py`, wired into `npm run check:ci`) are on `main`. The
-   PR has one content conflict (`package.json`) against a `main` that has moved well past its base,
-   and needs a fresh head so every check runs. This is the head of the whole T1 chain.
-2. **Remove the 12 hand-copied negative-control request files** (#161). Done when each
-   `--negative-control` run derives its request from the positive one and the item-9 envelope is
-   re-attested.
-3. **Finish the two record-accuracy changes in review**: PR #171 (#164, approved) and PR #170 (#165,
-   changes requested, CI failing). Done when both are merged; #169 (a live key-ladder formal run
-   confirming the depth reader) follows #165.
-4. **Bring the remaining hand-copied klayout-tools pins under `check_pins.py`** (#172). Done when
-   `npm run lint` fails on a mismatch in `signoff.yml` or `manifests/README.md`.
+1. **Land the register map** (#89, PR #90) — done: `spec/decision-records/0009-register-map.md`
+   and its lint (`verification/check_regmap.py`, wired into `npm run check:ci`) are on `main`
+   (PR #90 merged 2026-11-14). This was the head of the whole T1 chain; #87 down is unblocked.
+2. **Remove the 12 hand-copied negative-control request files** (#161) — done: each
+   `--negative-control` run derives its request from the positive one (PR #175, merged
+   2026-11-14) and the item-9 envelope is re-attested.
+3. **Finish the two record-accuracy changes in review** — done: PR #171 (#164) and PR #170 (#165)
+   are both merged (2026-11-14). #169 (a live key-ladder formal run confirming the depth reader),
+   which followed #165, is approved and open.
+4. **Bring the remaining hand-copied klayout-tools pins under `check_pins.py`** (#172) — done:
+   `npm run lint` now fails on a mismatch in `signoff.yml` or `manifests/README.md` (PR #184,
+   merged 2026-11-14).
 5. **Re-prove P-7, P-8 and P-9 on the synthesized netlist** (no issue; seed 1). Done when a
    `drbg-trng-formal` record carries a netlist row and a netlist negative control for each property,
    or records the depth reached.
@@ -98,7 +98,8 @@ gate-level simulation) that the top level will need anyway.
 - **Routed GDS** (#47) after #88; then **DRC** (#48), **LVS** (#49), **power delivery** (#53) and
   **corner verification** (#50) on that layout.
 - **Post-layout verification** (#82) and the **characterization report** (#83) after #47 and #50.
-- **Include the shared bench driver in the item-9 inventory** (#163), currently blocked.
+- **Include the shared bench driver in the item-9 inventory** (#163) — done (PR #175, merged
+  2026-11-14).
 
 ## Later
 
@@ -118,7 +119,7 @@ gate-level simulation) that the top level will need anyway.
 
 ## Blocked and waiting
 
-- Everything from #87 down the T1 chain waits on the register map (#89).
+- The register map (#89) landed, so nothing down the T1 chain waits on it; #87 is in progress.
 - Three scope-reduction proposals wait on a maintainer decision: #121 (drop the vendored tiers doc),
   #129 (unify the two formal harnesses), #134 (drop the three vendored `sky130-modexp` workaround
   files). #129 and #134 touch the formal and gate-level paths that Now items 5 and 7 use; whichever

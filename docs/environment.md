@@ -81,12 +81,19 @@ install `scripts/setup-env.sh` only probes for (see "Tools not pinned by
 | Tool | Status |
 |---|---|
 | Icarus Verilog | host install (`iverilog`); the version is recorded in each record. Observed: 13.0 |
-| OpenROAD | host install; only checked, not provisioned. Not used by the cocotb + Icarus benches or `klt synthesize`. Observed: `26Q3-1510-g6cb3f2b704` |
+| OpenROAD | host install; only checked, not provisioned. Consumed by `klt sta`, which shells out to it: the pre-layout setup-timing mode (`verification/rtl/aes/run.sh --timing`, `verification/rtl/sha256/run.sh --timing`, issue #178) is this repo's first committed flow that depends on it, and each timing record names the build from the response's own `engine`/`engine_version` fields. Observed: `26Q3-1510-g6cb3f2b704` |
 
-These are not content-pinned. A re-pin to a container digest or a built
-revision belongs with the first issue that depends on OpenROAD (place and
-route, STA). `klt sta` is likewise not run: it consumes a routed DEF, so it
-needs place-and-route, which is out of scope for this bring-up.
+These are not content-pinned. The deferred OpenROAD re-pin's trigger -- "the
+first issue that depends on OpenROAD (place and route, STA)" -- has now
+fired with the timing mode above; pinning it to a container digest or a
+built revision remains its own future decision, not part of that issue.
+
+`klt sta` does **not** need place-and-route on the pinned `klayout-tools`
+0.8.0: its DEF-free `verilog` mode times a structural netlist against
+liberty plus a clock constraint alone and labels the result
+`geometry_source: "netlist_estimate"`. Pre-layout setup timing (issue #178)
+uses that mode; routed-DEF timing still needs place-and-route and remains
+out of scope (#50).
 
 ## klt re-pin (2026-10-27)
 
