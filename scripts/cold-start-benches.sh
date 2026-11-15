@@ -13,13 +13,21 @@
 # expectation, which for its reach_*/neg_* tasks means FAILING.
 #
 # Records this covers: sha256-core-sim-synth, aes-core-sim-synth, drbg-sim-synth,
-# hmac-sha256-sim-synth, keyladder-sim-synth, trng-if-sim, drbg-trng-formal.
+# hmac-sha256-sim-synth, keyladder-sim-synth, trng-if-sim, and the RTL half of
+# drbg-trng-formal.
 #
 # Records this does NOT cover, and why:
 #   * keyladder-formal -- verification/formal/keyladder/run.sh. Its bounded
 #     module-boundary P-1 runs are allowed 1500 s each (P1_TIMEOUT_S), which
 #     exceeds the 1800 s `klt signoff --attest` allows one command. Run that
 #     bench by hand; its header gives the command.
+#   * drbg-trng-formal's netlist half -- `./verification/formal/run.sh
+#     --netlist` (issue #177). The netlist tasks synthesize six klt netlists
+#     (clean + four mutants + trng_if, needing the sky130A liberty at
+#     tt_025C_1v80) and then prove P-7/P-8/P-9 on the mapped design; their
+#     per-task solver cap is 1500 s, sized for a manual run, so the sum does
+#     not fit the 1800 s single-command limit beside the rest of this script.
+#     Run it by hand; run.sh's header gives the command.
 #   * smoke-synthesis-sim -- retired. Its bench (flow/smoke/) is no longer in
 #     the tree, so the record is history, not a reproducible claim.
 #   * independent-rerun -- not a bench of its own: re-runs of the flows above.
@@ -40,6 +48,14 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
+
+# klayout-tools#5780: yosys's abc pass deadlocks when the temp path is long
+# (yosys-abc's readline wraps the echoed `source' line and the protocol never
+# completes, and klt kills yosys at its 300 s watchdog). The ambient TMPDIR can
+# be long enough to trip that, and every synth step below goes through klt, so
+# run the whole cold start with a short temp directory.
+TMPDIR="$(mktemp -d /tmp/coldstartXXXXXX)"
+export TMPDIR
 
 ./scripts/setup-env.sh
 # pytest for the model and reuse checks; the same package CI installs.

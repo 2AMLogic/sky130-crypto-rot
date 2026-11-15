@@ -3,8 +3,29 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-15
+
+- **PR #201**: refactor(rtl): drop the never-driven ack_q declaration from drbg_top
+- **PR #190**: feat(verification): simulate the pinned TRNG sibling at its own parameters
+- **Issue #192** (closed): Remove the dead ack_q register from drbg_top.v: declared beside two live flops, never driven or read since its first commit
+- **Issue #180** (closed): Run drbg_top against sky130-trng's RTL at its unshortened parameters: the real-sibling bench shortens start-up and the conditioner block
+- **PR #200**: refactor(verification): parse setup-env.sh's pin block once, in record_lib.parse_pins
+- **Issue #189** (closed): Collapse the two parsers of setup-env.sh's pin block: record_lib.pin() ignores the block bounds, and the pin-name list is hand-copied three ways
+
 ### 2026-11-14
 
+- **PR #184**: feat(verification): check hand-copied klt version literals against KLT_VERSION
+- **PR #175**: refactor(verification): derive each negative control from its positive request
+- **PR #170**: refactor: read the keyladder formal record's Depth column from each run's config.sby
+- **PR #90**: spec: add register map decision record 0009 with table lint
+- **Issue #172** (closed): check_pins.py still leaves the klayout-tools pin hand-copied in signoff.yml and manifests/README.md
+- **Issue #165** (closed): Read the key-ladder formal record's Depth column from sby's config.sby: it is hand-copied five ways, and PROVE_DEPTH mislabels three P-6 rows
+- **Issue #163** (closed): manifests: item-9 inventory does not cover flow/common/core_flow.sh, the shared bench driver all six run.sh scripts source
+- **Issue #161** (closed): Remove the 12 hand-copied negative-control request files: each is its positive request plus one define, so derive them at run time
+- **Issue #89** (closed): Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
+- **PR #176**: docs: roadmap as of 2026-11-13
+- **PR #171**: feat(verification): check the item-9 inventory's pins against setup-env.sh and re-attest
+- **Issue #164** (closed): Bring the item-9 inventory's hand-copied tool pins under check_pins.py: its klayout-tools pin is still the git revision setup-env.sh dropped on 2026-10-27
 - **PR #162**: fix(verification): make every negative control prove the bench caught the fault
 - **Issue #151** (closed): Run the drbg, trng_if and sha256-scrub negative controls through core_flow_negctl_one: three hand-rolled copies remain, and the drbg one counts any klt failure as caught
 
