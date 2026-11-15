@@ -1,0 +1,67 @@
+# P-9 (a synchronized TRNG alarm zeroizes the DRBG Key/V + working registers,
+# the seed buffer and out_ready within two core cycles, and holds them zero) on
+# the klt-synthesized sky130_fd_sc_hd netlists of trng_if and ctr_drbg (issue
+# #177). fv_p9.v is never synthesized: it binds unchanged, because
+# gen_netlist.py rebuilds fv_zero/fv_alarm_s2 as ports of the netlist modules
+# from the surviving register wires (the synthesized modules have no fv_* port;
+# synthesis runs without FORMAL). net_neg_zeroize uses its own klt synthesize
+# run of the DRBG_NEG_ZEROIZE mutant; net_neg_bound and net_reach_nonzero are
+# wrapper-side defines and need no extra synthesis. Engines as in
+# net_p7_p8.sby.
+#   net_bmc           bounded: depth 30 from reset
+#   net_prove         unbounded (BMC + k-induction)
+#   net_neg_bound     must FAIL: the same claim one cycle too early (tight bound)
+#   net_reach_nonzero must FAIL: the registers can be non-zero (vacuity)
+#   net_neg_zeroize   must FAIL: netlist of the DRBG_NEG_ZEROIZE mutant
+[tasks]
+net_bmc
+net_prove
+net_neg_bound
+net_reach_nonzero
+net_neg_zeroize
+
+[options]
+aigsmt none
+timeout 1500
+net_bmc: mode bmc
+net_bmc: depth 30
+net_prove: mode prove
+net_prove: depth @NET_PROVE_DEPTH@
+net_neg_bound: mode bmc
+net_neg_bound: depth 12
+net_neg_bound: expect fail
+net_reach_nonzero: mode bmc
+net_reach_nonzero: depth 12
+net_reach_nonzero: expect fail
+net_neg_zeroize: mode bmc
+net_neg_zeroize: depth 12
+net_neg_zeroize: expect fail
+
+[engines]
+net_bmc: abc bmc3
+net_prove: abc pdr
+net_neg_bound: abc bmc3
+net_reach_nonzero: abc bmc3
+net_neg_zeroize: abc bmc3
+
+[script]
+net_bmc: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_prove: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_neg_bound: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_reach_nonzero: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_neg_zeroize: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_bmc: read_verilog -formal if_net_clean.v dut_net_clean.v fv_p9_net.v
+net_prove: read_verilog -formal if_net_clean.v dut_net_clean.v fv_p9_net.v
+net_neg_bound: read_verilog -formal -DP9_NEG_BOUND if_net_clean.v dut_net_clean.v fv_p9_net.v
+net_reach_nonzero: read_verilog -formal -DREACH_NONZERO if_net_clean.v dut_net_clean.v fv_p9_net.v
+net_neg_zeroize: read_verilog -formal if_net_clean.v dut_net_neg_zeroize.v fv_p9_net.v
+prep -top fv_p9
+async2sync
+dffunmap
+
+[files]
+if_net_clean.v
+dut_net_clean.v
+dut_net_neg_zeroize.v
+fv_p9_net.v
+sky130_fd_sc_hd.lib
