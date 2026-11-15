@@ -30,6 +30,12 @@ the `# --- pinned versions` line and the closing `# ----` rule):
 
 Stdlib only. Checks that the files agree with each other; it does not check
 the pins against what is installed or what upstream publishes.
+
+The pin block is parsed once per run, by parse_pins() in
+flow/common/record_lib.py -- the same parser the record generators' pin()
+resolves through, so the two readers cannot disagree (issue #189). main()
+does the single parse and owns the single "no pin block" refusal; the
+check() functions below take the parsed block as given.
 """
 import json
 import re
@@ -37,7 +43,13 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ASSIGN = re.compile(r'^([A-Z][A-Z0-9_]*)="([^"]*)"\s*$')
+
+# record_lib is stdlib-only, so importing it here keeps the no-venv lint path
+# importable: this file is run as a plain script by `npm run lint`, where
+# sys.path[0] is verification/ and flow/common is not on the path.
+sys.path.insert(0, str(REPO_ROOT / "flow/common"))
+
+import record_lib  # noqa: E402
 
 # (role, key) in the inventory's "pins" block -> constant in the pin block.
 # "icarus-verilog" is absent on purpose; see the module docstring.
@@ -75,32 +87,19 @@ KLT_LITERALS = (
 )
 
 
-def parse_pins(script_text):
-    """Return {NAME: value} from the pin block, or None if the block is absent."""
-    pins, in_block = {}, False
-    for line in script_text.splitlines():
-        if line.startswith("# --- pinned versions"):
-            in_block = True
-        elif in_block and line.startswith("# ----"):
-            return pins
-        elif in_block:
-            m = ASSIGN.match(line)
-            if m:
-                pins[m.group(1)] = m.group(2)
-    return None
-
-
 def pinned_section(doc_text):
     """Return the text of the "## Pinned versions" section, or None."""
     m = re.search(r"^## Pinned versions\s*$(.*?)(?=^## |\Z)", doc_text, re.S | re.M)
     return m.group(1) if m else None
 
 
-def check(script_path, doc_path):
-    """Return a list of error strings (empty when the pins agree)."""
-    pins = parse_pins(Path(script_path).read_text())
-    if not pins:
-        return [f"{script_path}: no pin block (or no assignments) found"]
+def check(pins, script_path, doc_path):
+    """Return a list of error strings (empty when the pins agree).
+
+    `pins` is record_lib.parse_pins() of `script_path`; main() has already
+    refused a run whose script has no pin block, so every checker below takes
+    the parsed block as given.
+    """
     section = pinned_section(Path(doc_path).read_text())
     if section is None:
         return [f"{doc_path}: no '## Pinned versions' section"]
@@ -111,11 +110,8 @@ def check(script_path, doc_path):
     ]
 
 
-def check_inventory(script_path, inventory_path):
+def check_inventory(pins, script_path, inventory_path):
     """Return a list of error strings (empty when the inventory's pins agree)."""
-    pins = parse_pins(Path(script_path).read_text())
-    if not pins:
-        return [f"{script_path}: no pin block (or no assignments) found"]
     declared = json.loads(Path(inventory_path).read_text()).get("pins")
     if not declared:
         return [f"{inventory_path}: no 'pins' block"]
@@ -134,11 +130,8 @@ def check_inventory(script_path, inventory_path):
     return errors
 
 
-def check_literals(script_path, literal_paths):
+def check_literals(pins, script_path, literal_paths):
     """Return a list of error strings (empty when every klt literal agrees)."""
-    pins = parse_pins(Path(script_path).read_text())
-    if not pins:
-        return [f"{script_path}: no pin block (or no assignments) found"]
     if "KLT_VERSION" not in pins:
         return [f'{script_path}: pin block has no KLT_VERSION assignment']
     want = pins["KLT_VERSION"]
@@ -179,10 +172,17 @@ def main(argv):
         else REPO_ROOT / "manifests/inventories/item-9.json"
     )
     literals = [REPO_ROOT / p for p in KLT_LITERAL_FILES]
+    # The one parse of the run, and the one place that refuses a script with
+    # no pin block (or none with assignments); parse_pins() returns None for
+    # the former and {} for the latter, and `not` treats both as missing.
+    pins = record_lib.parse_pins(Path(script).read_text())
+    if not pins:
+        print(f"FAIL {script}: no pin block (or no assignments) found")
+        return 1
     errors = (
-        check(script, doc)
-        + check_inventory(script, inventory)
-        + check_literals(script, literals)
+        check(pins, script, doc)
+        + check_inventory(pins, script, inventory)
+        + check_literals(pins, script, literals)
     )
     for e in errors:
         print(f"FAIL {e}")
