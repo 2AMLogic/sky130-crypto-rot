@@ -51,11 +51,45 @@ def sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+# The pin-block assignment form of scripts/setup-env.sh: plain NAME="value",
+# kept parseable by the block's own comment. Only used inside the block.
+_ASSIGN = re.compile(r'^([A-Z][A-Z0-9_]*)="([^"]*)"\s*$')
+
+
+def parse_pins(script_text: str) -> dict | None:
+    """{NAME: value} for the pin block of `script_text`, or None if absent.
+
+    The block is what lies between setup-env.sh's `# --- pinned versions`
+    opening rule and its closing `# ----` one, and those delimiters are the
+    only definition of a pin: an assignment of the same NAME elsewhere in the
+    script -- a fallback, a re-export, a --force branch -- is not a pin, and
+    neither is a name that only ever appears outside the block. This is the
+    one parser of that block: pin() resolves through it, and so does
+    verification/check_pins.py, so the two readers cannot disagree (issue
+    #189; before this, pin() scanned the whole script and took the first
+    NAME=" match in file order).
+    """
+    pins: dict = {}
+    in_block = False
+    for line in script_text.splitlines():
+        if line.startswith("# --- pinned versions"):
+            in_block = True
+        elif in_block and line.startswith("# ----"):
+            return pins
+        elif in_block:
+            m = _ASSIGN.match(line)
+            if m:
+                pins[m.group(1)] = m.group(2)
+    return None
+
+
 def pin(name: str) -> str:
-    for line in (REPO / "scripts/setup-env.sh").read_text().splitlines():
-        if line.startswith(name + '="'):
-            return line.split('"')[1]
-    raise SystemExit(f"pin {name} not found in scripts/setup-env.sh")
+    pins = parse_pins((REPO / SETUP_ENV).read_text())
+    if not pins:
+        raise SystemExit(f"no pin block in {SETUP_ENV}")
+    if name not in pins:
+        raise SystemExit(f"pin {name} not found in the pin block of {SETUP_ENV}")
+    return pins[name]
 
 
 def run(*cmd: str) -> str:
