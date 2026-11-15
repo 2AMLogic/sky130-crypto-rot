@@ -23,19 +23,23 @@ _None._
 - **#46**: T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
 - **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
 - **#88**: T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
+- **#172**: check_pins.py still leaves the klayout-tools pin hand-copied in signoff.yml and manifests/README.md
+- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 
 ## Ready
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-_None._
+- **#172**: check_pins.py still leaves the klayout-tools pin hand-copied in signoff.yml and manifests/README.md
+- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
+- **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
 - **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
-- **#164**: Bring the item-9 inventory's hand-copied tool pins under check_pins.py: its klayout-tools pin is still the git revision setup-env.sh dropped on 2026-10-27
+- **#161**: Remove the 12 hand-copied negative-control request files: each is its positive request plus one define, so derive them at run time
 - **#165**: Read the key-ladder formal record's Depth column from sby's config.sby: it is hand-copied five ways, and PROVE_DEPTH mislabels three P-6 rows
 
 ## PRs Awaiting Review
@@ -43,12 +47,14 @@ Issues currently being built (`loom:building`).
 PRs waiting on Judge (`loom:review-requested`).
 
 - **#90**: spec: add register map decision record 0009 with table lint
+- **#170**: refactor: read the keyladder formal record's Depth column from each run's config.sby
+- **#175**: refactor(verification): derive each negative control from its positive request
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#171**: feat(verification): check the item-9 inventory's pins against setup-env.sh and re-attest
+_None._
 
 ## Proposed
 
@@ -57,13 +63,17 @@ Issues carrying `loom:curated`.
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top *(curated)*
 - **#163**: manifests: item-9 inventory does not cover flow/common/core_flow.sh, the shared bench driver all six run.sh scripts source *(curated)*
+- **#172**: check_pins.py still leaves the klayout-tools pin hand-copied in signoff.yml and manifests/README.md *(curated)*
+- **#177**: Re-prove P-7, P-8 and P-9 on the synthesized netlist: the spec marks all three netlist-provable and the record covers RTL only *(curated)*
+- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
+- **#180**: Run drbg_top against sky130-trng's RTL at its unshortened parameters: the real-sibling bench shortens start-up and the conditioner block *(curated)*
+- **#181**: docs/ROADMAP.md: fix the 'cores landed' date, refresh three moved status lines, link it from README *(curated)*
 
 ## Proposed (Architect / Hermit)
 
 - **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)*
 - **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)*
 - **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
-- **#161**: Remove the 12 hand-copied negative-control request files: each is its positive request plus one define, so derive them at run time *(hermit)*
 
 ## Epics
 
@@ -75,12 +85,12 @@ _None._
 |------|-------|
 | Operator merge-risk holds | 0 |
 | Very important | 1 |
-| Important | 3 |
-| Ready (`loom:issue`) | 0 |
+| Important | 5 |
+| Ready (`loom:issue`) | 3 |
 | In Progress (`loom:building`) | 3 |
-| PRs awaiting review | 1 |
-| Approved PRs awaiting merge | 1 |
-| Curated | 3 |
-| Architect / Hermit proposals | 4 |
+| PRs awaiting review | 3 |
+| Approved PRs awaiting merge | 0 |
+| Curated | 8 |
+| Architect / Hermit proposals | 3 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->

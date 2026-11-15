@@ -5,6 +5,9 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-14
 
+- **PR #176**: docs: roadmap as of 2026-11-13
+- **PR #171**: feat(verification): check the item-9 inventory's pins against setup-env.sh and re-attest
+- **Issue #164** (closed): Bring the item-9 inventory's hand-copied tool pins under check_pins.py: its klayout-tools pin is still the git revision setup-env.sh dropped on 2026-10-27
 - **PR #162**: fix(verification): make every negative control prove the bench caught the fault
 - **Issue #151** (closed): Run the drbg, trng_if and sha256-scrub negative controls through core_flow_negctl_one: three hand-rolled copies remain, and the drbg one counts any klt failure as caught
 
