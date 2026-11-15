@@ -107,7 +107,7 @@ def main() -> int:
 
     period = _clock_period_ns()
     rows = []
-    per_core_bullets = []
+    per_core_provenance = []
     decks = set()
     for core, top, synth, sta in runs:
         prov = sta["provenance"]
@@ -120,12 +120,16 @@ def main() -> int:
             f"{sta['timing_status']} | `{path_['startpoint']}` -> "
             f"`{path_['endpoint']}` ({path_['slack_ns']} ns) | "
             f"`{prov['deck']['content_hash']}` |")
-        per_core_bullets.append(rc.klt_provenance_bullet(prov, versions))
+        per_core_provenance.append(
+            f"  - `{top}`: klt `{prov['klt_version']}`, pdk `{prov['pdk']['name']}` "
+            f"{prov['pdk']['version']}, liberty `{prov['deck']['name']}` "
+            f"{prov['deck']['content_hash']}, synthesis input "
+            f"{prov['input']['content_hash']} ({synth['instance_count']} instances).")
     if len(decks) != 1:
         raise SystemExit(f"the two runs were not timed against one liberty deck: {decks}")
 
     table = "\n".join(rows)
-    bullets = "\n".join(per_core_bullets)
+    provenance = "\n".join(per_core_provenance)
     body = f"""- **Claim**: a measurement, not a pass/fail: the worst **setup** slack each of `rtl/aes/aes_core.v` and `rtl/sha256/sha256_core.v` shows at the corner and clock period in the table below, on the netlist `klt synthesize` produced from that core's committed `sta-synth-request.json`, timed by `klt sta` in DEF-free `verilog` mode against the committed `sta-request.json`. Whatever the numbers are -- positive or negative -- they are the reported data; `klt sta` has no pass/fail concept of its own and this record claims none. This record satisfies **no** `spec/target-spec.md` section 7 row: the spec's timing rows are targets for post-route timing at their own corners, and this is a pre-layout single-corner estimate of two cores only. The spec's 50 MHz / 20 ns setup bind at `ss_100C_1v60` is the question being measured, not a row being met; T1 item 5 stays unmet until the multi-corner, post-route work of #50.
 - **Design provenance**: synthesized gate-level netlists (yosys -> `sky130_fd_sc_hd`), timed before place-and-route.
 - **Run configuration**: `./scripts/setup-env.sh`, then `./verification/rtl/aes/run.sh --timing --record` and `./verification/rtl/sha256/run.sh --timing --record` (either `--record` invocation writes this record; both runs' `sta.json` must exist). Per core: `klt synthesize verification/rtl/<core>/sta-synth-request.json --pdk sky130A` at liberty corner `ss_100C_1v60` with a {period} ns clock target (the committed `synth-request.json` runs are untouched evidence of their own tt run), then `klt sta` on that netlist -- a structural gate-level netlist linked with `read_lef`/`read_verilog`/`link_design` and timed against liberty plus `constraints.clock_port`/`clock_period_ns` alone. Single corner; no placement, no routing, no CTS.
@@ -140,7 +144,8 @@ def main() -> int:
 - **Hold**: the same responses carry hold-slack fields; they are deliberately quoted nowhere above. Hold analysis is out of scope here, and `ss_100C_1v60` is not the hold-binding corner -- `spec/target-spec.md` section 7 binds hold at `ff_n40C_1v95` -- so no hold claim is made or implied.
 - **Spec status**: nothing here edits or satisfies `spec/target-spec.md`, and no "met" is claimed for T1 item 5. The AES datapath of decision record 0004 is not being judged by this number: a miss is a reported measurement, and any datapath response goes through a decision record (#50, #82 and #87 inherit whatever this reports).
 - **Tool versions**: klt `{versions['klt_pin']}`, yowasp-yosys {versions['yowasp_yosys']} (`yosys.wasm` {versions['yosys_wasm']}), STA engine {versions['sta_engine']}, ciel {versions['ciel']}, Python {versions['python']}.
-{bullets}
+- **Per-core provenance** (the simulation tools in the pinned venv are listed in the sim+synth records; no simulation ran for this one):
+{provenance}
 - **Links**: `rtl/aes/`, `rtl/sha256/`, `verification/rtl/aes/`, `verification/rtl/sha256/`, `docs/environment.md`, `spec/target-spec.md` section 7, #50 (the multi-corner, post-route successor), #87 (the top level that inherits these numbers).
 - **Timestamp / author**: {{timestamp}}, Loom builder agent (issue #178).
 """
