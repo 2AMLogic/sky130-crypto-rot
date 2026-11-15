@@ -68,6 +68,17 @@ def _load_run_outputs() -> list[tuple[str, str, dict, dict]]:
                   f"(synthesis {synth.get('status')!r}, sta {sta.get('status')!r})",
                   file=sys.stderr)
             raise SystemExit(1)
+        # A completed analysis is not automatically a measurement: a wrong
+        # clock port still exits 0 but times nothing -- timing_status
+        # "unconstrained", slack fields at OpenSTA's 1e+39 sentinel,
+        # constraint_completeness "incomplete". Refuse; never quote a
+        # sentinel as a slack number.
+        if sta.get("timing_status") != "constrained":
+            print(f"timing: not recording, {core} timing_status is "
+                  f"{sta.get('timing_status')!r} -- the clock constraint "
+                  "constrained no path; check sta-request.json's clock_port "
+                  "and the response's constraint_completeness", file=sys.stderr)
+            raise SystemExit(1)
         out.append((core, top, synth, sta))
     return out
 
