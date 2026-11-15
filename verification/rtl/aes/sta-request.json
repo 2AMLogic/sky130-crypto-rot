@@ -1,0 +1,5 @@
+{
+  "hdl_toplevel": "aes_core",
+  "pdk": { "cell_library": "sky130_fd_sc_hd", "corner": "ss_100C_1v60" },
+  "constraints": { "clock_port": "clk", "clock_period_ns": 20 }
+}
