@@ -136,7 +136,7 @@ for t in bmc prove neg_bound reach_nonzero neg_zeroize; do run_task p9.sby "${t}
 
 if [ "${NETLIST}" = 1 ]; then
   # ---- netlist re-proof (issue #177) -------------------------------------
-  echo "== netlist re-proof: klt synthesize + smtbmc z3 =="
+  echo "== netlist re-proof: klt synthesize + the RTL tasks' own abc engines =="
   for tool in klt yosys yosys-smtbmc z3; do
     if [ ! -x "${REPO_ROOT}/.venv/bin/${tool}" ]; then
       echo "error: ${REPO_ROOT}/.venv/bin/${tool} missing; run ./scripts/setup-env.sh first." >&2

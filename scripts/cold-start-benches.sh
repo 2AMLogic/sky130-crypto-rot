@@ -49,6 +49,14 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
 
+# klayout-tools#5780: yosys's abc pass deadlocks when the temp path is long
+# (yosys-abc's readline wraps the echoed `source' line and the protocol never
+# completes, and klt kills yosys at its 300 s watchdog). The ambient TMPDIR can
+# be long enough to trip that, and every synth step below goes through klt, so
+# run the whole cold start with a short temp directory.
+TMPDIR="$(mktemp -d /tmp/coldstartXXXXXX)"
+export TMPDIR
+
 ./scripts/setup-env.sh
 # pytest for the model and reuse checks; the same package CI installs.
 .venv/bin/python -m pip install --quiet pytest

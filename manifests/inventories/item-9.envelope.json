@@ -52,7 +52,7 @@
         "role": "testbench",
         "path": "verification/formal/run.sh",
         "passed": true,
-        "content_hash": "sha256:123530af9165cf65b3dfd763ac4a6296b44acc7e6cbb04992cdc3800a512e507"
+        "content_hash": "sha256:4e655dc89d17a00ab376a467a85a6888921a6bbb2b4d435d4dadde999bf6252b"
       },
       {
         "check": "present",
@@ -385,7 +385,7 @@
         "path": "manifests/inventories/item-9.json",
         "scope": "repo"
       },
-      "content_hash": "sha256:584a711675d9535b212b3073b83721a2364aeb53e408b1b75d16033d132ace8f"
+      "content_hash": "sha256:9bf63590625da975ce0061a84d5f376078ee935d1221cadeb17bdda49269486e"
     }
   }
 }
