@@ -104,9 +104,10 @@ a developer can run unchanged -- the three `npm run` scripts below, and `./scrip
 (there is no `npm run verify`). Python 3.13 and `pytest` for the model job:
 
 ```
-npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script, pin check
+npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script,
+                      #         pin check and register-map lint
 npm run test          # pytest: verification/model against the committed vectors,
-                      #         plus the self-tests of the pin, reuse and record checkers
+                      #         plus the self-tests of the pin, reuse, record and register-map checkers
                       #         and of the key-ladder formal record's depth reader
 npm run check:reuse   # re-hash reuse.lock.json files
 npm run check:ci      # all three

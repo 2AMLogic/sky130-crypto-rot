@@ -42,6 +42,39 @@ def test_write_only_may_use_key_port(tmp_path):
     assert errs == []
 
 
+def test_readable_key_in_port_is_rejected(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LEAK | RW | AES | `key_in` |\n")
+    assert any("readable register wired" in e for e in errs)
+
+
+def test_readable_hmac_key_port_is_rejected(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LEAK | W1C | - | `key` |\n")
+    assert any("readable register wired" in e for e in errs)
+
+
+def test_readable_lk_data_port_is_rejected(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LEAK | RO | - | `lk_data` |\n")
+    assert any("readable register wired" in e for e in errs)
+
+
+def test_write_only_may_use_engine_side_key_ports(tmp_path):
+    errs = _run(tmp_path,
+                ROWS_OK + "| 0x08 | KEY | WO | KDF | `key_in`, `key`, `lk_data` |\n",
+                "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
+    assert errs == []
+
+
+def test_readable_status_flag_names_are_not_key_ports(tmp_path):
+    # Anti-substring regression: root_key_valid contains root_key and seeded
+    # contains seed, so a substring match would reject this readable row.
+    errs = _run(
+        tmp_path,
+        ROWS_OK + "| 0x08 | FLAGS | RO | - "
+                  "| `root_key_valid`, `seeded`, `slot_valid`, `slot_locked` |\n",
+        "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
+    assert errs == []
+
+
 def test_array_bounds_must_match(tmp_path):
     errs = _run(tmp_path, ROWS_OK.replace("DOUT[0..3]", "DOUT[0..2]"))
     assert any("array bounds" in e for e in errs)
