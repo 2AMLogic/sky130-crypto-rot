@@ -256,6 +256,47 @@ def klt_provenance_bullet(prov: dict, versions: dict) -> str:
     )
 
 
+def sby_depth(d: Path) -> int | None:
+    """The depth SymbiYosys actually ran a task at, from its own work directory.
+
+    sby writes the resolved per-task configuration it executed to `<d>/config.sby`,
+    with the `[tasks]` prefixes already applied, next to the `status` and
+    `logfile.txt` the formal generators already read. Taking `depth` from there is
+    what makes a record's Depth column the configuration that ran (issue #165).
+    This is the one parser of that file: verification/formal/make_record.py and
+    verification/formal/keyladder/make_record.py both read the depth through it,
+    so the two record families cannot state different depths for the same
+    contract.
+
+    Parsed the way sby's own `[options]` reader parses it: trailing `#` comments
+    stripped, blank and comment lines skipped, last assignment wins.
+
+    Returns None when the file or the option is absent. sby's own default depth (20)
+    is deliberately NOT assumed: a record must state the depth that ran, and no run
+    in either flow is configured at that default, so a missing value is a broken run
+    rather than a 20. Each generator's judge fails such a run.
+    """
+    cfg = d / "config.sby"
+    if not cfg.exists():
+        return None
+    depth, section = None, None
+    for raw in cfg.read_text().splitlines():
+        m = re.match(r"^\s*\[(.*)\]\s*$", raw)
+        if m:
+            head = m.group(1).strip().split()
+            section = head[0] if head else None
+            continue
+        if section != "options":
+            continue
+        line = re.sub(r"\s*(\s#.*)?$", "", raw)
+        if not line or line.startswith("#"):
+            continue
+        entries = line.split(maxsplit=1)
+        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
+            depth = int(entries[1])
+    return depth
+
+
 def previous_record(experiment: str) -> str | None:
     """Id of the newest record git already tracks for `experiment`, else None.
 

@@ -9,8 +9,12 @@ directory, so these tests pin that reader's contract.
 
 The formal flow itself is local-only (PDK, pinned sby, z3, and bounded runs past the
 CI budget -- see verification/README.md), so this is the only automated check the
-generator's depth handling gets. It exercises the reader and the verdict rule, not
-the solver.
+depth handling gets. It exercises the reader and the verdict rule, not the solver.
+
+Issue #211 hoisted the reader into flow/common/record_lib.py, so the reader-contract
+tests run against the shared definition and against both generators' import of it
+(keyladder and DRBG/TRNG): a local copy re-introduced into either generator, or a
+one-sided import, fails them rather than silently splitting the Depth column again.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 GENERATOR = "verification/formal/keyladder/make_record.py"
+DRBG_GENERATOR = "verification/formal/make_record.py"
 
 # A real config.sby, byte-for-byte as the pinned yowasp-yosys wheel
 # (YOWASP_YOSYS_VERSION in scripts/setup-env.sh) wrote it for a two-task file whose
@@ -46,13 +51,34 @@ tiny.v
 """
 
 
-@pytest.fixture(scope="module")
-def gen():
-    spec = importlib.util.spec_from_file_location("keyladder_make_record", REPO / GENERATOR)
+def _load(name: str, rel: str):
+    spec = importlib.util.spec_from_file_location(name, REPO / rel)
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["keyladder_make_record"] = mod
+    sys.modules[name] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+@pytest.fixture(scope="module")
+def gen():
+    return _load("keyladder_make_record", GENERATOR)
+
+
+@pytest.fixture(scope="module")
+def drbg():
+    return _load("drbg_make_record", DRBG_GENERATOR)
+
+
+@pytest.fixture(scope="module", params=["keyladder", "drbg", "record_lib"])
+def sby_depth(request, gen, drbg):
+    """The depth reader as the keyladder generator, the DRBG/TRNG generator and
+    record_lib itself expose it (all one function since #211; `import record_lib`
+    resolves through the sys.path entry each generator installs, so the identity
+    is with the module they actually use). The reader-contract tests below run
+    against all three, so a local copy re-introduced into either generator fails
+    them instead of drifting the Depth column again."""
+    mods = {"keyladder": gen, "drbg": drbg, "record_lib": sys.modules["record_lib"]}
+    return mods[request.param].sby_depth
 
 
 def _workdir(tmp_path: Path, config: str | None) -> Path:
@@ -63,44 +89,52 @@ def _workdir(tmp_path: Path, config: str | None) -> Path:
     return d
 
 
-def test_reads_the_depth_from_a_real_config_sby(gen, tmp_path):
-    assert gen.sby_depth(_workdir(tmp_path, REAL_CONFIG_SBY)) == 5
+def test_reads_the_depth_from_a_real_config_sby(sby_depth, tmp_path):
+    assert sby_depth(_workdir(tmp_path, REAL_CONFIG_SBY)) == 5
 
 
-def test_task_prefixes_are_already_resolved_by_sby(gen, tmp_path):
+def test_task_prefixes_are_already_resolved_by_sby(sby_depth, tmp_path):
     """sby writes the depth of THIS task, so the reader never resolves `net:` itself."""
-    assert gen.sby_depth(_workdir(tmp_path, "[options]\nmode prove\ndepth 2\n")) == 2
+    assert sby_depth(_workdir(tmp_path, "[options]\nmode prove\ndepth 2\n")) == 2
 
 
-def test_trailing_comment_on_the_depth_line(gen, tmp_path):
+def test_trailing_comment_on_the_depth_line(sby_depth, tmp_path):
     """sby strips a trailing ` #...` from an [options] line; so does the reader."""
-    assert gen.sby_depth(_workdir(tmp_path, "[options]\nmode bmc\ndepth 24  # bounded\n")) == 24
+    assert sby_depth(_workdir(tmp_path, "[options]\nmode bmc\ndepth 24  # bounded\n")) == 24
 
 
-def test_comment_and_blank_lines_inside_options(gen, tmp_path):
+def test_comment_and_blank_lines_inside_options(sby_depth, tmp_path):
     cfg = "[options]\n# the knob below is p6.sby's own\n\nmode prove\ndepth 16\n"
-    assert gen.sby_depth(_workdir(tmp_path, cfg)) == 16
+    assert sby_depth(_workdir(tmp_path, cfg)) == 16
 
 
-def test_depth_outside_the_options_section_is_ignored(gen, tmp_path):
+def test_depth_outside_the_options_section_is_ignored(sby_depth, tmp_path):
     """Only `[options]` configures the run; a `depth` word elsewhere is not a depth."""
     cfg = ("[options]\nmode bmc\ndepth 32\n\n[script]\n"
            "read_verilog -formal -Ddepth 99 dut.v\nprep -top keyladder\n")
-    assert gen.sby_depth(_workdir(tmp_path, cfg)) == 32
+    assert sby_depth(_workdir(tmp_path, cfg)) == 32
 
 
-def test_last_assignment_wins(gen, tmp_path):
+def test_last_assignment_wins(sby_depth, tmp_path):
     """sby's [options] reader is a dict assignment, so a later line overrides."""
-    assert gen.sby_depth(_workdir(tmp_path, "[options]\ndepth 8\ndepth 16\n")) == 16
+    assert sby_depth(_workdir(tmp_path, "[options]\ndepth 8\ndepth 16\n")) == 16
 
 
-def test_missing_config_sby_is_not_a_depth(gen, tmp_path):
-    assert gen.sby_depth(_workdir(tmp_path, None)) is None
+def test_missing_config_sby_is_not_a_depth(sby_depth, tmp_path):
+    assert sby_depth(_workdir(tmp_path, None)) is None
 
 
-def test_options_without_a_depth_does_not_assume_sbys_default(gen, tmp_path):
+def test_options_without_a_depth_does_not_assume_sbys_default(sby_depth, tmp_path):
     """sby defaults depth to 20. A record must state what ran, so None, never 20."""
-    assert gen.sby_depth(_workdir(tmp_path, "[options]\nmode bmc\ntimeout 1500\n")) is None
+    assert sby_depth(_workdir(tmp_path, "[options]\nmode bmc\ntimeout 1500\n")) is None
+
+
+def test_both_generators_import_the_shared_reader(gen, drbg):
+    """One parser, imported twice: a generator-local `def sby_depth` would let the
+    keyladder and DRBG/TRNG record families state different depths again (#211)."""
+    shared = sys.modules["record_lib"]
+    assert gen.sby_depth is shared.sby_depth
+    assert drbg.sby_depth is shared.sby_depth
 
 
 def test_collect_reports_the_configured_depth_of_a_finished_run(gen, tmp_path):

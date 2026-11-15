@@ -32,7 +32,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "flow/common"))
 
 import record_lib  # noqa: E402
-from record_lib import pin, run  # noqa: E402
+from record_lib import pin, run, sby_depth  # noqa: E402
 EXPERIMENT = "keyladder-formal"
 HERE = "verification/formal/keyladder"
 # The inputs OUTSIDE this directory. The tracked files beside this generator
@@ -60,43 +60,6 @@ EXPECT = {
     ("p1", "rtl"): "BOUNDED", ("p1", "net"): "BOUNDED",
 }
 CONES = {"rtl": "pass", "net": "pass", "rtl_slotpath": "fail", "net_slotpath": "fail"}
-
-
-def sby_depth(d: Path) -> int | None:
-    """The depth SymbiYosys actually ran this task at, from its own work directory.
-
-    sby writes the resolved per-task configuration it executed to `<d>/config.sby`,
-    with the `[tasks]` prefixes already applied, next to the `status` and
-    `logfile.txt` this module already reads. Taking `depth` from there is what makes
-    the record's Depth column the configuration that ran (issue #165).
-
-    Parsed the way sby's own `[options]` reader parses it: trailing `#` comments
-    stripped, blank and comment lines skipped, last assignment wins.
-
-    Returns None when the file or the option is absent. sby's own default depth (20)
-    is deliberately NOT assumed: a record must state the depth that ran, and no run
-    in this flow is configured at that default, so a missing value is a broken run
-    rather than a 20. judge() fails such a run.
-    """
-    cfg = d / "config.sby"
-    if not cfg.exists():
-        return None
-    depth, section = None, None
-    for raw in cfg.read_text().splitlines():
-        m = re.match(r"^\s*\[(.*)\]\s*$", raw)
-        if m:
-            head = m.group(1).strip().split()
-            section = head[0] if head else None
-            continue
-        if section != "options":
-            continue
-        line = re.sub(r"\s*(\s#.*)?$", "", raw)
-        if not line or line.startswith("#"):
-            continue
-        entries = line.split(maxsplit=1)
-        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
-            depth = int(entries[1])
-    return depth
 
 
 def collect(stage: Path, sby: str, task: str) -> dict:
