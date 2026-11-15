@@ -1,5 +1,6 @@
 {
-  "name": "sky130-crypto-rot",
+  "name": "loom-workspace",
+  "description": "Loom-managed workspace with AI development orchestration",
   "private": true,
   "scripts": {
     "worktree:return": "./.loom/scripts/worktree-return.sh",
