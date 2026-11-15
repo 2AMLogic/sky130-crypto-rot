@@ -218,6 +218,68 @@ core_flow_synth() {
   _json_line "${OUT}/synth.json" 'd["status"], d["instance_count"], "instances", d["area_um2"], "um2"'
 }
 
+# core_flow_sta_request <synth response> <sta request template> <destination> --
+# the committed sta-request.json plus the one thing a tracked file cannot
+# carry: the netlist to time. `klt synthesize` writes its netlist into a
+# per-run scratch directory, so the path is read from the synthesis response's
+# netlist_path -- a `{path, scope}` envelope -- rather than hardcoded
+# (verified on the pinned klayout-tools 0.8.0, schema_version 2). scope
+# "repo" resolves against REPO_ROOT; anything else refuses rather than feed
+# `klt sta` a path that was never resolved. The derived document is written
+# to ${OUT}: build scratch like the negative-control request, not tracked
+# evidence.
+core_flow_sta_request() {
+  python3 -I -c 'import json, sys
+synth = json.load(open(sys.argv[1]))
+np = synth["netlist_path"]
+if isinstance(np, dict):
+    if np.get("scope") != "repo" or not np.get("path"):
+        sys.exit("sta: synthesis netlist_path is not repo-relative: " + json.dumps(np))
+    netlist = sys.argv[4] + "/" + np["path"]
+else:
+    netlist = np
+doc = json.load(open(sys.argv[2]))
+doc["verilog"] = netlist
+with open(sys.argv[3], "w") as f:
+    json.dump(doc, f, indent=2)' \
+    "${1}" "${2}" "${3}" "${REPO_ROOT}"
+}
+
+# core_flow_sta [what] -- pre-layout setup timing of the netlist this run
+# synthesizes: `klt synthesize sta-synth-request.json` (corner
+# ss_100C_1v60, 20 ns clock target -- the synthesis the timing number is
+# honest for, distinct from core_flow_synth's tt run) then `klt sta` in
+# DEF-free verilog mode on the committed sta-request.json plus that netlist.
+# A negative slack is data, not a failure: `klt sta` exits non-zero only when
+# the analysis could not run (bad request, unresolvable PDK, a missing clock
+# constraint, an OpenROAD engine error), never on a timing miss, and set -e
+# keeps that contract -- a completed analysis exits 0 however negative the
+# number.
+core_flow_sta() {
+  echo "== synthesis for timing${1:+ of ${1}} (klt synthesize -> sky130_fd_sc_hd, ss_100C_1v60, 20 ns target) =="
+  klt synthesize sta-synth-request.json --pdk sky130A --pdk-root "${PDK_ROOT}" \
+    --format json > "${OUT}/sta-synth.json"
+  _json_line "${OUT}/sta-synth.json" 'd["status"], d["instance_count"], "instances", d["area_um2"], "um2"'
+  echo "== pre-layout setup timing (klt sta: verilog netlist, no parasitics) =="
+  core_flow_sta_request "${OUT}/sta-synth.json" "${HERE}/sta-request.json" \
+    "${OUT}/sta-request.json"
+  # Run `klt sta` from the repo root, not from HERE: on hosts where openroad
+  # is the provisioned container wrapper (2am infra install -- `docker run`
+  # mounting $PWD, $TMPDIR and $PDK_ROOT and nothing else), the engine can
+  # only open paths under the invocation's own working directory. From HERE
+  # (verification/rtl/<core>/) the script, metrics and logs klt writes under
+  # ${OUT}/.klt/sta/ are invisible to the container and the run dies with
+  # STA-0340 "cannot open" on a script that exists and is readable (observed
+  # on the dispatch host, 2026-11-15). The repo root encloses both that
+  # directory and the synthesized netlist's .klt/synthesize scratch, so every
+  # path the engine touches is inside the one mounted tree. The derived
+  # request carries absolute paths, so nothing else depends on the CWD.
+  ( cd "${REPO_ROOT}" && klt sta "${OUT}/sta-request.json" --pdk sky130A \
+      --pdk-root "${PDK_ROOT}" --format json ) > "${OUT}/sta.json"
+  _json_line "${OUT}/sta.json" 'd["status"], "geometry_source", d["geometry_source"], "worst setup slack", d["worst_slack_ns"], "ns; TNS", d["total_negative_slack_ns"], "ns;", d["setup_violation_count"], "setup violations; fmax", d["fmax_mhz"], "MHz"'
+  _json_line "${OUT}/sta.json" '"  worst setup path:", d["worst_setup_path"]["startpoint"], "->", d["worst_setup_path"]["endpoint"], "at", d["worst_setup_path"]["slack_ns"], "ns"'
+}
+
 # core_flow_verdict <RECORD 0|1> -- verdict, plus a record when RECORD=1.
 core_flow_verdict() {
   if [ "${1}" = 1 ]; then

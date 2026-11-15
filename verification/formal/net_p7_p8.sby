@@ -1,0 +1,75 @@
+# P-7 (no output before seeded / while reseed required) and P-8 (no output after
+# the reseed interval until a reseed completes) on the klt-synthesized
+# sky130_fd_sc_hd netlist of ctr_drbg (issue #177). The cells are modelled by
+# Yosys from the liberty function/ff groups (read_liberty, no hand-written cell
+# models); the property text is the RTL's `ifdef FORMAL block spliced into a
+# generated copy of the netlist module by gen_netlist.py, with the RTL
+# localparam/parameter names replaced by numeric literals and OP_GEN bound over
+# the bits synthesis kept (synth's fsm pass re-encoded op_q). Each netlist
+# negative control is its own klt synthesize run of the mutated RTL, not a
+# wrapper-side define.
+#   net_prove         unbounded (BMC + k-induction), shipped interval 65536
+#   net_reach_valid   must FAIL: blk_valid is reachable on the netlist (vacuity)
+#   net_reach_over    must FAIL: reseed_required reachable, interval-1 netlist
+#   net_neg_interval  must FAIL: netlist of the DRBG_NEG_INTERVAL mutant, interval 1
+#   net_neg_seeded    must FAIL: netlist of the DRBG_NEG_SEEDED mutant
+#
+# Engines are the RTL tasks' own: `abc pdr' for the unbounded proof (verified to
+# close on the liberty-mapped netlist; the record states this), `abc bmc3' for
+# the bounded checks and counterexamples. A proof that does not close within its
+# depth or the 1500 s per-task cap is recorded as "reached depth N, not proven"
+# (run.sh/make_record.py), never as proven.
+[tasks]
+net_prove
+net_reach_valid
+net_reach_over
+net_neg_interval
+net_neg_seeded
+
+[options]
+aigsmt none
+timeout 1500
+net_prove: mode prove
+net_prove: depth @NET_PROVE_DEPTH@
+net_reach_valid: mode bmc
+net_reach_valid: depth 60
+net_reach_valid: expect fail
+net_reach_over: mode bmc
+net_reach_over: depth 66
+net_reach_over: expect fail
+net_neg_interval: mode bmc
+net_neg_interval: depth 66
+net_neg_interval: expect fail
+net_neg_seeded: mode bmc
+net_neg_seeded: depth 12
+net_neg_seeded: expect fail
+
+[engines]
+net_prove: abc pdr
+net_reach_valid: abc bmc3
+net_reach_over: abc bmc3
+net_neg_interval: abc bmc3
+net_neg_seeded: abc bmc3
+
+[script]
+net_prove: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_reach_valid: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_reach_over: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_neg_interval: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_neg_seeded: read_liberty -overwrite -ignore_miss_dir -ignore_miss_func sky130_fd_sc_hd.lib
+net_prove: read_verilog -formal dut_net_clean.v fv_drbg_net.v
+net_reach_valid: read_verilog -formal -DREACH_VALID dut_net_clean.v fv_drbg_net.v
+net_reach_over: read_verilog -formal -DREACH_OVER -DREACH_INTERVAL dut_net_interval.v fv_drbg_net.v
+net_neg_interval: read_verilog -formal -DREACH_INTERVAL dut_net_neg_interval.v fv_drbg_net.v
+net_neg_seeded: read_verilog -formal dut_net_neg_seeded.v fv_drbg_net.v
+prep -top fv_drbg
+async2sync
+dffunmap
+
+[files]
+dut_net_clean.v
+dut_net_interval.v
+dut_net_neg_interval.v
+dut_net_neg_seeded.v
+fv_drbg_net.v
+sky130_fd_sc_hd.lib

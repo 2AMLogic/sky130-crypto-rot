@@ -14,7 +14,7 @@ _None._
 
 `loom:very-important` (one counts per workspace); every stage takes these first.
 
-- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
+_None._
 
 ## Important
 
@@ -23,57 +23,68 @@ _None._
 - **#46**: T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
 - **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
 - **#88**: T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
-- **#172**: check_pins.py still leaves the klayout-tools pin hand-copied in signoff.yml and manifests/README.md
+- **#177**: Re-prove P-7, P-8 and P-9 on the synthesized netlist: the spec marks all three netlist-provable and the record covers RTL only
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
+- **#180**: Run drbg_top against sky130-trng's RTL at its unshortened parameters: the real-sibling bench shortens start-up and the conditioner block
 
 ## Ready
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-- **#172**: check_pins.py still leaves the klayout-tools pin hand-copied in signoff.yml and manifests/README.md
-- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
-- **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
+- **#169**: Live run of verification/formal/keyladder/run.sh to confirm #165's depth reader against real sby work directories
+- **#177**: Re-prove P-7, P-8 and P-9 on the synthesized netlist: the spec marks all three netlist-provable and the record covers RTL only
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
-- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
-- **#161**: Remove the 12 hand-copied negative-control request files: each is its positive request plus one define, so derive them at run time
-- **#165**: Read the key-ladder formal record's Depth column from sby's config.sby: it is hand-copied five ways, and PROVE_DEPTH mislabels three P-6 rows
+- **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
+- **#178**: First timing measurement: record pre-layout setup slack for aes_core and sha256_core at ss_100C_1v60 against the 20 ns clock
+- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
+- **#180**: Run drbg_top against sky130-trng's RTL at its unshortened parameters: the real-sibling bench shortens start-up and the conditioner block
+- **#181**: docs/ROADMAP.md: fix the 'cores landed' date, refresh three moved status lines, link it from README
+- **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
+- **#186**: Finish the core_flow.sh convergence: six copies of the run.sh option parser, two of the negative-control evidence pattern
+- **#192**: Remove the dead ack_q register from drbg_top.v: declared beside two live flops, never driven or read since its first commit
+- **#193**: Follow-up on 0009 register-map lint: CI wiring, README enumerations, key-port denylist
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-- **#90**: spec: add register map decision record 0009 with table lint
-- **#170**: refactor: read the keyladder formal record's Depth column from each run's config.sby
-- **#175**: refactor(verification): derive each negative control from its positive request
+- **#195**: refactor(verification): drop the dead collection() full param and share cycles/check in trng_if benches
+- **#197**: feat: pre-layout setup-timing mode for aes_core and sha256_core (klt sta at ss_100C_1v60, 20 ns)
+- **#198**: lint: fold check_regmap into npm run lint and add the engine-side key ports to its denylist
+- **#199**: docs: roadmap as of 2026-11-15 at a1b3ae1; rename to docs/roadmap.md, link from README
+- **#201**: refactor(rtl): drop the never-driven ack_q declaration from drbg_top
+- **#203**: refactor(verification): one option parser, one evidence definition, one summaries helper
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-_None._
+- **#190**: feat(verification): simulate the pinned TRNG sibling at its own parameters
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
-- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top *(curated)*
-- **#163**: manifests: item-9 inventory does not cover flow/common/core_flow.sh, the shared bench driver all six run.sh scripts source *(curated)*
-- **#172**: check_pins.py still leaves the klayout-tools pin hand-copied in signoff.yml and manifests/README.md *(curated)*
+- **#169**: Live run of verification/formal/keyladder/run.sh to confirm #165's depth reader against real sby work directories *(curated)*
 - **#177**: Re-prove P-7, P-8 and P-9 on the synthesized netlist: the spec marks all three netlist-provable and the record covers RTL only *(curated)*
+- **#178**: First timing measurement: record pre-layout setup slack for aes_core and sha256_core at ss_100C_1v60 against the 20 ns clock *(curated)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
 - **#180**: Run drbg_top against sky130-trng's RTL at its unshortened parameters: the real-sibling bench shortens start-up and the conditioner block *(curated)*
 - **#181**: docs/ROADMAP.md: fix the 'cores landed' date, refresh three moved status lines, link it from README *(curated)*
+- **#193**: Follow-up on 0009 register-map lint: CI wiring, README enumerations, key-port denylist *(curated)*
+- **#194**: keyladder record: sby_depth() matches a section header before stripping its trailing comment, unlike sby itself *(curated)*
 
 ## Proposed (Architect / Hermit)
 
 - **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)*
 - **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)*
 - **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
+- **#185**: Remove 15 derived klt request JSONs: each is sim-request.json plus one defines key *(hermit)*
 
 ## Epics
 
@@ -84,13 +95,13 @@ _None._
 | Bucket | Count |
 |------|-------|
 | Operator merge-risk holds | 0 |
-| Very important | 1 |
-| Important | 5 |
-| Ready (`loom:issue`) | 3 |
-| In Progress (`loom:building`) | 3 |
-| PRs awaiting review | 3 |
-| Approved PRs awaiting merge | 0 |
-| Curated | 8 |
-| Architect / Hermit proposals | 3 |
+| Very important | 0 |
+| Important | 6 |
+| Ready (`loom:issue`) | 2 |
+| In Progress (`loom:building`) | 9 |
+| PRs awaiting review | 6 |
+| Approved PRs awaiting merge | 1 |
+| Curated | 9 |
+| Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
