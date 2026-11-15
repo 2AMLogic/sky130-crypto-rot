@@ -59,7 +59,7 @@ module drbg_top #(
     wire [1:0] d_err;
 
     reg [2:0] t_q;
-    reg       reseed_q, gen_q, ack_q;
+    reg       reseed_q, gen_q;
     reg [1:0] err_q;
     reg       done_q;
     reg       seed_req_q, release_q;
