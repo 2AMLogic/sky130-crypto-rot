@@ -96,7 +96,7 @@ class Sys:
         Also the start-up gate check: trng_if drives out_ready from `take`, which
         requires startup_done at that t_fall, so a word that moves while the
         sibling still reports startup_done = 0 is a real violation of
-        spec/trng-interface.md section 3.2 and not a bench artifact.
+        spec/trng-interface.md section 3.4 and not a bench artifact.
         """
         d = self.d
         while True:
