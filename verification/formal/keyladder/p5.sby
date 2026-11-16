@@ -13,7 +13,10 @@ neg_net
 
 [options]
 mode prove
-depth @DEPTH@
+rtl: depth @DEPTH@
+net: depth @DEPTH@
+neg_rtl: depth 16
+neg_net: depth 16
 
 [engines]
 smtbmc z3

@@ -16,6 +16,7 @@ the solver.
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -89,6 +90,28 @@ def test_depth_outside_the_options_section_is_ignored(gen, tmp_path):
     assert gen.sby_depth(_workdir(tmp_path, cfg)) == 32
 
 
+def test_commented_section_header_ends_options_mode(gen, tmp_path):
+    """sby tests for a header on the comment-stripped line, so `[script]  # note`
+    still ends [options] mode; a later bare `depth` must not be read (issue #194)."""
+    cfg = "[options]\nmode bmc\ndepth 4\n\n[script]  # note\ndepth 99\n"
+    assert gen.sby_depth(_workdir(tmp_path, cfg)) == 4
+
+
+def test_commented_options_lookalike_inside_script_is_not_a_header(gen, tmp_path):
+    """sby does NOT strip comments inside [script], so `[options]  # trick` there
+    is not a header to sby and must not re-open options mode here either."""
+    cfg = ("[options]\nmode bmc\ndepth 4\n\n[script]\nread_verilog tiny.v\n"
+           "[options]  # trick\ndepth 99\n")
+    assert gen.sby_depth(_workdir(tmp_path, cfg)) == 4
+
+
+def test_commented_options_header_before_any_section_is_not_a_header(gen, tmp_path):
+    """sby does not strip before the first section either (mode is None), so a
+    commented `[options]` at the very top opens no section and reads no depth."""
+    cfg = "[options]  # not really\nmode bmc\ndepth 4\n"
+    assert gen.sby_depth(_workdir(tmp_path, cfg)) is None
+
+
 def test_last_assignment_wins(gen, tmp_path):
     """sby's [options] reader is a dict assignment, so a later line overrides."""
     assert gen.sby_depth(_workdir(tmp_path, "[options]\ndepth 8\ndepth 16\n")) == 16
@@ -154,3 +177,49 @@ def test_the_generator_takes_no_depth_arguments(tmp_path, arg):
                          capture_output=True, text=True)
     assert out.returncode == 2
     assert "unrecognized arguments" in out.stderr
+
+
+def _p5_options_depth_lines() -> dict[str, str]:
+    """p5.sby's `[options]` depth assignments, as task -> value ("": un-prefixed)."""
+    text = (REPO / "verification/formal/keyladder/p5.sby").read_text()
+    depths: dict[str, str] = {}
+    in_options = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            in_options = stripped == "[options]"
+            continue
+        if not in_options or not stripped or stripped.startswith("#"):
+            continue
+        m = re.match(r"^(?:(\w+):\s*)?depth\s+(\S+)$", stripped)
+        if m:
+            depths[m.group(1) or ""] = m.group(2)
+    return depths
+
+
+def test_p5_prove_depth_knob_reaches_the_proofs_never_the_controls():
+    """Issue #210: an un-prefixed `[options] depth @DEPTH@` reached all four P-5
+    tasks, so PROVE_DEPTH < 9 stopped the negative controls' BMC base case before
+    their step-9 counterexample: sby returned UNKNOWN, judge() rejected the run
+    ("expected FAIL with a counterexample trace") and no record was written -- a
+    red flow indistinguishable from a real property defect. The knob must set the
+    two proofs only; each must-fail control keeps a fixed depth of at least 9
+    (counterexample at step 9; records 20261027-065038-a7475f5 and
+    20261030-070100-8e25d3d, verified 2026-11-15).
+    """
+    depths = _p5_options_depth_lines()
+    assert "" not in depths, (
+        "p5.sby [options] carries an un-prefixed depth: it applies to every "
+        "task, including the must-fail controls (issue #210)")
+    assert set(depths) == {"rtl", "net", "neg_rtl", "neg_net"}, (
+        f"every P-5 task must state its own depth, got {sorted(depths)}")
+    assert depths["rtl"] == "@DEPTH@" and depths["net"] == "@DEPTH@", (
+        "PROVE_DEPTH (@DEPTH@) must set the two P-5 proof depths")
+    for task in ("neg_rtl", "neg_net"):
+        value = depths[task]
+        assert "@" not in value, (
+            f"p5 {task} must not carry a knob placeholder: a low PROVE_DEPTH "
+            "would stop its BMC before the step-9 counterexample (issue #210)")
+        assert value.isdigit() and int(value) >= 9, (
+            f"p5 {task} depth {value!r} < 9: the KL_NEG_MASK counterexample sits "
+            "at step 9, so the control would end UNKNOWN (issue #210)")

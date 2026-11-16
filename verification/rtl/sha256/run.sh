@@ -35,18 +35,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=sha256
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; MILLION=0; NEG=0; SIM_ONLY=0; TIMING=0
-for arg in "$@"; do
-  case "${arg}" in
-    --record) RECORD=1 ;;
-    --million-a) MILLION=1 ;;
-    --negative-control) NEG=1 ;;
-    --sim-only) SIM_ONLY=1 ;;
-    --timing) TIMING=1 ;;
-    *) echo "unknown option: ${arg}" >&2; exit 2 ;;
-  esac
-done
-core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
+MILLION=0; TIMING=0; CORE_FLOW_EXTRA_OPTS="--million-a:MILLION --timing:TIMING"
+core_flow_parse_opts "$@"
 if [ "${TIMING}" = 1 ]; then
   if [ "${SIM_ONLY}" = 1 ] || [ "${NEG}" = 1 ] || [ "${MILLION}" = 1 ]; then
     echo "error: --timing runs neither the simulations nor the million-a KAT;" >&2
