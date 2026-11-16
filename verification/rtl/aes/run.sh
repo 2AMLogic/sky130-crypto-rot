@@ -31,17 +31,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=aes
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; NEG=0; SIM_ONLY=0; TIMING=0
-for arg in "$@"; do
-  case "${arg}" in
-    --record) RECORD=1 ;;
-    --negative-control) NEG=1 ;;
-    --sim-only) SIM_ONLY=1 ;;
-    --timing) TIMING=1 ;;
-    *) echo "unknown option: ${arg}" >&2; exit 2 ;;
-  esac
-done
-core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
+TIMING=0; CORE_FLOW_EXTRA_OPTS="--timing:TIMING"
+core_flow_parse_opts "$@"
 if [ "${TIMING}" = 1 ]; then
   if [ "${SIM_ONLY}" = 1 ] || [ "${NEG}" = 1 ]; then
     echo "error: --timing runs neither the simulations nor a negative control;" >&2
