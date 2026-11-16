@@ -20,8 +20,11 @@
 # reach_* are vacuity checks (the assertion "this never happens" is violated, so
 # the thing the property talks about is reachable), neg_* are the RTL with a
 # deliberate defect or a claim one cycle too early. A task counts as OK when
-# sby exits 0 (a task marked `expect fail` that fails is exit 0). Exit 0 only
-# if every task is OK.
+# sby exits 0 (a task marked `expect fail` that fails is exit 0). The verdict
+# is not made here: after the last task this script asks make_record.py (its
+# EXPECT table is the one copy of the expectation policy) to judge
+# results.tsv -- on every run, --record or not (issue #207) -- and exits 0
+# only if every task met its expectation.
 #
 # Engines: RTL tasks use only the Yosys-internal ones (`abc pdr` for unbounded
 # proofs, `abc bmc3` for bounded checks). The venv's sby has no SMT solver, so
@@ -92,40 +95,33 @@ done
 export PATH="${SHIM}:${REPO_ROOT}/.venv/bin:${PATH}"
 
 : > "${OUT}/results.tsv"
-bad=0
 cd "${HERE}"
-run_task() { # run_task <file.sby> <task> [netlist]
-  local file="$1" task="$2" net="${3:-}" base
+run_task() { # run_task <file.sby> <task>
+  local file="$1" task="$2" base
   base="$(basename "${file}")"
   local dir="${OUT}/${base%.sby}_${2}" rc=0
   rm -rf "${dir}"
   "${SBY}" -f -d "${dir}" "${file}" "${task}" > "${OUT}/${base%.sby}_${task}.out" 2>&1 || rc=$?
-  local status engine frame secs steps
+  local status engine frame secs
   # logfile.txt is missing when sby dies early; every grep tolerates that so
-  # the FAIL branch below (and the sby output it prints) is always reached.
+  # the status line below (and the sby output it prints) is always reached.
   status="$(grep -o 'DONE ([A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/DONE (//' || true)"
   engine="$(grep -o 'summary: engine_0 ([a-z0-9 ]*) returned [A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/summary: //' || true)"
   frame="$(grep -o 'asserted in frame [0-9]*' "${dir}/logfile.txt" 2>/dev/null | head -1 | grep -o '[0-9]*$' || true)"
   secs="$(grep -o 'Elapsed clock time.*(\([0-9]*\))' "${dir}/logfile.txt" 2>/dev/null | tail -1 | grep -o '([0-9]*)' | tr -d '()' || true)"
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "${base}" "${task}" "${status:-ERROR}" "${rc}" "${engine:-none}" "${frame:--}" "${secs:--}" >> "${OUT}/results.tsv"
+  # These lines report what sby did, not whether that met the task's
+  # expectation: the verdict is make_record.py's, once, after the last task
+  # (--check-only below), so this script keeps no copy of the policy
+  # (issue #207). When sby did not exit cleanly, dump the tail of its output
+  # for diagnosis, whatever the task's expectation is -- a netlist proof that
+  # stopped at its depth/time cap also lands here and is judged reached-depth
+  # by make_record.py, not by these lines.
   if [ "${rc}" = 0 ]; then
     echo "  ok    ${base} ${task}: ${status} (${engine}${frame:+, counterexample at frame ${frame}}, ${secs}s)"
-  elif [ "${net}" = netlist ] && { [ "${status}" = "TIMEOUT" ] || [ "${status}" = "UNKNOWN" ]; }; then
-    # A netlist proof that stopped at its depth or time cap is recorded as
-    # reached-depth, not proven (AC: the depth reached is the result, the run
-    # still records); a counterexample or a missing status would still fail.
-    # `abc pdr` reports no step count at all, so a timed-out proof is recorded
-    # as not proven with no depth claim.
-    steps="$(grep -o 'Checking assertions in step [0-9]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | grep -o '[0-9]*$' || true)"
-    if [ -n "${steps}" ] && [ "${steps}" -gt 0 ]; then
-      echo "  depth ${base} ${task}: ${status}, reached step ${steps} -- not proven (recorded at that depth)"
-    else
-      echo "  depth ${base} ${task}: ${status} -- not proven, no depth reached (recorded as not proven)"
-    fi
   else
-    echo "  FAIL  ${base} ${task}: sby exit ${rc}, see ${OUT}/${base%.sby}_${task}.out" >&2
+    echo "  rc=${rc}   ${base} ${task}: ${status} (${engine}${frame:+, counterexample at frame ${frame}}, ${secs}s), see ${OUT}/${base%.sby}_${task}.out" >&2
     tail -n 40 "${OUT}/${base%.sby}_${task}.out" | sed 's/^/        | /' >&2 || true
-    bad=1
   fi
 }
 
@@ -155,6 +151,9 @@ if [ "${NETLIST}" = 1 ]; then
   # can be long enough to trip it, so every synthesis below runs with a short one.
   NET_TMP="$(mktemp -d /tmp/kltformXXXXXX)"
   export TMPDIR="${NET_TMP}"
+  # Remove the pinned short temp dir on the way out, error paths included
+  # (issue #207; set -euo pipefail makes the EXIT trap cover them).
+  trap 'rm -rf "${NET_TMP}"' EXIT
   STAGE="${OUT}/netlist"
   rm -rf "${STAGE}"
   mkdir -p "${STAGE}"
@@ -213,15 +212,21 @@ PY
   cd "${STAGE}"
   echo "== P-7 / P-8 on the synthesized netlist =="
   for t in net_prove net_reach_valid net_reach_over net_neg_interval net_neg_seeded; do
-    run_task net_p7_p8.sby "${t}" netlist
+    run_task net_p7_p8.sby "${t}"
   done
   echo "== P-9 on the synthesized netlists =="
   for t in net_bmc net_prove net_neg_bound net_reach_nonzero net_neg_zeroize; do
-    run_task net_p9.sby "${t}" netlist
+    run_task net_p9.sby "${t}"
   done
 fi
 
-if [ "${bad}" != 0 ]; then
+# One judge for every run, --record or not (issue #207): make_record.py's
+# EXPECT table is the only copy of the expectation policy, and --check-only
+# returns right after that verdict, before any recording work. A negative
+# control that timed out or came back UNKNOWN therefore fails the script
+# here -- in exactly the mode (--netlist without --record) it used to slip
+# through as "not proven" with exit 0.
+if ! python3 "${HERE}/make_record.py" --out-dir "${OUT}" --check-only; then
   echo "formal: at least one task did not meet its expectation" >&2
   exit 1
 fi

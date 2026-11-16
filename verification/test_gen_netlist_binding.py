@@ -53,6 +53,26 @@ def test_parse_dies_without_both_patterns(gen):
         gen.parse_probe_patterns("OP_AFTER_INST=0z1\nPROBE_FAIL\n", "", "clean")
 
 
+def test_parse_accepts_uppercase_z_and_x_whole(gen):
+    # Issue #219: the token is captured whole and validated per character
+    # against the %b alphabet 01xXzZ, so a simulator that prints %b
+    # uppercase parses whole -- undriven bits land in opgen_binding's
+    # `b in "01"' filter exactly like their lowercase twins.
+    stdout = "OP_AFTER_INST=1ZX\nOP_AFTER_GEN=0Z0\n"
+    assert gen.parse_probe_patterns(stdout, "", "clean") == ("1ZX", "0Z0")
+
+
+def test_parse_dies_on_an_out_of_class_character(gen, capsys):
+    # Issue #219: the old + capture class [01zXx] matched the prefix before
+    # an out-of-class character and silently truncated (1n1 -> "1"), past
+    # every width guard. The token is validated whole now: loud, naming the
+    # offending pattern.
+    with pytest.raises(SystemExit):
+        gen.parse_probe_patterns("OP_AFTER_INST=1n1\nOP_AFTER_GEN=0n0\n", "", "clean")
+    err = capsys.readouterr().err
+    assert "1n1" in err and "01xXzZ" in err
+
+
 # --- opgen_binding ----------------------------------------------------------
 
 

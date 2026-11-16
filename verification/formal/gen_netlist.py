@@ -176,10 +176,21 @@ def parse_probe_patterns(stdout: str, stderr: str, variant: str) -> tuple[str, s
 
     `$display("%b", ...)` emits one unspaced run per line, so the pattern is
     captured whole: the old `{3}` bound here silently truncated a wider op_q
-    to its first three characters and bound the wrong bits (issue #206). Both
-    patterns must appear; their widths are checked where they are bound.
+    to its first three characters and bound the wrong bits (issue #206). The
+    captured token is validated whole against the `%b` alphabet 01xXzZ: a
+    permissive capture class alone would silently truncate at the first
+    out-of-class character (a simulator-swap trap, issue #219) where `{3}`
+    failed loudly. Both patterns must appear; their widths are checked where
+    they are bound.
     """
-    pats = dict(re.findall(r"(OP_AFTER_INST|OP_AFTER_GEN)=([01zXx]+)", stdout))
+    pats = dict(re.findall(r"(OP_AFTER_INST|OP_AFTER_GEN)=(\S+)", stdout))
+    for name, pat in pats.items():
+        bad = "".join(sorted(set(pat) - set("01xXzZ")))
+        if bad:
+            die(f"op_q probe for {variant}: {name}={pat} has character(s) "
+                f"outside the %b alphabet 01xXzZ ({bad}); the probe or the "
+                "simulator changed output format -- refusing to bind a "
+                "truncated pattern")
     if "PROBE_FAIL" in stdout or len(pats) != 2:
         die(f"op_q probe for {variant} did not produce both patterns; output:\n"
             f"{stdout}\n{stderr}")
