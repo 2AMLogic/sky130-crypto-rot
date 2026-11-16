@@ -21,7 +21,10 @@ DEFAULT_DOC = REPO_ROOT / "spec/decision-records/0009-register-map.md"
 ADDR_SPACE = 0x80
 ACCESS = {"RO", "WO", "RW", "W1C"}
 GATES = {"-", "AES", "HMAC", "HMAC-FEED", "KDF", "KDF-LOAD", "DRBG"}
-KEY_PORTS = {"aes_key", "hmac_key", "root_key", "ld_data", "seed"}
+KEY_PORTS = {
+    "aes_key", "hmac_key", "root_key", "ld_data", "seed",
+    "key_in", "key", "lk_data",
+}
 ROW = re.compile(r"^\|\s*(0x[0-9A-Fa-f]+)(?:-(0x[0-9A-Fa-f]+))?\s*\|(.*)\|\s*$")
 ARRAY = re.compile(r"^([A-Z0-9_]+)\[(\d+)\.\.(\d+)\]$")
 

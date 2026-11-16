@@ -126,3 +126,15 @@ def test_binding_dies_without_driven_bits(gen, capsys):
     with pytest.raises(SystemExit):
         gen.opgen_binding("0z1", "zzz", "clean")
     assert "no driven bits" in capsys.readouterr().err
+
+
+def test_binding_treats_uppercase_as_undriven(gen):
+    # Issue #219 accepts uppercase %b probe output rather than dying on it,
+    # on the grounds that the driven-bit filter `b in "01"' already
+    # classifies X/Z as undriven in either case. Pin that equivalence, so a
+    # future widening of the filter (case-folding, treating an unknown bit
+    # as driven) cannot silently narrow an uppercase binding -- a narrower
+    # conjunction weakens the `op_q != OP_GEN' substitution feeding the P-8
+    # reseed term.
+    assert gen.opgen_binding("1ZX", "0Z0", "clean") == \
+        gen.opgen_binding("1zx", "0z0", "clean")
