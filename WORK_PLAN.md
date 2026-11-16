@@ -8,7 +8,7 @@ The region between the markers is machine-generated and overwritten wholesale.
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
 
-_None._
+- **#237**: chore(loom): resync installed Loom to v0.19.1302
 
 ## Very Important
 
@@ -29,8 +29,8 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-- **#215**: check_regmap.py key-port denylist is evaded by a bit-range port spelling (`aes_key[127:0]`)
-- **#229**: The lint/test inventory in README.md and verification/README.md is hand-maintained and omits check_roadmap.py
+- **#235**: check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged
+- **#236**: check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges)
 
 ## In Progress
 
@@ -39,34 +39,21 @@ Issues currently being built (`loom:building`).
 - **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 - **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
-- **#186**: Finish the core_flow.sh convergence: six copies of the run.sh option parser, two of the negative-control evidence pattern
-- **#193**: Follow-up on 0009 register-map lint: CI wiring, README enumerations, key-port denylist
-- **#194**: keyladder record: sby_depth() matches a section header before stripping its trailing comment, unlike sby itself
-- **#207**: formal netlist: run.sh's reached-depth leniency also swallows a timed-out negative control, so a vacuity check that never ran exits 0
-- **#210**: keyladder formal: PROVE_DEPTH below 9 turns the P-5 negative controls UNKNOWN and fails the flow verdict (no record written)
-- **#211**: Dedupe sby_depth: identical config.sby reader copied across both formal make_record.py files
 - **#213**: docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand
-- **#218**: make_timing_record.py can stamp one core's stale timing run with another revision: tie flow/build/<core>/sta.json to the revision that produced it
-- **#219**: formal: gen_netlist probe regex can silently truncate an unexpected op_q character (uppercase Z)
+- **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
+- **#224**: DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-- **#223**: formal: keep PROVE_DEPTH off the P-5 negative controls
-- **#228**: timing: stamp each run's measured inputs and refuse stale scratch at record time
+_None._
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#195**: refactor(verification): drop the dead collection() full param and share cycles/check in trng_if benches
-- **#198**: lint: fold check_regmap into npm run lint and add the engine-side key ports to its denylist
-- **#203**: refactor(verification): one option parser, one evidence definition, one summaries helper
-- **#214**: fix: mirror sby's mode-conditional comment strip in the sby_depth header match
-- **#220**: fix(formal): judge every run with make_record.py's EXPECT, not a bash copy
-- **#225**: formal: validate op_q probe tokens whole; die outside 01xXzZ
-- **#227**: lint: check docs/roadmap.md #N status tokens against WORK_LOG.md in npm run lint
+- **#237**: chore(loom): resync installed Loom to v0.19.1302
 
 ## Proposed
 
@@ -74,15 +61,11 @@ Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
-- **#193**: Follow-up on 0009 register-map lint: CI wiring, README enumerations, key-port denylist *(curated)*
-- **#194**: keyladder record: sby_depth() matches a section header before stripping its trailing comment, unlike sby itself *(curated)*
-- **#207**: formal netlist: run.sh's reached-depth leniency also swallows a timed-out negative control, so a vacuity check that never ran exits 0 *(curated)*
-- **#210**: keyladder formal: PROVE_DEPTH below 9 turns the P-5 negative controls UNKNOWN and fails the flow verdict (no record written) *(curated)*
 - **#213**: docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand *(curated)*
-- **#215**: check_regmap.py key-port denylist is evaded by a bit-range port spelling (`aes_key[127:0]`) *(curated)*
-- **#218**: make_timing_record.py can stamp one core's stale timing run with another revision: tie flow/build/<core>/sta.json to the revision that produced it *(curated)*
-- **#219**: formal: gen_netlist probe regex can silently truncate an unexpected op_q character (uppercase Z) *(curated)*
-- **#229**: The lint/test inventory in README.md and verification/README.md is hand-maintained and omits check_roadmap.py *(curated)*
+- **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader *(curated)*
+- **#224**: DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it *(curated)*
+- **#235**: check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged *(curated)*
+- **#236**: check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges) *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -99,14 +82,14 @@ _None._
 
 | Bucket | Count |
 |------|-------|
-| Operator merge-risk holds | 0 |
+| Operator merge-risk holds | 1 |
 | Very important | 0 |
 | Important | 4 |
 | Ready (`loom:issue`) | 2 |
-| In Progress (`loom:building`) | 12 |
-| PRs awaiting review | 2 |
-| Approved PRs awaiting merge | 7 |
-| Curated | 11 |
+| In Progress (`loom:building`) | 6 |
+| PRs awaiting review | 0 |
+| Approved PRs awaiting merge | 1 |
+| Curated | 7 |
 | Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->

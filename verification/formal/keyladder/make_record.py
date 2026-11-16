@@ -61,6 +61,7 @@ EXPECT = {
 }
 CONES = {"rtl": "pass", "net": "pass", "rtl_slotpath": "fail", "net_slotpath": "fail"}
 
+
 def collect(stage: Path, sby: str, task: str) -> dict:
     d = stage / (sby if sby == "cover" else f"{sby}_{task}")
     r = {"sby": sby, "task": task, "status": "MISSING", "elapsed_s": None, "steps_checked": None,

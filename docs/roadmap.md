@@ -56,18 +56,19 @@ caught, and attestation envelopes that fail CI when they go stale.
 
 ## Now
 
-1. **Land the register map** (#89, PR #90) — done: `spec/decision-records/0009-register-map.md`
+1. **Land the register map** (#89 (closed), PR #90 (merged)) — done: `spec/decision-records/0009-register-map.md`
    and its lint (`verification/check_regmap.py`, wired into `npm run check:ci`) are on `main`
-   (PR #90 merged 2026-11-14). This was the head of the whole T1 chain; #87 down is unblocked.
-2. **Remove the 12 hand-copied negative-control request files** (#161) — done: each
-   `--negative-control` run derives its request from the positive one (PR #175, merged
+   (PR #90 (merged) 2026-11-14). This was the head of the whole T1 chain; #87 (open) down is unblocked.
+2. **Remove the 12 hand-copied negative-control request files** (#161 (closed)) — done: each
+   `--negative-control` run derives its request from the positive one (PR #175 (merged),
    2026-11-14) and the item-9 envelope is re-attested.
-3. **Finish the two record-accuracy changes in review** — done: PR #171 (#164) and PR #170 (#165)
-   are both merged (2026-11-14). #169 (a live key-ladder formal run confirming the depth reader),
-   which followed #165, is approved and open.
-4. **Bring the remaining hand-copied klayout-tools pins under `check_pins.py`** (#172) — done:
-   `npm run lint` now fails on a mismatch in `signoff.yml` or `manifests/README.md` (PR #184,
-   merged 2026-11-14).
+3. **Finish the two record-accuracy changes in review** — done: PR #171 (merged) (#164 (closed)) and
+   PR #170 (merged) (#165 (closed)) are both merged (2026-11-14). #169 (closed) (a live key-ladder
+   formal run confirming the depth reader), which followed #165 (closed), closed as completed on
+   2026-11-15.
+4. **Bring the remaining hand-copied klayout-tools pins under `check_pins.py`** (#172 (closed)) — done:
+   `npm run lint` now fails on a mismatch in `signoff.yml` or `manifests/README.md` (PR #184 (merged),
+   2026-11-14).
 5. **Re-prove P-7, P-8 and P-9 on the synthesized netlist** (no issue; seed 1). Done when a
    `drbg-trng-formal` record carries a netlist row and a netlist negative control for each property,
    or records the depth reached.
@@ -88,17 +89,18 @@ gate-level simulation) that the top level will need anyway.
 
 ## Next
 
-- **Top-level RTL and bus-level bench** (#87) after #89. Done when `rtl/crypto_rot_top.v` passes
+- **Top-level RTL and bus-level bench** (#87 (open)) after #89 (closed). Done when `rtl/crypto_rot_top.v` passes
   end-to-end KATs through the bus, one test per zeroize event, a protocol checker and negative
   controls, with a record.
-- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88) after #87. Done
-  when `klt signoff` grades item 1 `met`; closes #46.
-- **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87. No issue yet; file them once the
+- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (open)) after #87 (open). Done
+  when `klt signoff` grades item 1 `met`; closes #46 (open).
+- **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87 (open). No issue yet; file them once the
   top-level port and register names exist, since each property is stated over them.
-- **Routed GDS** (#47) after #88; then **DRC** (#48), **LVS** (#49), **power delivery** (#53) and
-  **corner verification** (#50) on that layout.
-- **Post-layout verification** (#82) and the **characterization report** (#83) after #47 and #50.
-- **Include the shared bench driver in the item-9 inventory** (#163) — done (PR #175, merged
+- **Routed GDS** (#47 (open)) after #88 (open); then **DRC** (#48 (open)), **LVS** (#49 (open)),
+  **power delivery** (#53 (open)) and **corner verification** (#50 (open)) on that layout.
+- **Post-layout verification** (#82 (open)) and the **characterization report** (#83 (open)) after
+  #47 (open) and #50 (open).
+- **Include the shared bench driver in the item-9 inventory** (#163 (closed)) — done (PR #175 (merged),
   2026-11-14).
 
 ## Later

@@ -278,6 +278,63 @@ core_flow_sta() {
       --pdk-root "${PDK_ROOT}" --format json ) > "${OUT}/sta.json"
   _json_line "${OUT}/sta.json" 'd["status"], "geometry_source", d["geometry_source"], "worst setup slack", d["worst_slack_ns"], "ns; TNS", d["total_negative_slack_ns"], "ns;", d["setup_violation_count"], "setup violations; fmax", d["fmax_mhz"], "MHz"'
   _json_line "${OUT}/sta.json" '"  worst setup path:", d["worst_setup_path"]["startpoint"], "->", d["worst_setup_path"]["endpoint"], "at", d["worst_setup_path"]["slack_ns"], "ns"'
+  # Stamp what this run measured (issue #218) -- see core_flow_sta_inputs.
+  core_flow_sta_inputs
+}
+
+# core_flow_sta_inputs -- stamp what this core's timing run measured, into
+# ${OUT}/sta-inputs.json beside the responses. For every file whose content
+# determines THIS core's timing number -- each source resolved from
+# sta-synth-request.json's sources (relative entries resolve against HERE,
+# as klt resolves them), the committed sta-request.json and
+# sta-synth-request.json templates, this flow's run.sh, and core_flow.sh
+# itself (those four determine HOW the number was produced) -- it records
+# the repo-relative path and a content hash spelled the way
+# flow/common/record_lib.py's sha256() spells it, plus `git rev-parse HEAD`
+# as a diagnostic field. The record generator
+# (flow/common/make_timing_record.py) recomputes every stamped hash before a
+# record is written and refuses on the first change, naming the file and the
+# core to re-run: either run.sh --timing leaves scratch behind and the other
+# core's --timing --record consumes it, so without this a record could stamp
+# one revision while quoting the other core's measurement from an earlier
+# one -- a window the generator's engine_version and liberty-deck checks
+# cannot see, because it sits within one tool and deck generation (issue
+# #218).
+#
+# The head is deliberately not the comparison key: HEAD moves for reasons
+# unrelated to these files, and a rev-equality check would refuse a
+# still-valid measurement whenever an unrelated commit landed between the
+# two cores' runs. The generator cannot reuse a hash already sitting in the
+# responses for the same reason it cannot compare them by hand: klt's
+# provenance input.content_hash is a different quantity from a plain
+# file-bytes hash. Called after the klt calls: set -e drops the run before
+# this point on failure, and scratch without a stamp is refused by the
+# generator exactly like scratch from before stamping existed.
+core_flow_sta_inputs() {
+  local head
+  head="$(git -C "${REPO_ROOT}" rev-parse HEAD)"
+  python3 -I -c 'import hashlib, json, os, sys
+here, out, repo_root, head = sys.argv[1:5]
+repo_root = os.path.realpath(repo_root)
+def stamp(path):
+    real = os.path.realpath(path)
+    if os.path.commonpath([real, repo_root]) != repo_root:
+        sys.exit("sta: timing input resolves outside the repo: " + path)
+    with open(real, "rb") as f:
+        digest = "sha256:" + hashlib.sha256(f.read()).hexdigest()
+    return {"path": os.path.relpath(real, repo_root), "content_hash": digest}
+with open(os.path.join(here, "sta-synth-request.json")) as f:
+    sources = json.load(f)["sources"]
+inputs = [stamp(os.path.join(here, src)) for src in sources]
+for name in ("sta-synth-request.json", "sta-request.json", "run.sh"):
+    inputs.append(stamp(os.path.join(here, name)))
+inputs.append(stamp(os.path.join(repo_root, "flow", "common", "core_flow.sh")))
+inputs.sort(key=lambda entry: entry["path"])
+with open(os.path.join(out, "sta-inputs.json"), "w") as f:
+    json.dump({"head": head, "inputs": inputs}, f, indent=2)
+    f.write("\n")' \
+    "${HERE}" "${OUT}" "${REPO_ROOT}" "${head}"
+  echo "sta: stamped timing inputs -> ${OUT}/sta-inputs.json (HEAD ${head:0:7})"
 }
 
 # core_flow_verdict <RECORD 0|1> -- verdict, plus a record when RECORD=1.
