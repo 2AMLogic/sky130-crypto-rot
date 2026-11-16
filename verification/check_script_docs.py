@@ -24,12 +24,14 @@ package.json -> table direction. A filename left behind in a row after
 its checker is deleted or renamed is NOT flagged -- a stale name in a
 doc table is the milder failure; the harmful direction (a checker
 `package.json` runs that the table omits, the drift #229 recorded) is
-the one asserted. The reverse assertion is not safe to add as written:
-the rows legitimately name adjacent filenames in prose (the `CI reuse`
-row names `check_reuse.py`, which lives in the separate `check:reuse`
-script, and the `CI model` row's gloss names
-`flow/common/record_lib.py`), so every reverse hit would need an
-allow-list or row restructuring for little gain.
+the one asserted. The reverse assertion (table -> package.json) is not
+safe to add: a row's gloss is free prose, so it would assert against
+text whose vocabulary nobody controls -- a future gloss mentioning a
+`check_*.py` or `test_*.py` name it does not invoke would fail the build
+for a documentation choice, not for drift. No such hit exists in the
+tree today (both checked rows name exactly the checkers and self-tests
+`package.json` runs), so this is a forward-looking risk, not a
+present-tree one.
 
 Containment also means an expected set that comes out empty passes
 vacuously: if `scripts.lint` or `scripts.test` ever stops naming files
