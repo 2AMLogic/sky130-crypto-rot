@@ -2,7 +2,8 @@
 # verification/rtl/<core>/run.sh scripts. Source it; do not execute it.
 #
 # The caller sets HERE (its own directory) and NAME (the core directory name,
-# also flow/build/<NAME>), parses its own options, then calls the steps below.
+# also flow/build/<NAME>), parses its options with core_flow_parse_opts below
+# (the common flags plus whatever the core declares), then calls the steps.
 # Synthesis is a single corner (tt_025C_1v80), pre-P&R, cell area only.
 #
 # Every core ends on core_flow_finish, which owns the --sim-only split: CI asks
@@ -12,6 +13,57 @@
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${REPO_ROOT}/flow/build/${NAME}"
 PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"
+
+# The negative-control evidence for the benches whose assertion messages carry
+# no distinctive prefix (drbg, trng_if -- see core_flow_negctl_one): the bench's
+# own "SUMMARY ... failures=<n>" line with a non-zero n, matched in the cocotb
+# log. One definition here instead of a copy per core; the same log is what
+# core_flow_summaries reads.
+BENCH_LOG=.klt/functional-verification/test_icarus.log
+NEG_EVIDENCE='SUMMARY.*failures=[1-9][0-9]*'
+
+# core_flow_parse_opts "$@" -- the one option parser, instead of a copy per
+# core. Recognizes the common three flags (--record, --negative-control,
+# --sim-only -> RECORD, NEG, SIM_ONLY) and calls core_flow_check_opts itself,
+# so a core cannot forget that pair check (trng_if once did). A core keeps only
+# what is genuinely its own, declared before the call:
+#   CORE_FLOW_EXTRA_OPTS    "<flag>:<VAR>" pairs; passing <flag> sets <VAR> to
+#                           1 (sha256: --million-a:MILLION; trng_if:
+#                           --skip-real:SKIP_REAL). The core initializes the
+#                           variable itself and may read it with the opposite
+#                           sense (SKIP_REAL defaults 0).
+#   CORE_FLOW_UNSUPPORTED   a flag the driver knows but this core does not
+#                           (trng_if: --sim-only, which stops before a
+#                           synthesis this core never runs). Passing one is
+#                           rejected by name, before the case below can claim
+#                           it as a common flag.
+# Unknown options keep the original message and exit status.
+core_flow_parse_opts() {
+  RECORD=0; NEG=0; SIM_ONLY=0
+  local arg pair
+  for arg in "$@"; do
+    case " ${CORE_FLOW_UNSUPPORTED:-} " in
+      *" ${arg} "*)
+        echo "unsupported option: ${arg}" >&2
+        exit 2 ;;
+    esac
+    case "${arg}" in
+      --record) RECORD=1 ;;
+      --negative-control) NEG=1 ;;
+      --sim-only) SIM_ONLY=1 ;;
+      *)
+        for pair in ${CORE_FLOW_EXTRA_OPTS:-}; do
+          if [ "${arg}" = "${pair%%:*}" ]; then
+            printf -v "${pair#*:}" '1'
+            continue 2
+          fi
+        done
+        echo "unknown option: ${arg}" >&2
+        exit 2 ;;
+    esac
+  done
+  core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
+}
 
 _json_line() {  # _json_line <file> <python print expression over d>
   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print('"$2"')' "$1"
@@ -122,11 +174,29 @@ core_flow_negctl() {
   exit 0
 }
 
+# core_flow_status <sim json> -- the one-line "<status> <passed>/<total> tests"
+# print after each simulation; drbg open-coded it per elaboration and trng_if
+# wrapped it as status().
+core_flow_status() {
+  _json_line "$1" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
+}
+
+# core_flow_summaries [--first] -- every "SUMMARY ..." line in the cocotb log
+# (${BENCH_LOG}, above); --first keeps only the first, for a run that produces
+# one elaboration per log.
+core_flow_summaries() {
+  if [ "${1:-}" = "--first" ]; then
+    grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" | head -1 || true
+  else
+    grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" || true
+  fi
+}
+
 core_flow_sim() {
   echo "== RTL simulation (klt functional-verification: cocotb + Icarus) =="
   klt functional-verification sim-request.json --format json > "${OUT}/sim.json"
-  _json_line "${OUT}/sim.json" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
-  grep -o 'SUMMARY[^<]*' .klt/functional-verification/test_icarus.log | head -1 || true
+  core_flow_status "${OUT}/sim.json"
+  core_flow_summaries --first
 }
 
 # core_flow_check_opts <SIM_ONLY 0|1> <RECORD 0|1> -- reject the one option pair

@@ -105,13 +105,13 @@ a developer can run unchanged -- the three `npm run` scripts below, and `./scrip
 (there is no `npm run verify`). Python 3.13 and `pytest` for the model job:
 
 ```
-npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script,
-                      #         pin check and register-map lint
+npm run lint          # compileall on verification/ and flow/, bash -n on every
+                      # tracked shell script, and the doc-consistency checkers
+                      # (verification/README.md's CI table names each one)
 npm run test          # pytest: verification/model against the committed vectors,
-                      #         plus the self-tests of the pin, reuse, record and register-map checkers
-                      #         and of the key-ladder formal record's depth reader
+                      # plus the checkers' self-tests (named in the same table)
 npm run check:reuse   # re-hash reuse.lock.json files
-npm run check:ci      # all three
+npm run check:ci      # everything above
 ```
 
 On PRs that touch `rtl/` or `verification/`, the `verify` job also provisions

@@ -29,28 +29,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=drbg
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; NEG=0; SIM_ONLY=0
-for arg in "$@"; do
-  case "${arg}" in
-    --record) RECORD=1 ;;
-    --negative-control) NEG=1 ;;
-    --sim-only) SIM_ONLY=1 ;;
-    *) echo "unknown option: ${arg}" >&2; exit 2 ;;
-  esac
-done
-core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
+core_flow_parse_opts "$@"
 
 core_flow_setup
-
-BENCH_LOG=.klt/functional-verification/test_icarus.log
-# This bench asserts with an unprefixed message, so what shows that the BENCH
-# (not the build) failed is its own SUMMARY line with a non-zero failure count.
-NEG_EVIDENCE='SUMMARY.*failures=[1-9][0-9]*'
 
 sim() { # sim <request> <mode> <out json>; returns klt's exit status
   DRBG_BENCH_MODE="$2" klt functional-verification "$1" --format json > "$3"
 }
-summary_line() { grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" | head -1 || true; }
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each corrupted build MUST fail =="
@@ -75,12 +60,12 @@ fi
 
 echo "== RTL simulation, shipped 16/8-word elaboration (klt functional-verification: cocotb + Icarus) =="
 sim sim-request.json shipped "${OUT}/sim.json"
-_json_line "${OUT}/sim.json" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
-summary_line | tee "${OUT}/summary-shipped.txt"
+core_flow_status "${OUT}/sim.json"
+core_flow_summaries --first | tee "${OUT}/summary-shipped.txt"
 
 echo "== RTL simulation, 6/4-word elaboration: CAVP AES-128 use-df replay =="
 sim sim-cavp-request.json cavp "${OUT}/cavp.json"
-_json_line "${OUT}/cavp.json" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
-summary_line | tee "${OUT}/summary-cavp.txt"
+core_flow_status "${OUT}/cavp.json"
+core_flow_summaries --first | tee "${OUT}/summary-cavp.txt"
 
 core_flow_finish "${SIM_ONLY}" "${RECORD}" drbg_top
