@@ -5,6 +5,10 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-16
 
+- **PR #251**: docs: state the load-bearing reverse-assertion rationale in check_script_docs.py
+- **PR #249**: docs: record check_script_docs.py's one-directional design in its docstring
+- **Issue #250** (closed): check_script_docs.py docstring: the two cited prose mentions do not demonstrate reverse-assertion unsafety
+- **Issue #235** (closed): check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged
 - **PR #227**: lint: check docs/roadmap.md #N status tokens against WORK_LOG.md in npm run lint
 - **Issue #213** (closed): docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand
 - **PR #246**: docs(manifests): document the toolchain-free --skip-local-only item-9 re-attest route
