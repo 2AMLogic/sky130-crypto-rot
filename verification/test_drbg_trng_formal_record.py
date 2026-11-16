@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -208,20 +209,22 @@ def test_the_fixtures_anchor_to_the_real_expect_table(gen):
 
 def test_check_only_never_reaches_require_clean_inputs(gen, tmp_path):
     """--check-only returns right after the verdict, before any recording
-    work. Tripwire: dirty one of the generator's declared INPUTS.
-    require_clean_inputs() refuses any run in that state (SystemExit, "an
-    input is modified"), so an exit 0 here proves the verdict path never
-    reached it -- recording from a synthetic out-dir cannot happen."""
-    spec_md = REPO / "spec" / "key-isolation-properties.md"
-    original = spec_md.read_bytes()
-    spec_md.write_bytes(original + b"\n<!-- issue #226 check-only tripwire -->\n")
+    work. Tripwire: an untracked stray dropped directly beside the
+    generator -- require_clean_inputs() refuses any run in that state
+    (SystemExit, "an input is modified"), so an exit 0 here proves the
+    verdict path never reached it -- recording from a synthetic out-dir
+    cannot happen. The stray lives in the generator's own directory, never
+    in a tracked file: recovery is rm, not a git checkout of ratified
+    spec content (issue #241)."""
+    stray = REPO / "verification" / "formal" / f"issue241-tripwire-{os.getpid()}.tmp"
+    stray.write_text("untracked stray; require_clean_inputs() refuses on one\n")
     try:
         out = _out_dir(tmp_path, [_row("p9.sby", "bmc", "PASS")])
         r = _check(out)
         assert r.returncode == 0
         assert "an input is modified" not in r.stderr
     finally:
-        spec_md.write_bytes(original)
+        stray.unlink(missing_ok=True)
 
 
 # ---- the readers the verdict (and the Depth column) lean on ----------------
