@@ -51,11 +51,45 @@ def sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+# The pin-block assignment form of scripts/setup-env.sh: plain NAME="value",
+# kept parseable by the block's own comment. Only used inside the block.
+_ASSIGN = re.compile(r'^([A-Z][A-Z0-9_]*)="([^"]*)"\s*$')
+
+
+def parse_pins(script_text: str) -> dict | None:
+    """{NAME: value} for the pin block of `script_text`, or None if absent.
+
+    The block is what lies between setup-env.sh's `# --- pinned versions`
+    opening rule and its closing `# ----` one, and those delimiters are the
+    only definition of a pin: an assignment of the same NAME elsewhere in the
+    script -- a fallback, a re-export, a --force branch -- is not a pin, and
+    neither is a name that only ever appears outside the block. This is the
+    one parser of that block: pin() resolves through it, and so does
+    verification/check_pins.py, so the two readers cannot disagree (issue
+    #189; before this, pin() scanned the whole script and took the first
+    NAME=" match in file order).
+    """
+    pins: dict = {}
+    in_block = False
+    for line in script_text.splitlines():
+        if line.startswith("# --- pinned versions"):
+            in_block = True
+        elif in_block and line.startswith("# ----"):
+            return pins
+        elif in_block:
+            m = _ASSIGN.match(line)
+            if m:
+                pins[m.group(1)] = m.group(2)
+    return None
+
+
 def pin(name: str) -> str:
-    for line in (REPO / "scripts/setup-env.sh").read_text().splitlines():
-        if line.startswith(name + '="'):
-            return line.split('"')[1]
-    raise SystemExit(f"pin {name} not found in scripts/setup-env.sh")
+    pins = parse_pins((REPO / SETUP_ENV).read_text())
+    if not pins:
+        raise SystemExit(f"no pin block in {SETUP_ENV}")
+    if name not in pins:
+        raise SystemExit(f"pin {name} not found in the pin block of {SETUP_ENV}")
+    return pins[name]
 
 
 def run(*cmd: str) -> str:
@@ -220,6 +254,66 @@ def klt_provenance_bullet(prov: dict, versions: dict) -> str:
         f"`yosys.wasm` {versions['yosys_wasm']}), Icarus Verilog {versions['icarus']}, "
         f"cocotb {versions['cocotb']}, ciel {versions['ciel']}, Python {versions['python']}."
     )
+
+
+# The sections inside which sby's parse_config() strips a trailing `#` comment
+# before testing for a section header (yowasp-yosys wheel, sby_core.py:333).
+# [script] sets mode "script", which is absent from that list, so a commented
+# header there is NOT a header to sby — mirroring the list is what keeps this
+# reader from misreading one (issue #194).
+SBY_STRIP_SECTIONS = ("options", "engines", "files", "autotune", "setup", "stage")
+
+
+def sby_depth(d: Path) -> int | None:
+    """The depth SymbiYosys actually ran a task at, from its own work directory.
+
+    sby writes the resolved per-task configuration it executed to `<d>/config.sby`,
+    with the `[tasks]` prefixes already applied, next to the `status` and
+    `logfile.txt` the formal generators already read. Taking `depth` from there is
+    what makes a record's Depth column the configuration that ran (issue #165).
+    This is the one parser of that file: verification/formal/make_record.py and
+    verification/formal/keyladder/make_record.py both read the depth through it,
+    so the two record families cannot state different depths for the same
+    contract.
+
+    Parsed the way sby's own parse_config() parses a line (yowasp-yosys wheel,
+    sby_core.py:333-342): only while inside a section sby itself comment-strips —
+    options, engines, files, autotune, setup, stage ([script] is deliberately
+    absent) — is a trailing `#` comment stripped and a blank/comment line skipped,
+    and only then is the line tested for a section header; everywhere else the
+    line is only rstripped, so a commented header outside those sections is not
+    a header to sby and not one here either. Last `depth` assignment in
+    [options] wins.
+
+    Returns None when the file or the option is absent. sby's own default depth (20)
+    is deliberately NOT assumed: a record must state the depth that ran, and no run
+    in either flow is configured at that default, so a missing value is a broken run
+    rather than a 20. Only the keyladder judge fails such a run today; the
+    DRBG/TRNG generator still records one with None in its Depth column -- a
+    pre-existing asymmetry, tracked as issue #224.
+    """
+    cfg = d / "config.sby"
+    if not cfg.exists():
+        return None
+    depth, section = None, None
+    for raw in cfg.read_text().splitlines():
+        if section in SBY_STRIP_SECTIONS:
+            line = re.sub(r"\s*(\s#.*)?$", "", raw)
+            if not line or line.startswith("#"):
+                continue
+        else:
+            line = raw.rstrip()
+        m = re.match(r"^\s*\[(.*)\]\s*$", line)
+        if m:
+            head = m.group(1).strip().split()
+            section = head[0] if head else None
+            continue
+        if section != "options":
+            continue
+        entries = line.split(maxsplit=1)
+        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
+            depth = int(entries[1])
+    return depth
 
 
 def previous_record(experiment: str) -> str | None:

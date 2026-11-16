@@ -16,8 +16,15 @@ import record_lib  # noqa: E402
 MAKERS = sorted(p.relative_to(REPO).as_posix()
                 for p in (REPO / "verification").rglob("make_record.py"))
 
-PINS = ("KLT_VERSION", "YOWASP_YOSYS_VERSION", "COCOTB_VERSION", "CIEL_VERSION",
-        "CIEL_SKY130_VERSION", "Z3_SOLVER_VERSION")
+# Every name the pin block assigns, derived rather than hand-copied (issue
+# #189): a new pin, a rename or a dropped one moves this test with it, so
+# nothing pin() can resolve goes untested. The hand-copied tuple this replaces
+# had already lost Z3_BIN_SHA256, which make_record.py resolves only at
+# key-ladder record time -- the first signal a rename broke it was the end of
+# a full formal run, not this suite.
+_BLOCK = record_lib.parse_pins((REPO / record_lib.SETUP_ENV).read_text())
+assert _BLOCK is not None, "no pin block in scripts/setup-env.sh"
+PINS = tuple(sorted(_BLOCK))
 
 
 @pytest.mark.parametrize("name", PINS)
@@ -28,6 +35,35 @@ def test_pin_resolves_against_setup_env(name):
 def test_missing_pin_refuses():
     with pytest.raises(SystemExit):
         record_lib.pin("KLT_REV")
+
+
+def test_pin_does_not_resolve_outside_the_block(tmp_path, monkeypatch):
+    """The delimiters are the only definition of a pin (issue #189).
+
+    A later assignment of a pin name -- a fallback, a re-export, a --force
+    branch -- is not a pin and must not change what pin() resolves, and a
+    name assigned only outside the block is a hard error rather than a silent
+    match: the value lands in the tool_versions block of append-only records.
+    Before this, pin() scanned the whole script and took the first NAME="
+    match in file order.
+    """
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / record_lib.SETUP_ENV).write_text(
+        "# --- pinned versions -- keep in sync with docs/environment.md ----\n"
+        'KLT_VERSION="1.0"\n'
+        "# ------------------------------------------------------------------\n"
+        "\n"
+        'PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"\n'
+        'KLT_VERSION="2.0"\n'
+    )
+    monkeypatch.setattr(record_lib, "REPO", tmp_path)
+    assert record_lib.pin("KLT_VERSION") == "1.0"
+    with pytest.raises(SystemExit):
+        record_lib.pin("PDK_ROOT")
+
+
+def test_parse_pins_returns_none_when_the_block_is_absent():
+    assert record_lib.parse_pins('KLT_VERSION="1.0"\n') is None
 
 
 def test_pdk_pin_guard_refuses_mismatch(tmp_path):

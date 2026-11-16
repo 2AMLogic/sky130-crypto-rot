@@ -2,7 +2,8 @@
 # verification/rtl/<core>/run.sh scripts. Source it; do not execute it.
 #
 # The caller sets HERE (its own directory) and NAME (the core directory name,
-# also flow/build/<NAME>), parses its own options, then calls the steps below.
+# also flow/build/<NAME>), parses its options with core_flow_parse_opts below
+# (the common flags plus whatever the core declares), then calls the steps.
 # Synthesis is a single corner (tt_025C_1v80), pre-P&R, cell area only.
 #
 # Every core ends on core_flow_finish, which owns the --sim-only split: CI asks
@@ -12,6 +13,57 @@
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="${REPO_ROOT}/flow/build/${NAME}"
 PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"
+
+# The negative-control evidence for the benches whose assertion messages carry
+# no distinctive prefix (drbg, trng_if -- see core_flow_negctl_one): the bench's
+# own "SUMMARY ... failures=<n>" line with a non-zero n, matched in the cocotb
+# log. One definition here instead of a copy per core; the same log is what
+# core_flow_summaries reads.
+BENCH_LOG=.klt/functional-verification/test_icarus.log
+NEG_EVIDENCE='SUMMARY.*failures=[1-9][0-9]*'
+
+# core_flow_parse_opts "$@" -- the one option parser, instead of a copy per
+# core. Recognizes the common three flags (--record, --negative-control,
+# --sim-only -> RECORD, NEG, SIM_ONLY) and calls core_flow_check_opts itself,
+# so a core cannot forget that pair check (trng_if once did). A core keeps only
+# what is genuinely its own, declared before the call:
+#   CORE_FLOW_EXTRA_OPTS    "<flag>:<VAR>" pairs; passing <flag> sets <VAR> to
+#                           1 (sha256: --million-a:MILLION; trng_if:
+#                           --skip-real:SKIP_REAL). The core initializes the
+#                           variable itself and may read it with the opposite
+#                           sense (SKIP_REAL defaults 0).
+#   CORE_FLOW_UNSUPPORTED   a flag the driver knows but this core does not
+#                           (trng_if: --sim-only, which stops before a
+#                           synthesis this core never runs). Passing one is
+#                           rejected by name, before the case below can claim
+#                           it as a common flag.
+# Unknown options keep the original message and exit status.
+core_flow_parse_opts() {
+  RECORD=0; NEG=0; SIM_ONLY=0
+  local arg pair
+  for arg in "$@"; do
+    case " ${CORE_FLOW_UNSUPPORTED:-} " in
+      *" ${arg} "*)
+        echo "unsupported option: ${arg}" >&2
+        exit 2 ;;
+    esac
+    case "${arg}" in
+      --record) RECORD=1 ;;
+      --negative-control) NEG=1 ;;
+      --sim-only) SIM_ONLY=1 ;;
+      *)
+        for pair in ${CORE_FLOW_EXTRA_OPTS:-}; do
+          if [ "${arg}" = "${pair%%:*}" ]; then
+            printf -v "${pair#*:}" '1'
+            continue 2
+          fi
+        done
+        echo "unknown option: ${arg}" >&2
+        exit 2 ;;
+    esac
+  done
+  core_flow_check_opts "${SIM_ONLY}" "${RECORD}"
+}
 
 _json_line() {  # _json_line <file> <python print expression over d>
   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print('"$2"')' "$1"
@@ -122,11 +174,29 @@ core_flow_negctl() {
   exit 0
 }
 
+# core_flow_status <sim json> -- the one-line "<status> <passed>/<total> tests"
+# print after each simulation; drbg open-coded it per elaboration and trng_if
+# wrapped it as status().
+core_flow_status() {
+  _json_line "$1" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
+}
+
+# core_flow_summaries [--first] -- every "SUMMARY ..." line in the cocotb log
+# (${BENCH_LOG}, above); --first keeps only the first, for a run that produces
+# one elaboration per log.
+core_flow_summaries() {
+  if [ "${1:-}" = "--first" ]; then
+    grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" | head -1 || true
+  else
+    grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" || true
+  fi
+}
+
 core_flow_sim() {
   echo "== RTL simulation (klt functional-verification: cocotb + Icarus) =="
   klt functional-verification sim-request.json --format json > "${OUT}/sim.json"
-  _json_line "${OUT}/sim.json" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'
-  grep -o 'SUMMARY[^<]*' .klt/functional-verification/test_icarus.log | head -1 || true
+  core_flow_status "${OUT}/sim.json"
+  core_flow_summaries --first
 }
 
 # core_flow_check_opts <SIM_ONLY 0|1> <RECORD 0|1> -- reject the one option pair
@@ -146,6 +216,125 @@ core_flow_synth() {
   klt synthesize synth-request.json --pdk sky130A --pdk-root "${PDK_ROOT}" \
     --format json > "${OUT}/synth.json"
   _json_line "${OUT}/synth.json" 'd["status"], d["instance_count"], "instances", d["area_um2"], "um2"'
+}
+
+# core_flow_sta_request <synth response> <sta request template> <destination> --
+# the committed sta-request.json plus the one thing a tracked file cannot
+# carry: the netlist to time. `klt synthesize` writes its netlist into a
+# per-run scratch directory, so the path is read from the synthesis response's
+# netlist_path -- a `{path, scope}` envelope -- rather than hardcoded
+# (verified on the pinned klayout-tools 0.8.0, schema_version 2). scope
+# "repo" resolves against REPO_ROOT; anything else refuses rather than feed
+# `klt sta` a path that was never resolved. The derived document is written
+# to ${OUT}: build scratch like the negative-control request, not tracked
+# evidence.
+core_flow_sta_request() {
+  python3 -I -c 'import json, sys
+synth = json.load(open(sys.argv[1]))
+np = synth["netlist_path"]
+if isinstance(np, dict):
+    if np.get("scope") != "repo" or not np.get("path"):
+        sys.exit("sta: synthesis netlist_path is not repo-relative: " + json.dumps(np))
+    netlist = sys.argv[4] + "/" + np["path"]
+else:
+    netlist = np
+doc = json.load(open(sys.argv[2]))
+doc["verilog"] = netlist
+with open(sys.argv[3], "w") as f:
+    json.dump(doc, f, indent=2)' \
+    "${1}" "${2}" "${3}" "${REPO_ROOT}"
+}
+
+# core_flow_sta [what] -- pre-layout setup timing of the netlist this run
+# synthesizes: `klt synthesize sta-synth-request.json` (corner
+# ss_100C_1v60, 20 ns clock target -- the synthesis the timing number is
+# honest for, distinct from core_flow_synth's tt run) then `klt sta` in
+# DEF-free verilog mode on the committed sta-request.json plus that netlist.
+# A negative slack is data, not a failure: `klt sta` exits non-zero only when
+# the analysis could not run (bad request, unresolvable PDK, a missing clock
+# constraint, an OpenROAD engine error), never on a timing miss, and set -e
+# keeps that contract -- a completed analysis exits 0 however negative the
+# number.
+core_flow_sta() {
+  echo "== synthesis for timing${1:+ of ${1}} (klt synthesize -> sky130_fd_sc_hd, ss_100C_1v60, 20 ns target) =="
+  klt synthesize sta-synth-request.json --pdk sky130A --pdk-root "${PDK_ROOT}" \
+    --format json > "${OUT}/sta-synth.json"
+  _json_line "${OUT}/sta-synth.json" 'd["status"], d["instance_count"], "instances", d["area_um2"], "um2"'
+  echo "== pre-layout setup timing (klt sta: verilog netlist, no parasitics) =="
+  core_flow_sta_request "${OUT}/sta-synth.json" "${HERE}/sta-request.json" \
+    "${OUT}/sta-request.json"
+  # Run `klt sta` from the repo root, not from HERE: on hosts where openroad
+  # is the provisioned container wrapper (2am infra install -- `docker run`
+  # mounting $PWD, $TMPDIR and $PDK_ROOT and nothing else), the engine can
+  # only open paths under the invocation's own working directory. From HERE
+  # (verification/rtl/<core>/) the script, metrics and logs klt writes under
+  # ${OUT}/.klt/sta/ are invisible to the container and the run dies with
+  # STA-0340 "cannot open" on a script that exists and is readable (observed
+  # on the dispatch host, 2026-11-15). The repo root encloses both that
+  # directory and the synthesized netlist's .klt/synthesize scratch, so every
+  # path the engine touches is inside the one mounted tree. The derived
+  # request carries absolute paths, so nothing else depends on the CWD.
+  ( cd "${REPO_ROOT}" && klt sta "${OUT}/sta-request.json" --pdk sky130A \
+      --pdk-root "${PDK_ROOT}" --format json ) > "${OUT}/sta.json"
+  _json_line "${OUT}/sta.json" 'd["status"], "geometry_source", d["geometry_source"], "worst setup slack", d["worst_slack_ns"], "ns; TNS", d["total_negative_slack_ns"], "ns;", d["setup_violation_count"], "setup violations; fmax", d["fmax_mhz"], "MHz"'
+  _json_line "${OUT}/sta.json" '"  worst setup path:", d["worst_setup_path"]["startpoint"], "->", d["worst_setup_path"]["endpoint"], "at", d["worst_setup_path"]["slack_ns"], "ns"'
+  # Stamp what this run measured (issue #218) -- see core_flow_sta_inputs.
+  core_flow_sta_inputs
+}
+
+# core_flow_sta_inputs -- stamp what this core's timing run measured, into
+# ${OUT}/sta-inputs.json beside the responses. For every file whose content
+# determines THIS core's timing number -- each source resolved from
+# sta-synth-request.json's sources (relative entries resolve against HERE,
+# as klt resolves them), the committed sta-request.json and
+# sta-synth-request.json templates, this flow's run.sh, and core_flow.sh
+# itself (those four determine HOW the number was produced) -- it records
+# the repo-relative path and a content hash spelled the way
+# flow/common/record_lib.py's sha256() spells it, plus `git rev-parse HEAD`
+# as a diagnostic field. The record generator
+# (flow/common/make_timing_record.py) recomputes every stamped hash before a
+# record is written and refuses on the first change, naming the file and the
+# core to re-run: either run.sh --timing leaves scratch behind and the other
+# core's --timing --record consumes it, so without this a record could stamp
+# one revision while quoting the other core's measurement from an earlier
+# one -- a window the generator's engine_version and liberty-deck checks
+# cannot see, because it sits within one tool and deck generation (issue
+# #218).
+#
+# The head is deliberately not the comparison key: HEAD moves for reasons
+# unrelated to these files, and a rev-equality check would refuse a
+# still-valid measurement whenever an unrelated commit landed between the
+# two cores' runs. The generator cannot reuse a hash already sitting in the
+# responses for the same reason it cannot compare them by hand: klt's
+# provenance input.content_hash is a different quantity from a plain
+# file-bytes hash. Called after the klt calls: set -e drops the run before
+# this point on failure, and scratch without a stamp is refused by the
+# generator exactly like scratch from before stamping existed.
+core_flow_sta_inputs() {
+  local head
+  head="$(git -C "${REPO_ROOT}" rev-parse HEAD)"
+  python3 -I -c 'import hashlib, json, os, sys
+here, out, repo_root, head = sys.argv[1:5]
+repo_root = os.path.realpath(repo_root)
+def stamp(path):
+    real = os.path.realpath(path)
+    if os.path.commonpath([real, repo_root]) != repo_root:
+        sys.exit("sta: timing input resolves outside the repo: " + path)
+    with open(real, "rb") as f:
+        digest = "sha256:" + hashlib.sha256(f.read()).hexdigest()
+    return {"path": os.path.relpath(real, repo_root), "content_hash": digest}
+with open(os.path.join(here, "sta-synth-request.json")) as f:
+    sources = json.load(f)["sources"]
+inputs = [stamp(os.path.join(here, src)) for src in sources]
+for name in ("sta-synth-request.json", "sta-request.json", "run.sh"):
+    inputs.append(stamp(os.path.join(here, name)))
+inputs.append(stamp(os.path.join(repo_root, "flow", "common", "core_flow.sh")))
+inputs.sort(key=lambda entry: entry["path"])
+with open(os.path.join(out, "sta-inputs.json"), "w") as f:
+    json.dump({"head": head, "inputs": inputs}, f, indent=2)
+    f.write("\n")' \
+    "${HERE}" "${OUT}" "${REPO_ROOT}" "${head}"
+  echo "sta: stamped timing inputs -> ${OUT}/sta-inputs.json (HEAD ${head:0:7})"
 }
 
 # core_flow_verdict <RECORD 0|1> -- verdict, plus a record when RECORD=1.
