@@ -17,7 +17,7 @@
         "role": "testbench",
         "path": "flow/common/core_flow.sh",
         "passed": true,
-        "content_hash": "sha256:7f0ed12173edfbf193c6e0bc74a6723610a8f5b9384c9c9e4a7fee7bfc69669d"
+        "content_hash": "sha256:c6677178bf49b816b12874e921b56c2b599ba941d0d4df70fc3f2c0ce096ac4f"
       },
       {
         "check": "present",
