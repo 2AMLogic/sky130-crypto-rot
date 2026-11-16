@@ -36,9 +36,79 @@ def test_readable_key_port_is_rejected(tmp_path):
     assert any("readable register wired" in e for e in errs)
 
 
+BIT_RANGE_SHAPES = ("`aes_key[127:0]`", "`aes_key[63:0]`", "`aes_key[0]`",
+                    "`aes_key [127:0]`")
+
+
+def test_readable_bit_ranged_key_port_is_rejected(tmp_path):
+    for spelling in BIT_RANGE_SHAPES:
+        errs = _run(tmp_path, ROWS_OK + f"| 0x08 | LEAK | RO | - | {spelling} |\n")
+        assert any("readable register wired" in e for e in errs), spelling
+
+
+def test_bit_ranged_error_names_the_raw_token(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LEAK | RO | - | `aes_key[127:0]` |\n")
+    assert any("aes_key[127:0]" in e for e in errs)
+
+
+def test_every_key_port_bit_ranged_is_rejected(tmp_path):
+    for port, rng in (("hmac_key", "[255:0]"), ("root_key", "[127:0]"),
+                      ("ld_data", "[31:0]"), ("seed", "[383:0]")):
+        errs = _run(tmp_path, ROWS_OK + f"| 0x08 | LEAK | RO | - | `{port}{rng}` |\n")
+        assert any("readable register wired" in e for e in errs), port
+
+
+def test_write_only_may_use_bit_ranged_key_port(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LOAD | WO | KDF | `ld_data[31:0]` |\n",
+                "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
+    assert errs == []
+
+
+def test_readable_status_flag_names_are_not_key_ports(tmp_path):
+    flags = ("`root_key_valid`", "`seeded`", "`slot_valid`", "`slot_locked`",
+             "`root_key_valid[3:0]`")
+    rows = "".join(f"| 0x{i:02X} | FLAG{i} | RO | - | {f} |\n"
+                   for i, f in zip(range(0x70, 0x75), flags))
+    errs = _run(tmp_path, ROWS_OK + rows, "0x03-0x0F, 0x14-0x6F, 0x75-0x7F")
+    assert errs == []
+
+
 def test_write_only_may_use_key_port(tmp_path):
     errs = _run(tmp_path, ROWS_OK + "| 0x08 | LOAD | WO | KDF | `ld_data` |\n",
                 "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
+    assert errs == []
+
+
+def test_readable_key_in_port_is_rejected(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LEAK | RW | AES | `key_in` |\n")
+    assert any("readable register wired" in e for e in errs)
+
+
+def test_readable_hmac_key_port_is_rejected(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LEAK | W1C | - | `key` |\n")
+    assert any("readable register wired" in e for e in errs)
+
+
+def test_readable_lk_data_port_is_rejected(tmp_path):
+    errs = _run(tmp_path, ROWS_OK + "| 0x08 | LEAK | RO | - | `lk_data` |\n")
+    assert any("readable register wired" in e for e in errs)
+
+
+def test_write_only_may_use_engine_side_key_ports(tmp_path):
+    errs = _run(tmp_path,
+                ROWS_OK + "| 0x08 | KEY | WO | KDF | `key_in`, `key`, `lk_data` |\n",
+                "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
+    assert errs == []
+
+
+def test_readable_status_flag_names_are_not_key_ports(tmp_path):
+    # Anti-substring regression: root_key_valid contains root_key and seeded
+    # contains seed, so a substring match would reject this readable row.
+    errs = _run(
+        tmp_path,
+        ROWS_OK + "| 0x08 | FLAGS | RO | - "
+                  "| `root_key_valid`, `seeded`, `slot_valid`, `slot_locked` |\n",
+        "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
     assert errs == []
 
 

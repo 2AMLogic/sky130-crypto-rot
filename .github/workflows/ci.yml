@@ -1,8 +1,9 @@
 # CI for sky130-crypto-rot. Tool-light: no PDK, no Docker.
 #
 # What runs here: format and known-answer correctness -- Python/shell
-# syntax, the golden models against the committed published vectors, and the
-# reuse.lock.json hashes -- plus, on PRs touching rtl/ or verification/, the
+# syntax, the pin and register-map table lints, the golden models against
+# the committed published vectors, and the reuse.lock.json hashes -- plus,
+# on PRs touching rtl/ or verification/, the
 # `verify` job: the sha256, aes, drbg, hmac, keyladder and trng_if benches with
 # their negative controls and the SymbiYosys tasks (scripts/ci-verify.sh). It
 # makes no security claim.
