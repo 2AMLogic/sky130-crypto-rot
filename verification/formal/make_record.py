@@ -4,7 +4,9 @@
 Reads flow/build/formal/results.tsv (one line per sby task). Refuses to record
 unless every task met its expectation -- with the netlist exception of a proof
 that stopped at its depth or the 1500 s per-task cap: it is recorded as
-"reached depth N, not proven" (issue #177). Standard library only.
+"reached depth N, not proven" (issue #177). With --check-only it stops right
+after that verdict and writes nothing, so run.sh judges every run through this
+one EXPECT table, --record or not (issue #207). Standard library only.
 """
 
 from __future__ import annotations
@@ -69,6 +71,7 @@ def steps_checked(d: Path) -> int | None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", type=Path, required=True)
+    ap.add_argument("--check-only", action="store_true")
     args = ap.parse_args()
     rows = [line.split("\t") for line in (args.out_dir / "results.tsv").read_text().splitlines() if line]
     if not rows:
@@ -102,6 +105,11 @@ def main() -> int:
         for v in verdicts:
             print(f"  {v}", file=sys.stderr)
         return 1
+    if args.check_only:
+        # Judged and clean; stop before require_clean_inputs / the tool-version
+        # and record work, so a check costs nothing but reading results.tsv
+        # (the keyladder generator's contract, issue #207).
+        return 0
     rev = rc.require_clean_inputs(INPUTS, generator=__file__)
     v = rc.tool_versions()
     v["sby"] = rc.run(str(rc.REPO / ".venv/bin/yowasp-sby"), "--version")

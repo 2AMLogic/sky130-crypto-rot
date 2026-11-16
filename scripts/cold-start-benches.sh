@@ -54,8 +54,11 @@ cd "${REPO_ROOT}"
 # completes, and klt kills yosys at its 300 s watchdog). The ambient TMPDIR can
 # be long enough to trip that, and every synth step below goes through klt, so
 # run the whole cold start with a short temp directory.
-TMPDIR="$(mktemp -d /tmp/coldstartXXXXXX)"
-export TMPDIR
+COLD_TMP="$(mktemp -d /tmp/coldstartXXXXXX)"
+export TMPDIR="${COLD_TMP}"
+# Remove the pinned short temp dir on the way out, error paths included
+# (issue #207; set -euo pipefail makes the EXIT trap cover them).
+trap 'rm -rf "${COLD_TMP}"' EXIT
 
 ./scripts/setup-env.sh
 # pytest for the model and reuse checks; the same package CI installs.
