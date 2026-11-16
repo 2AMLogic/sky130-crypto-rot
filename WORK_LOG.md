@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-16
 
+- **PR #246**: docs(manifests): document the toolchain-free --skip-local-only item-9 re-attest route
+- **PR #245**: test: make the check-only tripwire drop an untracked stray, not a spec write
 - **PR #238**: test: pin the drbg-trng formal EXPECT judge (--check-only) like its keyladder sibling
 - **PR #234**: test(formal): pin opgen_binding classifies uppercase X/Z as undriven
 - **PR #233**: fix: see through bit-range port spellings in the regmap key-port lint
@@ -17,6 +19,8 @@ triage role. Entries are grouped by date, newest first.
 - **PR #214**: fix: mirror sby's mode-conditional comment strip in the sby_depth header match
 - **PR #203**: refactor(verification): one option parser, one evidence definition, one summaries helper
 - **PR #198**: lint: fold check_regmap into npm run lint and add the engine-side key ports to its denylist
+- **Issue #241** (closed): test_drbg_trng_formal_record.py's check-only tripwire writes into the shared checkout (spec/key-isolation-properties.md)
+- **Issue #240** (closed): manifests/README.md does not document the --skip-local-only route for re-attesting item 9 on a host without the bench toolchain
 - **Issue #230** (closed): formal: pin that opgen_binding treats uppercase X/Z as undriven (#219 test-plan item b)
 - **Issue #229** (closed): The lint/test inventory in README.md and verification/README.md is hand-maintained and omits check_roadmap.py
 - **Issue #226** (closed): formal: the drbg-trng EXPECT judge is now the sole verdict for every run but has no committed test (the sibling keyladder judge does)
