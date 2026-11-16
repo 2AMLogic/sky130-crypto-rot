@@ -384,3 +384,44 @@ def test_generator_does_not_hand_write_the_klt_provenance_bullet(maker):
     """Five byte-identical copies is what issue #141 found; main() builds it once."""
     text = (REPO / maker).read_text()
     assert "- **klt provenance**: klt `{prov[" not in text
+
+
+# --- sby_depth: the one shared config.sby depth reader (issues #165, #194, #221) ---
+
+def _sby_workdir(tmp_path, config):
+    d = tmp_path / "task"
+    d.mkdir()
+    if config is not None:
+        (d / "config.sby").write_text(config)
+    return d
+
+
+@pytest.mark.parametrize("config,expected", [
+    ("[options]\nmode bmc\ndepth 5\n\n[script]\nread_verilog t.v\n", 5),
+    ("[options]\nmode bmc\ndepth 24  # bounded\n", 24),
+    ("[options]\n# a note\n\nmode prove\ndepth 16\n", 16),
+    ("[options]\ndepth 8\ndepth 16\n", 16),
+    # depth outside [options] is not a depth
+    ("[options]\ndepth 32\n\n[script]\nread_verilog -Ddepth 99 d.v\ndepth 99\n", 32),
+    # case B (#194/#221): a commented [script] header still ends options mode
+    ("[options]\nmode bmc\ndepth 4\n\n[script]  # note\ndepth 99\n", 4),
+    # case C: `[options]  # trick` inside [script] is not a header (no strip there)
+    ("[options]\nmode bmc\ndepth 4\n\n[script]\nread_verilog t.v\n[options]  # trick\ndepth 99\n", 4),
+    # commented header as the very first line opens no section
+    ("[options]  # not really\nmode bmc\ndepth 4\n", None),
+    # a header whose comment contains a `]`
+    ("[options]\ndepth 4\n\n[script]  # a ] b\ndepth 99\n", 4),
+    # [options] re-entered after [script]: last assignment wins
+    ("[options]\ndepth 4\n\n[script]\nx\n\n[options]\ndepth 6\n", 6),
+    # a depth that is not all digits is ignored, never a crash
+    ("[options]\ndepth abc\n", None),
+    ("[options]\ndepth 4x\ndepth 7\n", 7),
+    # sby's default (20) is never assumed
+    ("[options]\nmode bmc\ntimeout 1500\n", None),
+])
+def test_sby_depth(tmp_path, config, expected):
+    assert record_lib.sby_depth(_sby_workdir(tmp_path, config)) == expected
+
+
+def test_sby_depth_missing_config_is_none(tmp_path):
+    assert record_lib.sby_depth(_sby_workdir(tmp_path, None)) is None
