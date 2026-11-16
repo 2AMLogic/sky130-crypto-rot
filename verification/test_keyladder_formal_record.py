@@ -89,6 +89,28 @@ def test_depth_outside_the_options_section_is_ignored(gen, tmp_path):
     assert gen.sby_depth(_workdir(tmp_path, cfg)) == 32
 
 
+def test_commented_section_header_ends_options_mode(gen, tmp_path):
+    """sby tests for a header on the comment-stripped line, so `[script]  # note`
+    still ends [options] mode; a later bare `depth` must not be read (issue #194)."""
+    cfg = "[options]\nmode bmc\ndepth 4\n\n[script]  # note\ndepth 99\n"
+    assert gen.sby_depth(_workdir(tmp_path, cfg)) == 4
+
+
+def test_commented_options_lookalike_inside_script_is_not_a_header(gen, tmp_path):
+    """sby does NOT strip comments inside [script], so `[options]  # trick` there
+    is not a header to sby and must not re-open options mode here either."""
+    cfg = ("[options]\nmode bmc\ndepth 4\n\n[script]\nread_verilog tiny.v\n"
+           "[options]  # trick\ndepth 99\n")
+    assert gen.sby_depth(_workdir(tmp_path, cfg)) == 4
+
+
+def test_commented_options_header_before_any_section_is_not_a_header(gen, tmp_path):
+    """sby does not strip before the first section either (mode is None), so a
+    commented `[options]` at the very top opens no section and reads no depth."""
+    cfg = "[options]  # not really\nmode bmc\ndepth 4\n"
+    assert gen.sby_depth(_workdir(tmp_path, cfg)) is None
+
+
 def test_last_assignment_wins(gen, tmp_path):
     """sby's [options] reader is a dict assignment, so a later line overrides."""
     assert gen.sby_depth(_workdir(tmp_path, "[options]\ndepth 8\ndepth 16\n")) == 16
