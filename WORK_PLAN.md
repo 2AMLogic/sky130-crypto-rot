@@ -29,7 +29,6 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-- **#235**: check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged
 - **#236**: check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges)
 
 ## In Progress
@@ -39,7 +38,6 @@ Issues currently being built (`loom:building`).
 - **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 - **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
-- **#213**: docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand
 - **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
 - **#224**: DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it
 
@@ -61,10 +59,8 @@ Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
-- **#213**: docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand *(curated)*
 - **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader *(curated)*
 - **#224**: DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it *(curated)*
-- **#235**: check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged *(curated)*
 - **#236**: check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges) *(curated)*
 
 ## Proposed (Architect / Hermit)
@@ -85,11 +81,11 @@ _None._
 | Operator merge-risk holds | 1 |
 | Very important | 0 |
 | Important | 4 |
-| Ready (`loom:issue`) | 2 |
-| In Progress (`loom:building`) | 6 |
+| Ready (`loom:issue`) | 1 |
+| In Progress (`loom:building`) | 5 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 1 |
-| Curated | 7 |
+| Curated | 5 |
 | Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
