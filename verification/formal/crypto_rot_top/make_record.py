@@ -178,7 +178,7 @@ Every non-`dat_o` output is checked with no cut at all; `dat_o`'s cone is checke
 
 ### Non-vacuity
 
-- All three carriers are in `dat_o`'s uncut cone ({nonvac['carriers_in_dat_o_uncut']}), so the cut is load-bearing.
+- All three carriers are in `dat_o`'s uncut cone, every bit of each ({', '.join(f"`{n}` {v} b" for n, v in nonvac["carriers_in_dat_o_uncut"].items())}), so the cut is load-bearing.
 - Slot bits ({nonvac['slots_in_dat_o_uncut']} of 256) and `root_key` bits ({nonvac['root_key_bits_in_dat_o_uncut']} of 256) are in `dat_o`'s uncut cone, so key material really is reachable through the engines and the clean result is not a vacuous pass. The {nonvac['trng_out_data_bits_in_dat_o_uncut']} `trng_out_data` bits likewise (through the DRBG).
 
 ## Property coverage (spec marks N; netlist status per property)
