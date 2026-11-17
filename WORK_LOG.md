@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-17
 
+- **PR #242**: fix: share one sby_depth reader so the formal generator honors commented section headers
+- **Issue #221** (closed): verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
 - **PR #253**: fix: strip and case-fold Ports tokens in check_regmap key-port lint
 - **PR #239**: formal: make the DRBG/TRNG record's Depth verdict mode-aware
 - **Issue #236** (closed): check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges)
