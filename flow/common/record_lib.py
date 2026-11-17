@@ -271,10 +271,12 @@ def sby_depth(d: Path) -> int | None:
     with the `[tasks]` prefixes already applied, next to the `status` and
     `logfile.txt` the formal generators already read. Taking `depth` from there is
     what makes a record's Depth column the configuration that ran (issue #165).
-    This is the one parser of that file: verification/formal/make_record.py and
-    verification/formal/keyladder/make_record.py both read the depth through it,
-    so the two record families cannot state different depths for the same
-    contract.
+    Both record families read the depth through it -- verification/formal/
+    make_record.py and verification/formal/keyladder/make_record.py -- so the
+    two cannot state different depths for the same contract. sby_mode() in
+    verification/formal/make_record.py is the file's second reader, taking the
+    task's mode from the same resolved config.sby under the same contract
+    (issue #224); the depth stays read only here.
 
     Parsed the way sby's own parse_config() parses a line (yowasp-yosys wheel,
     sby_core.py:333-342): only while inside a section sby itself comment-strips —
@@ -287,10 +289,14 @@ def sby_depth(d: Path) -> int | None:
 
     Returns None when the file or the option is absent. sby's own default depth (20)
     is deliberately NOT assumed: a record must state the depth that ran, and no run
-    in either flow is configured at that default, so a missing value is a broken run
-    rather than a 20. Only the keyladder judge fails such a run today; the
-    DRBG/TRNG generator still records one with None in its Depth column -- a
-    pre-existing asymmetry, tracked as issue #224.
+    in either flow is configured at that default. This function still returns None
+    for a missing value -- judging that None is the generators' job. The DRBG/TRNG
+    generator applies the mode-aware rule (issue #224): a bounded task (`mode bmc`
+    or `mode cover`) must name a depth or the run refuses to record; a depth-less
+    `mode prove` task is the unbounded proof and records as `unbounded`; a run
+    whose work directory has no config.sby at all states neither fact and also
+    refuses. The keyladder judge refuses any non-MISSING run whose config.sby
+    names no depth, whatever its mode.
     """
     cfg = d / "config.sby"
     if not cfg.exists():
