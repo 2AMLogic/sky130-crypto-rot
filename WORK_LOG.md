@@ -3,8 +3,26 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-17
+
+- **PR #242**: fix: share one sby_depth reader so the formal generator honors commented section headers
+- **Issue #221** (closed): verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
+- **PR #253**: fix: strip and case-fold Ports tokens in check_regmap key-port lint
+- **PR #239**: formal: make the DRBG/TRNG record's Depth verdict mode-aware
+- **Issue #236** (closed): check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges)
+- **Issue #224** (closed): DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it
+
 ### 2026-11-16
 
+- **PR #237**: chore(loom): resync installed Loom to v0.19.1302
+- **PR #251**: docs: state the load-bearing reverse-assertion rationale in check_script_docs.py
+- **PR #249**: docs: record check_script_docs.py's one-directional design in its docstring
+- **Issue #250** (closed): check_script_docs.py docstring: the two cited prose mentions do not demonstrate reverse-assertion unsafety
+- **Issue #235** (closed): check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged
+- **PR #227**: lint: check docs/roadmap.md #N status tokens against WORK_LOG.md in npm run lint
+- **Issue #213** (closed): docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand
+- **PR #246**: docs(manifests): document the toolchain-free --skip-local-only item-9 re-attest route
+- **PR #245**: test: make the check-only tripwire drop an untracked stray, not a spec write
 - **PR #238**: test: pin the drbg-trng formal EXPECT judge (--check-only) like its keyladder sibling
 - **PR #234**: test(formal): pin opgen_binding classifies uppercase X/Z as undriven
 - **PR #233**: fix: see through bit-range port spellings in the regmap key-port lint
@@ -17,6 +35,8 @@ triage role. Entries are grouped by date, newest first.
 - **PR #214**: fix: mirror sby's mode-conditional comment strip in the sby_depth header match
 - **PR #203**: refactor(verification): one option parser, one evidence definition, one summaries helper
 - **PR #198**: lint: fold check_regmap into npm run lint and add the engine-side key ports to its denylist
+- **Issue #241** (closed): test_drbg_trng_formal_record.py's check-only tripwire writes into the shared checkout (spec/key-isolation-properties.md)
+- **Issue #240** (closed): manifests/README.md does not document the --skip-local-only route for re-attesting item 9 on a host without the bench toolchain
 - **Issue #230** (closed): formal: pin that opgen_binding treats uppercase X/Z as undriven (#219 test-plan item b)
 - **Issue #229** (closed): The lint/test inventory in README.md and verification/README.md is hand-maintained and omits check_roadmap.py
 - **Issue #226** (closed): formal: the drbg-trng EXPECT judge is now the sole verdict for every run but has no committed test (the sibling keyladder judge does)

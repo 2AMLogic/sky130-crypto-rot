@@ -19,6 +19,28 @@ Two checked pairs:
 * **`scripts.test` -> the `CI model` row** -- every `verification/test_*.py`
   in the `test` string must be named in the row.
 
+The check is deliberately one-directional: containment only, in the
+package.json -> table direction. A filename left behind in a row after
+its checker is deleted or renamed is NOT flagged -- a stale name in a
+doc table is the milder failure; the harmful direction (a checker
+`package.json` runs that the table omits, the drift #229 recorded) is
+the one asserted. The reverse assertion (table -> package.json) is not
+safe to add: a row's gloss is free prose, so it would assert against
+text whose vocabulary nobody controls -- a future gloss mentioning a
+`check_*.py` or `test_*.py` name it does not invoke would fail the build
+for a documentation choice, not for drift. No such hit exists in the
+tree today (both checked rows name exactly the checkers and self-tests
+`package.json` runs), so this is a forward-looking risk, not a
+present-tree one.
+
+Containment also means an expected set that comes out empty passes
+vacuously: if `scripts.lint` or `scripts.test` ever stops naming files
+individually (a directory glob, say), nothing is demanded of its row.
+The row-filename guard below still requires the row to name at least
+one filename of its kind, so a reworded row fails -- but an emptied
+expected set does not, by design
+(`test_scripts_missing_in_package_json_demand_nothing` pins this).
+
 `README.md`'s Reproduce block is deliberately NOT checked: its glosses are
 prose ("pin check", not `check_pins.py`), and it now points at the table
 instead of enumerating (issue #229). This table is the one surface where a

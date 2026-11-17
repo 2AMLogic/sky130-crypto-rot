@@ -32,7 +32,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "flow/common"))
 
 import record_lib  # noqa: E402
-from record_lib import pin, run, sby_depth  # noqa: E402
+from record_lib import pin, run, sby_depth, sby_steps_checked  # noqa: E402
 EXPERIMENT = "keyladder-formal"
 HERE = "verification/formal/keyladder"
 # The inputs OUTSIDE this directory. The tracked files beside this generator
@@ -72,9 +72,7 @@ def collect(stage: Path, sby: str, task: str) -> dict:
         return r
     r["status"] = st.read_text().split()[0]
     log = (d / "logfile.txt").read_text()
-    steps = [int(m) for m in re.findall(r"Checking (?:assertions|assumptions and assertions) in step (\d+)", log)]
-    steps += [int(m) for m in re.findall(r"Checking cover reachability in step (\d+)", log)]
-    r["steps_checked"] = max(steps) if steps else None
+    r["steps_checked"] = sby_steps_checked(log)
     m = re.findall(r"Trying induction in step (\d+)", log)
     if "Temporal induction successful" in log and m:
         r["induction_step"] = int(m[-1])

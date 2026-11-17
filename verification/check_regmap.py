@@ -5,7 +5,7 @@ offsets are within the 7-bit word address space; no two registers overlap;
 names are unique; an array name `NAME[a..b]` matches its offset range; the
 access type is RO, WO, RW or W1C; the gate is a known value; no readable
 register (RO, RW, W1C) is wired to a key, seed or key-load port (under any
-bit-range spelling, e.g. ``aes_key[127:0]``); and the list
+bit-range, whitespace or case spelling, e.g. ``AES_KEY[127:0]``); and the list
 of undefined ranges stated in the record equals the one computed from the
 table.
 
@@ -32,13 +32,16 @@ BIT_RANGE = re.compile(r"\s*\[[^\]]*\]$")
 
 
 def bare_port(token):
-    """Strip one optional run of whitespace and a trailing ``[...]`` group.
+    """Strip surrounding whitespace and case-fold, then strip one optional
+    run of whitespace and a trailing ``[...]`` group.
 
-    ``aes_key``, ``aes_key[127:0]`` and ``aes_key [127:0]`` all reduce to
-    ``aes_key``, so a bit-ranged spelling cannot evade the key-port check;
-    anything else (e.g. ``root_key_valid[3:0]``) is left intact.
+    ``aes_key``, ``aes_key[127:0]``, ``aes_key [127:0]``, ``aes_key `` and
+    ``AES_KEY[127:0]`` all reduce to ``aes_key``, so bit-range, whitespace
+    and case spellings cannot evade the key-port check; anything else
+    (e.g. ``root_key_valid[3:0]``) is likewise only stripped, case-folded
+    and one trailing range removed.
     """
-    return BIT_RANGE.sub("", token)
+    return BIT_RANGE.sub("", token.strip()).lower()
 
 
 def parse_rows(text):
