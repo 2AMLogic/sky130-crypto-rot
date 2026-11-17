@@ -153,6 +153,36 @@ def test_sby_mode_last_assignment_wins(gen, tmp_path):
     assert gen.sby_mode(d) == "prove"
 
 
+def test_sby_mode_commented_header_inside_script_is_not_a_header(gen, tmp_path):
+    """sby does NOT strip comments inside [script], so a commented `[options]`
+    there opens no options block and a later bare `mode` line is not one either.
+    This pins correct behaviour, not a regression fix: the generator-local copy
+    this replaced matched the header on the raw line before any strip, so it
+    read this config as `bmc` too (issue #259)."""
+    cfg = ("[options]\nmode bmc\n\n[script]\n"
+           "# [options]\nmode prove\nprep -top top\n")
+    d = tmp_path / "p9_bmc"
+    d.mkdir()
+    (d / "config.sby").write_text(cfg)
+    assert gen.sby_mode(d) == "bmc"
+
+
+def test_sby_mode_header_with_trailing_comment_inside_strip_section(gen, tmp_path):
+    """The case the generator-local copy this replaced actually got wrong
+    (issue #259): `[script]` carries a trailing comment, inside a section sby
+    itself comment-strips, so sby -- and the shared reader -- see the header on
+    the stripped line. The old copy matched the header on the raw line, the
+    commented header never matched, `[options]` never closed, and it misread
+    the script's `mode prove` as this task's mode. Fails against the
+    pre-consolidation copy."""
+    cfg = ("[options]\nmode bmc\n\n[script]  # a ] b\n"
+           "mode prove\nprep -top top\n")
+    d = tmp_path / "p9_bmc"
+    d.mkdir()
+    (d / "config.sby").write_text(cfg)
+    assert gen.sby_mode(d) == "bmc"
+
+
 def test_depthless_prove_run_is_distinguishable_from_a_broken_one(gen, tmp_path):
     """The issue #224 premise: sby_depth alone collapses the two None cases;
     sby_mode tells them apart."""

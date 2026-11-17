@@ -264,19 +264,17 @@ def klt_provenance_bullet(prov: dict, versions: dict) -> str:
 SBY_STRIP_SECTIONS = ("options", "engines", "files", "autotune", "setup", "stage")
 
 
-def sby_depth(d: Path) -> int | None:
-    """The depth SymbiYosys actually ran a task at, from its own work directory.
+def sby_option(d: Path, name: str) -> str | None:
+    """The last `name <value>` assignment in [options], from the task's work directory.
 
     sby writes the resolved per-task configuration it executed to `<d>/config.sby`,
     with the `[tasks]` prefixes already applied, next to the `status` and
-    `logfile.txt` the formal generators already read. Taking `depth` from there is
-    what makes a record's Depth column the configuration that ran (issue #165).
-    Both record families read the depth through it -- verification/formal/
-    make_record.py and verification/formal/keyladder/make_record.py -- so the
-    two cannot state different depths for the same contract. sby_mode() in
-    verification/formal/make_record.py is the file's second reader, taking the
-    task's mode from the same resolved config.sby under the same contract
-    (issue #224); the depth stays read only here.
+    `logfile.txt` the formal generators already read. Taking an option from there
+    is what makes a record's column the configuration that ran (issue #165).
+    Both record families -- verification/formal/make_record.py and
+    verification/formal/keyladder/make_record.py -- read depth and mode through
+    the sby_depth()/sby_mode() callers of this one walk, so neither can state a
+    different value for the same contract (issues #211, #224, #259).
 
     Parsed the way sby's own parse_config() parses a line (yowasp-yosys wheel,
     sby_core.py:333-342): only while inside a section sby itself comment-strips —
@@ -284,24 +282,16 @@ def sby_depth(d: Path) -> int | None:
     absent) — is a trailing `#` comment stripped and a blank/comment line skipped,
     and only then is the line tested for a section header; everywhere else the
     line is only rstripped, so a commented header outside those sections is not
-    a header to sby and not one here either. Last `depth` assignment in
-    [options] wins.
+    a header to sby and not one here either. sby's `[options]` reader is a dict
+    assignment, so the last matching line wins.
 
-    Returns None when the file or the option is absent. sby's own default depth (20)
-    is deliberately NOT assumed: a record must state the depth that ran, and no run
-    in either flow is configured at that default. This function still returns None
-    for a missing value -- judging that None is the generators' job. The DRBG/TRNG
-    generator applies the mode-aware rule (issue #224): a bounded task (`mode bmc`
-    or `mode cover`) must name a depth or the run refuses to record; a depth-less
-    `mode prove` task is the unbounded proof and records as `unbounded`; a run
-    whose work directory has no config.sby at all states neither fact and also
-    refuses. The keyladder judge refuses any non-MISSING run whose config.sby
-    names no depth, whatever its mode.
+    Returns None when the file or the option is absent. Judging that None (a
+    broken run vs. a legitimately absent value) is the caller's job.
     """
     cfg = d / "config.sby"
     if not cfg.exists():
         return None
-    depth, section = None, None
+    value, section = None, None
     for raw in cfg.read_text().splitlines():
         if section in SBY_STRIP_SECTIONS:
             line = re.sub(r"\s*(\s#.*)?$", "", raw)
@@ -317,9 +307,70 @@ def sby_depth(d: Path) -> int | None:
         if section != "options":
             continue
         entries = line.split(maxsplit=1)
-        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
-            depth = int(entries[1])
-    return depth
+        if len(entries) == 2 and entries[0] == name:
+            value = entries[1]
+    return value
+
+
+def sby_depth(d: Path) -> int | None:
+    """The depth SymbiYosys actually ran a task at, from its own work directory.
+
+    The `depth` option of the resolved config.sby, through the one shared
+    sby_option() walk. The last `depth` assignment in [options] wins, and a
+    value that is not all digits is no depth -- never a crash (sby reads depth
+    as an int, so only a hand-mangled config can carry one). A trailing
+    non-digit assignment wins too, so it is no depth even over an earlier
+    valid one (`depth 7` then `depth 4x` records no depth): sby's [options]
+    reader is a dict assignment, so this is what sby itself read, and the
+    generators must refuse rather than record a depth sby did not run at.
+
+    Returns None when the file or the option is absent. sby's own default depth (20)
+    is deliberately NOT assumed: a record must state the depth that ran, and no run
+    in either flow is configured at that default. This function still returns None
+    for a missing value -- judging that None is the generators' job. The DRBG/TRNG
+    generator applies the mode-aware rule (issue #224): a bounded task (`mode bmc`
+    or `mode cover`) must name a depth or the run refuses to record; a depth-less
+    `mode prove` task is the unbounded proof and records as `unbounded`; a run
+    whose work directory has no config.sby at all states neither fact and also
+    refuses. The keyladder judge refuses any non-MISSING run whose config.sby
+    names no depth, whatever its mode.
+    """
+    value = sby_option(d, "depth")
+    return int(value) if value is not None and value.isdigit() else None
+
+
+def sby_mode(d: Path) -> str | None:
+    """The mode SymbiYosys ran this task in, from its own work directory.
+
+    The `mode` option of the resolved config.sby, through the one shared
+    sby_option() walk (issue #259). Returns None with two meanings the caller
+    must tell apart (issue #243): the run directory has no readable config.sby
+    at all -- sby never wrote one, a broken run, not an unbounded one
+    (issue #224) -- or a config.sby is present whose `[options]` block carries
+    no `mode` line (reachable only on a malformed config; sby always writes
+    one). Either way the mode of what ran is unstated and the run refuses: a
+    depth-less `mode prove` config is the unbounded proof and records, a config
+    that states no mode states neither fact. The caller separates the two by
+    testing `config.sby`'s existence -- the DRBG/TRNG generator's judge does,
+    and says which occurred in its refusal.
+    """
+    return sby_option(d, "mode")
+
+
+def sby_steps_checked(log_text: str) -> int | None:
+    """The last step the engine checked, from a task's logfile.txt text.
+
+    The one scrape of sby's `Checking ... in step N` lines (issues #211, #259):
+    the assertion-checking line a bounded run emits and the cover-reachability
+    line a `mode cover` run emits, the maximum over all of them, so the two
+    record families cannot state different reached depths for the same run. A
+    log with no checking line says nothing -- None, not zero (sby died before
+    any step). Whether the logfile exists is the caller's concern.
+    """
+    steps = [int(m) for m in re.findall(
+        r"Checking (?:assertions|assumptions and assertions) in step (\d+)", log_text)]
+    steps += [int(m) for m in re.findall(r"Checking cover reachability in step (\d+)", log_text)]
+    return max(steps) if steps else None
 
 
 def previous_record(experiment: str) -> str | None:

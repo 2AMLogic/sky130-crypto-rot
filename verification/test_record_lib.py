@@ -405,9 +405,25 @@ def _sby_workdir(tmp_path, config):
     ("[options]\ndepth 4\n\n[script]  # a ] b\ndepth 99\n", 4),
     # [options] re-entered after [script]: last assignment wins
     ("[options]\ndepth 4\n\n[script]\nx\n\n[options]\ndepth 6\n", 6),
-    # a depth that is not all digits is ignored, never a crash
+    # a depth that is not all digits is no depth, never a crash: the last
+    # assignment in [options] wins whatever it holds, so a trailing non-digit
+    # erases an earlier valid depth (sby's [options] reader is a dict
+    # assignment) and an earlier non-digit is simply overwritten by a valid one
     ("[options]\ndepth abc\n", None),
+    ("[options]\ndepth 7\ndepth 4x\n", None),
     ("[options]\ndepth 4x\ndepth 7\n", 7),
 ])
 def test_sby_depth(tmp_path, config, expected):
     assert record_lib.sby_depth(_sby_workdir(tmp_path, config)) == expected
+
+
+def test_sby_steps_checked_takes_the_max_over_both_checking_lines():
+    """The one scrape behind both record families' steps_checked (issue #259):
+    the assertion lines a bounded run emits and the cover-reachability line a
+    `mode cover` run emits, maximum over all of them; a log with no checking
+    line says nothing."""
+    text = ("##   Checking assumptions and assertions in step 0..\n"
+            "##   Checking cover reachability in step 9..\n"
+            "##   Checking assertions in step 14..\n")
+    assert record_lib.sby_steps_checked(text) == 14
+    assert record_lib.sby_steps_checked("engine killed before any step\n") is None
