@@ -47,7 +47,7 @@ rung partly recorded and nothing beyond it claimed.
 | 7 Post-layout verification | unmet | #82 |
 | 8 Characterization report | unmet | #83 |
 | 9 Testbenches shipped | met (`scripts/cold-start-benches.sh`, attested) | - |
-| 10 Repo hygiene | met (attested; CI re-hashes both envelopes) | - |
+| 10 Repo hygiene | met (attested; CI re-hashes all three envelopes: items 1, 9, 10) | - |
 | 11 Power delivery | unmet | #53 |
 
 Since the last core was added (2026-10-27), most merged work has been on the evidence
