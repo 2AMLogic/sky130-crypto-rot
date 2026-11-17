@@ -58,6 +58,24 @@ def test_every_key_port_bit_ranged_is_rejected(tmp_path):
         assert any("readable register wired" in e for e in errs), port
 
 
+TOKEN_HYGIENE_SHAPES = ("`aes_key `", "`aes_key[127:0] `", "` aes_key`",
+                        "`AES_KEY[127:0]`")
+
+
+def test_readable_whitespace_or_case_evasions_are_rejected(tmp_path):
+    for spelling in TOKEN_HYGIENE_SHAPES:
+        errs = _run(tmp_path, ROWS_OK + f"| 0x08 | LEAK | RO | - | {spelling} |\n")
+        assert any("readable register wired" in e for e in errs), spelling
+
+
+def test_write_only_may_use_whitespace_or_case_spellings(tmp_path):
+    ports = ", ".join(TOKEN_HYGIENE_SHAPES)
+    errs = _run(tmp_path,
+                ROWS_OK + f"| 0x08 | LOAD | WO | KDF | {ports} |\n",
+                "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
+    assert errs == []
+
+
 def test_write_only_may_use_bit_ranged_key_port(tmp_path):
     errs = _run(tmp_path, ROWS_OK + "| 0x08 | LOAD | WO | KDF | `ld_data[31:0]` |\n",
                 "0x03-0x07, 0x09-0x0F, 0x14-0x7F")
