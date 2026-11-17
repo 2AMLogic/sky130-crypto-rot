@@ -8,7 +8,7 @@ The region between the markers is machine-generated and overwritten wholesale.
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
 
-- **#237**: chore(loom): resync installed Loom to v0.19.1302
+- **#254**: chore(loom): resync installed Loom to v0.19.1305
 
 ## Very Important
 
@@ -29,7 +29,7 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-- **#236**: check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges)
+- **#243**: sby_mode() collapses "no config.sby" and "config.sby with no mode line", and the refusal names only the first
 
 ## In Progress
 
@@ -39,19 +39,18 @@ Issues currently being built (`loom:building`).
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 - **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
 - **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
-- **#224**: DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-_None._
+- **#242**: fix: share one sby_depth reader so the formal generator honors commented section headers
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#237**: chore(loom): resync installed Loom to v0.19.1302
+- **#254**: chore(loom): resync installed Loom to v0.19.1305
 
 ## Proposed
 
@@ -60,8 +59,8 @@ Issues carrying `loom:curated`.
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
 - **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader *(curated)*
-- **#224**: DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it *(curated)*
-- **#236**: check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges) *(curated)*
+- **#243**: sby_mode() collapses "no config.sby" and "config.sby with no mode line", and the refusal names only the first *(curated)*
+- **#255**: flow/common/record_lib.py sby_depth docstring is stale after #224's mode-aware Depth rule *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -82,8 +81,8 @@ _None._
 | Very important | 0 |
 | Important | 4 |
 | Ready (`loom:issue`) | 1 |
-| In Progress (`loom:building`) | 5 |
-| PRs awaiting review | 0 |
+| In Progress (`loom:building`) | 4 |
+| PRs awaiting review | 1 |
 | Approved PRs awaiting merge | 1 |
 | Curated | 5 |
 | Architect / Hermit proposals | 4 |
