@@ -44,6 +44,7 @@ CONFIG = {
     "bmc_no_depth": "[options]\nmode bmc\n\n[engines]\nabc bmc3\n",
     "prove_unbounded": "[options]\nmode prove\n\n[engines]\nabc pdr\n",
     "prove20": "[options]\nmode prove\ndepth 20\n\n[engines]\nabc pdr\n",
+    "no_mode": "[options]\ndepth 30\n\n[engines]\nabc pdr\n",
 }
 
 
@@ -127,9 +128,11 @@ def test_sby_mode_none_when_no_config_sby(gen, tmp_path):
 
 
 def test_sby_mode_outside_options_is_ignored(gen, tmp_path):
-    """Only `[options]` configures the run; a `mode` word elsewhere is not one."""
+    """Only `[options]` configures the run; a `mode` word elsewhere is not one.
+    The `[script]` body carries a literal `mode prove` line, so this fails if
+    `[options]` tracking is removed and every line is scanned (issue #243)."""
     cfg = ("[options]\nmode bmc\n\n[script]\n"
-           "read_verilog -formal -Dmode prove dut.v\nprep -top top\n")
+           "mode prove\nread_verilog -formal dut.v\nprep -top top\n")
     d = tmp_path / "p9_bmc"
     d.mkdir()
     (d / "config.sby").write_text(cfg)
@@ -271,6 +274,20 @@ def test_no_config_sby_refusal_mentions_why(gen, monkeypatch, capsys, tmp_path):
     assert _run_gen(gen, out, monkeypatch) == 1
     err = capsys.readouterr().err
     assert "no config.sby" in err
+
+
+def test_modeless_config_refusal_names_the_case(gen, monkeypatch, capsys, tmp_path):
+    """A config.sby that is present but names no `mode` under `[options]`
+    refuses too, and the refusal must say THAT: not claim the file is missing
+    (issue #243) -- sby_mode's two None meanings get two distinct messages."""
+    out = _out_dir(tmp_path, [_row("p9.sby", "bmc", "PASS")],
+                   {("p9.sby", "bmc"): CONFIG["no_mode"]})
+    _stub_record_path(monkeypatch, gen)
+    assert _run_gen(gen, out, monkeypatch) == 1
+    err = capsys.readouterr().err
+    assert "no config.sby" not in err      # the file exists; do not claim otherwise
+    assert "no mode line" in err           # the refusal states the actual case
+    assert "p9.sby bmc" in err
 
 
 def test_a_task_that_met_its_expectation_still_needs_its_depth(gen, monkeypatch, capsys, tmp_path):
