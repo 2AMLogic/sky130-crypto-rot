@@ -22,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flow/common"))
 import record_lib as rc  # noqa: E402
+from record_lib import sby_depth  # noqa: E402
 
 EXPERIMENT = "drbg-trng-formal"
 # The inputs OUTSIDE this directory. The tracked files beside this generator
@@ -59,35 +60,6 @@ EXPECT = {
     ("net_p9.sby", "net_reach_nonzero"): ("FAIL", "vacuity on the netlists: the registers can be non-zero before the alarm"),
     ("net_p9.sby", "net_neg_zeroize"): ("FAIL", "netlist synthesized from the DRBG_NEG_ZEROIZE mutant: DRBG V surviving zeroize is caught; a separate klt synthesize run of the mutated RTL"),
 }
-
-
-def sby_depth(d: Path) -> int | None:
-    """The depth SymbiYosys ran this task at, from its own work directory.
-
-    sby writes the resolved per-task configuration to `<d>/config.sby` with the
-    `[tasks]` prefixes already applied (the same reader contract as
-    keyladder/make_record.py, issue #165). Returns None when absent; sby's own
-    default (20) is never assumed.
-    """
-    cfg = d / "config.sby"
-    if not cfg.exists():
-        return None
-    depth, section = None, None
-    for raw in cfg.read_text().splitlines():
-        m = re.match(r"^\s*\[(.*)\]\s*$", raw)
-        if m:
-            head = m.group(1).strip().split()
-            section = head[0] if head else None
-            continue
-        if section != "options":
-            continue
-        line = re.sub(r"\s*(\s#.*)?$", "", raw)
-        if not line or line.startswith("#"):
-            continue
-        entries = line.split(maxsplit=1)
-        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
-            depth = int(entries[1])
-    return depth
 
 
 def sby_mode(d: Path) -> str | None:

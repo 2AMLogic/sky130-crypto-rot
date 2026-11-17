@@ -87,6 +87,47 @@ Re-attest when a listed bench changes, then put the inventory's
 The `cold_start` command is marked `local_only`, so this re-attest runs it but
 the CI envelope gate below does not (see "Freshness is CI-enforced").
 
+### Toolchain-free refresh (`--skip-local-only`)
+
+The full attestation above needs the bench toolchain and a GitHub credential.
+When only hashes drifted — an attested file changed (a `checks` entry), or the
+inventory was edited (its `provenance.input.content_hash`) — and no listed
+bench itself changed, refresh without the benches: run the command above with
+`--skip-local-only`, swapping its specifier for a klayout-tools build that has
+the flag. The pinned 0.8.0 predates the flag (its `signoff --help` has no such
+option): release 0.9.2 is the first with it, and the dispatch hosts'
+provisioned `klt` also has it — confirm with `klt signoff --help` before
+minting. The flag does not run the `local_only` (`cold_start`) bench: it
+carries that bench's committed outcome from the existing envelope forward
+unchanged and recomputes every other check, so the route is valid only when
+the change cannot affect the bench — a changed bench needs the full cold-start
+run above — and it cannot make a stale bench outcome look fresh. The refreshed
+envelope records no skip marker: the `cold_start` entry in `attestation.checks`
+is carried byte-for-byte from the existing one, so the route's only traces are
+that unchanged entry and `provenance.klt_version` naming the minting build.
+If the inventory changed, also put its new
+`provenance.input.content_hash` in the manifest and regenerate the record, as
+above.
+
+Minting with a newer build is an expected, documented divergence: the refreshed
+envelope's `provenance.klt_version` then names a build newer than the
+`KLT_VERSION="0.8.0"` pin in `scripts/setup-env.sh` (item 9's envelope on
+`main` provenances 0.9.3.dev21+g008b4d7f7b01 from this route; item 10's still
+records 0.8.0 from before it existed). What makes that safe is verifying the
+result under the pin — mandatory, in the same PR as the refreshed envelope:
+
+```console
+uvx --from "klayout-tools==0.8.0" klt signoff --attest 9 \
+    --inventory manifests/inventories/item-9.json \
+    --check manifests/inventories/item-9.envelope.json
+```
+
+Exit `0` means the refreshed envelope still reproduces and still passes under
+the tool CI grades with; anything else means stop and re-run the full
+attestation above. Once the `KLT_VERSION` pin moves to a release carrying
+`--skip-local-only` (0.9.2 already does), the two routes collapse back into
+one; moving the pin is a separate decision, not made here.
+
 ## Attest item 10
 
 ```console

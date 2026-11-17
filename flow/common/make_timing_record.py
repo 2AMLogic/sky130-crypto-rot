@@ -6,7 +6,12 @@ Reads flow/build/<core>/sta-synth.json (the `klt synthesize` response at the
 ss corner) and flow/build/<core>/sta.json (the `klt sta` response) each
 core's --timing mode wrote, and records one row per core: corner, clock
 period, worst setup slack, the critical path's start and end points, and the
-liberty hash. Refuses to record unless both runs completed.
+liberty hash. Refuses to record unless both runs completed and unless every
+input each run stamped as measured (flow/build/<core>/sta-inputs.json, written
+by core_flow_sta_inputs) still hashes to its stamped value -- either core's
+--timing leaves scratch behind and the other core's --record consumes it, so
+without that stamp a record could carry one core's revision-Y git_revision
+with the other revision's number.
 
 This drives record_lib's lower-level helpers directly (check_pdk,
 require_clean_inputs, tool_versions, write_record), not main(): main() is the
@@ -53,7 +58,8 @@ INPUTS = (
 
 def _load_run_outputs() -> list[tuple[str, str, dict, dict]]:
     """(core dir, toplevel, sta-synth response, sta response) per core,
-    refusing unless every analysis completed."""
+    refusing unless every analysis completed and every input the run stamped
+    into sta-inputs.json still hashes to its stamped value."""
     out = []
     for core, top, synth_rel, sta_rel in CORES:
         for rel in (synth_rel, sta_rel):
@@ -79,6 +85,47 @@ def _load_run_outputs() -> list[tuple[str, str, dict, dict]]:
                   "constrained no path; check sta-request.json's clock_port "
                   "and the response's constraint_completeness", file=sys.stderr)
             raise SystemExit(1)
+        # A completed, constrained analysis is not automatically a fresh one:
+        # either core's run.sh --timing leaves its scratch behind and this
+        # --record consumes the OTHER core's, so the engine and liberty-deck
+        # checks above and in main() cannot see a run that went stale across
+        # an RTL or request change within one tool and deck generation. The
+        # run stamped what it measured into sta-inputs.json
+        # (core_flow_sta_inputs); recompute every stamped hash and refuse on
+        # the first file that changed since, naming it and the core to
+        # re-run. The stamped head is diagnostic only -- HEAD moves for
+        # reasons unrelated to these files, so the content hashes are the
+        # comparison (issue #218).
+        side = rc.REPO / "flow/build" / core / "sta-inputs.json"
+        if not side.exists():
+            print(f"timing: not recording, {side.relative_to(rc.REPO)} is "
+                  "missing -- scratch from before input stamping is stale by "
+                  f"definition; re-run verification/rtl/{core}/run.sh --timing "
+                  "first", file=sys.stderr)
+            raise SystemExit(1)
+        try:
+            stamped = {entry["path"]: entry["content_hash"]
+                       for entry in json.loads(side.read_text())["inputs"]}
+            if not stamped:
+                raise KeyError("inputs")
+        except (json.JSONDecodeError, KeyError, TypeError):
+            print(f"timing: not recording, {side.relative_to(rc.REPO)} is not "
+                  "a readable input stamp; re-run "
+                  f"verification/rtl/{core}/run.sh --timing first", file=sys.stderr)
+            raise SystemExit(1)
+        for rel, old in sorted(stamped.items()):
+            path = rc.REPO / rel
+            if not path.exists():
+                print(f"timing: not recording, {rel} is stamped in {core}'s "
+                      "sta-inputs.json but does not exist; re-run "
+                      f"verification/rtl/{core}/run.sh --timing first", file=sys.stderr)
+                raise SystemExit(1)
+            new = rc.sha256(path)
+            if new != old:
+                print(f"timing: not recording, {core} was timed before {rel} "
+                      f"changed (stamped {old}, now {new}); re-run "
+                      f"verification/rtl/{core}/run.sh --timing first", file=sys.stderr)
+                raise SystemExit(1)
         out.append((core, top, synth, sta))
     return out
 

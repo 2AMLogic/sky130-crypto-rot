@@ -3,6 +3,43 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-16
+
+- **PR #251**: docs: state the load-bearing reverse-assertion rationale in check_script_docs.py
+- **PR #249**: docs: record check_script_docs.py's one-directional design in its docstring
+- **Issue #250** (closed): check_script_docs.py docstring: the two cited prose mentions do not demonstrate reverse-assertion unsafety
+- **Issue #235** (closed): check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged
+- **PR #227**: lint: check docs/roadmap.md #N status tokens against WORK_LOG.md in npm run lint
+- **Issue #213** (closed): docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand
+- **PR #246**: docs(manifests): document the toolchain-free --skip-local-only item-9 re-attest route
+- **PR #245**: test: make the check-only tripwire drop an untracked stray, not a spec write
+- **PR #238**: test: pin the drbg-trng formal EXPECT judge (--check-only) like its keyladder sibling
+- **PR #234**: test(formal): pin opgen_binding classifies uppercase X/Z as undriven
+- **PR #233**: fix: see through bit-range port spellings in the regmap key-port lint
+- **PR #232**: checkers: derive the CI-table lint/test inventory from package.json
+- **PR #228**: timing: stamp each run's measured inputs and refuse stale scratch at record time
+- **PR #225**: formal: validate op_q probe tokens whole; die outside 01xXzZ
+- **PR #223**: formal: keep PROVE_DEPTH off the P-5 negative controls
+- **PR #220**: fix(formal): judge every run with make_record.py's EXPECT, not a bash copy
+- **PR #216**: refactor: share one sby_depth config.sby reader between both formal generators
+- **PR #214**: fix: mirror sby's mode-conditional comment strip in the sby_depth header match
+- **PR #203**: refactor(verification): one option parser, one evidence definition, one summaries helper
+- **PR #198**: lint: fold check_regmap into npm run lint and add the engine-side key ports to its denylist
+- **Issue #241** (closed): test_drbg_trng_formal_record.py's check-only tripwire writes into the shared checkout (spec/key-isolation-properties.md)
+- **Issue #240** (closed): manifests/README.md does not document the --skip-local-only route for re-attesting item 9 on a host without the bench toolchain
+- **Issue #230** (closed): formal: pin that opgen_binding treats uppercase X/Z as undriven (#219 test-plan item b)
+- **Issue #229** (closed): The lint/test inventory in README.md and verification/README.md is hand-maintained and omits check_roadmap.py
+- **Issue #226** (closed): formal: the drbg-trng EXPECT judge is now the sole verdict for every run but has no committed test (the sibling keyladder judge does)
+- **Issue #219** (closed): formal: gen_netlist probe regex can silently truncate an unexpected op_q character (uppercase Z)
+- **Issue #218** (closed): make_timing_record.py can stamp one core's stale timing run with another revision: tie flow/build/<core>/sta.json to the revision that produced it
+- **Issue #215** (closed): check_regmap.py key-port denylist is evaded by a bit-range port spelling (`aes_key[127:0]`)
+- **Issue #211** (closed): Dedupe sby_depth: identical config.sby reader copied across both formal generators
+- **Issue #210** (closed): keyladder formal: PROVE_DEPTH below 9 turns the P-5 negative controls UNKNOWN and fails the flow verdict (no record written)
+- **Issue #207** (closed): formal netlist: run.sh's reached-depth leniency also swallows a timed-out negative control, so a vacuity check that never ran exits 0
+- **Issue #194** (closed): keyladder record: sby_depth() matches a section header before stripping its trailing comment, unlike sby itself
+- **Issue #193** (closed): Follow-up on 0009 register-map lint: CI wiring, README enumerations, key-port denylist
+- **Issue #186** (closed): Finish the core_flow.sh convergence: six copies of the run.sh option parser, two of the negative-control evidence pattern
+
 ### 2026-11-15
 
 - **PR #217**: formal: index the netlist op_q probe binding from the LSB end

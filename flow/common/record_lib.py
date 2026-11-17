@@ -256,6 +256,66 @@ def klt_provenance_bullet(prov: dict, versions: dict) -> str:
     )
 
 
+# The sections inside which sby's parse_config() strips a trailing `#` comment
+# before testing for a section header (yowasp-yosys wheel, sby_core.py:333).
+# [script] sets mode "script", which is absent from that list, so a commented
+# header there is NOT a header to sby — mirroring the list is what keeps this
+# reader from misreading one (issue #194).
+SBY_STRIP_SECTIONS = ("options", "engines", "files", "autotune", "setup", "stage")
+
+
+def sby_depth(d: Path) -> int | None:
+    """The depth SymbiYosys actually ran a task at, from its own work directory.
+
+    sby writes the resolved per-task configuration it executed to `<d>/config.sby`,
+    with the `[tasks]` prefixes already applied, next to the `status` and
+    `logfile.txt` the formal generators already read. Taking `depth` from there is
+    what makes a record's Depth column the configuration that ran (issue #165).
+    This is the one parser of that file: verification/formal/make_record.py and
+    verification/formal/keyladder/make_record.py both read the depth through it,
+    so the two record families cannot state different depths for the same
+    contract.
+
+    Parsed the way sby's own parse_config() parses a line (yowasp-yosys wheel,
+    sby_core.py:333-342): only while inside a section sby itself comment-strips —
+    options, engines, files, autotune, setup, stage ([script] is deliberately
+    absent) — is a trailing `#` comment stripped and a blank/comment line skipped,
+    and only then is the line tested for a section header; everywhere else the
+    line is only rstripped, so a commented header outside those sections is not
+    a header to sby and not one here either. Last `depth` assignment in
+    [options] wins.
+
+    Returns None when the file or the option is absent. sby's own default depth (20)
+    is deliberately NOT assumed: a record must state the depth that ran, and no run
+    in either flow is configured at that default, so a missing value is a broken run
+    rather than a 20. Only the keyladder judge fails such a run today; the
+    DRBG/TRNG generator still records one with None in its Depth column -- a
+    pre-existing asymmetry, tracked as issue #224.
+    """
+    cfg = d / "config.sby"
+    if not cfg.exists():
+        return None
+    depth, section = None, None
+    for raw in cfg.read_text().splitlines():
+        if section in SBY_STRIP_SECTIONS:
+            line = re.sub(r"\s*(\s#.*)?$", "", raw)
+            if not line or line.startswith("#"):
+                continue
+        else:
+            line = raw.rstrip()
+        m = re.match(r"^\s*\[(.*)\]\s*$", line)
+        if m:
+            head = m.group(1).strip().split()
+            section = head[0] if head else None
+            continue
+        if section != "options":
+            continue
+        entries = line.split(maxsplit=1)
+        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
+            depth = int(entries[1])
+    return depth
+
+
 def previous_record(experiment: str) -> str | None:
     """Id of the newest record git already tracks for `experiment`, else None.
 
