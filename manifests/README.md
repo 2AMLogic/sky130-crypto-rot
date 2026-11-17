@@ -7,8 +7,13 @@ rather than from prose.
 ## Files
 
 - **`sky130-crypto-rot.json`** — the block manifest: `block`,
-  `kind: digital`, and an `evidence` map. It cites items 9 and 10 and a
+  `kind: digital`, and an `evidence` map. It cites items 1, 9 and 10 and a
   `not_applicable` outcome for item 6.
+- **`inventories/item-1.json`** — the item-1 attestation inventory (the RTL
+  sources of the committed crypto_rot_top synthesis request and the committed
+  gate-level netlist derived from them, with its freshness check); 
+  **`inventories/item-1.envelope.json`** is the tool-produced envelope the
+  manifest cites. Never hand-edit it.
 - **`inventories/item-9.json`** — the item-9 attestation inventory (the benches
   behind the recorded results, their pins, and the cold-start command
   `scripts/cold-start-benches.sh`); **`inventories/item-9.envelope.json`** is the
@@ -54,6 +59,29 @@ The command exits `3` when at least one T1 item is `unmet` (a valid, clean
 run) and `0` when every item is `met`. Any change that affects the verdict
 — new evidence, a manifest edit, a vendored-doc bump, a version-pin bump —
 regenerates and commits the record in the same PR.
+
+## Attest item 1
+
+```console
+uvx --from "klayout-tools==0.8.0" klt signoff --attest 1 \
+    --inventory manifests/inventories/item-1.json \
+    -o manifests/inventories/item-1.envelope.json
+```
+
+The inventory lists the eight RTL sources of the committed crypto_rot_top
+synthesis request (plus the request itself) and one derived artifact: the
+committed gate-level netlist
+`verification/rtl/crypto_rot_top/netlist/crypto_rot_top_synth.v`, whose
+declared freshness check is `verification/rtl/crypto_rot_top/netlist/check-fresh.sh`
+(issue #88). The check re-runs the committed `klt synthesize` request in a
+scratch directory and byte-compares against the committed netlist — about 80
+seconds of PDK-backed synthesis — so it is marked `local_only`: this re-attest
+runs it, the CI envelope gate below does not (it carries the committed
+outcome), and `.github/workflows/ci.yml` runs it as its own
+`netlist-freshness` job on every PR touching `rtl/` or `verification/`.
+Re-attest when an RTL source, the request or the committed netlist changes
+(the freshness job fails first), then put the inventory's
+`provenance.input.content_hash` in the manifest and regenerate the record.
 
 ## Attest item 9
 
@@ -153,35 +181,38 @@ every pull request.
 and fails when the fresh output differs byte-for-byte from the committed
 record.
 
-**The attestation envelopes.** The grade above binds items 9 and 10 only by
-the hash of each inventory file, so on its own it cannot see an attested file
-being edited: a PR that changes `README.md` or a listed bench without
-re-attesting leaves the record byte-identical, and the stale `content_hash`
-entries in the envelope go unnoticed. The step before it therefore re-checks
-both envelopes with the tool's own drift mode:
+**The attestation envelopes.** The grade above binds items 1, 9 and 10 only
+by the hash of each inventory file, so on its own it cannot see an attested
+file being edited: a PR that changes `README.md`, a listed bench, an RTL
+source or the committed netlist without re-attesting leaves the record
+byte-identical, and the stale `content_hash` entries in the envelope go
+unnoticed. The step before it therefore re-checks all three envelopes with
+the tool's own drift mode:
 
 ```console
 klt signoff --attest 9 --inventory manifests/inventories/item-9.json \
     --check manifests/inventories/item-9.envelope.json
 ```
 
-and the same for item 10. That mode re-attests and writes nothing: exit `0`
+and the same for items 1 and 10. That mode re-attests and writes nothing: exit `0`
 only if the committed envelope still reproduces *and* still passes, `3`
 otherwise, naming each field that changed. The job fails on anything but `0`
 and prints the re-attest command. So the "re-attest after editing a listed
 file" rule above is now mechanical rather than advisory — including for a
 routine docs PR that touches the root `README.md`, which item 10 hashes.
 
-**What the gate does not re-run.** Item 9's `cold_start` and item 10's three
-audit commands are marked `local_only: true` in their inventories. `--attest`
-runs them; `--attest --check` skips them, lists them under `skipped_checks`,
+**What the gate does not re-run.** Item 9's `cold_start`, item 10's three
+audit commands and item 1's netlist freshness check are marked
+`local_only: true` in their inventories. `--attest` runs them;
+`--attest --check` skips them, lists them under `skipped_checks`,
 and carries their committed outcome into the verdict — so the gate needs no
-bench toolchain and costs under a second per item, and a committed *failing*
-command still fails the gate. Those commands are not left unchecked: `npm run
-lint`, `npm run test` and `npm run check:reuse` are what `.github/workflows/ci.yml`
-runs on the same events, and the cold start is what a re-attest runs. Because
-the flag is recorded in the envelope, adding or removing it changes both the
-inventory hash and the envelope.
+bench toolchain or PDK and costs under a second per item, and a committed
+*failing* command still fails the gate. Those commands are not left
+unchecked: `npm run lint`, `npm run test` and `npm run check:reuse` are what
+`.github/workflows/ci.yml` runs on the same events, the cold start is what a
+re-attest runs, and item 1's freshness check is ci.yml's `netlist-freshness`
+job. Because the flag is recorded in the envelope, adding or removing it
+changes both the inventory hash and the envelope.
 
 Order of work when a PR edits `signoff.yml` itself: item 10 hashes that file,
 so finish the workflow edit first and re-attest item 10 afterwards. Rebase and
