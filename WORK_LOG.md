@@ -3,8 +3,16 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-17
+
+- **PR #253**: fix: strip and case-fold Ports tokens in check_regmap key-port lint
+- **PR #239**: formal: make the DRBG/TRNG record's Depth verdict mode-aware
+- **Issue #236** (closed): check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges)
+- **Issue #224** (closed): DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it
+
 ### 2026-11-16
 
+- **PR #237**: chore(loom): resync installed Loom to v0.19.1302
 - **PR #251**: docs: state the load-bearing reverse-assertion rationale in check_script_docs.py
 - **PR #249**: docs: record check_script_docs.py's one-directional design in its docstring
 - **Issue #250** (closed): check_script_docs.py docstring: the two cited prose mentions do not demonstrate reverse-assertion unsafety
