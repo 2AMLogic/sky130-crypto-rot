@@ -58,7 +58,7 @@ caught, and attestation envelopes that fail CI when they go stale.
 
 1. **Land the register map** (#89 (closed), PR #90 (merged)) — done: `spec/decision-records/0009-register-map.md`
    and its lint (`verification/check_regmap.py`, wired into `npm run check:ci`) are on `main`
-   (PR #90 (merged) 2026-11-14). This was the head of the whole T1 chain; #87 (open) down is unblocked.
+   (PR #90 (merged) 2026-11-14). This was the head of the whole T1 chain; #87 (closed) down is unblocked.
 2. **Remove the 12 hand-copied negative-control request files** (#161 (closed)) — done: each
    `--negative-control` run derives its request from the positive one (PR #175 (merged),
    2026-11-14) and the item-9 envelope is re-attested.
@@ -89,12 +89,12 @@ gate-level simulation) that the top level will need anyway.
 
 ## Next
 
-- **Top-level RTL and bus-level bench** (#87 (open)) after #89 (closed). Done when `rtl/crypto_rot_top.v` passes
+- **Top-level RTL and bus-level bench** (#87 (closed)) after #89 (closed). Done when `rtl/crypto_rot_top.v` passes
   end-to-end KATs through the bus, one test per zeroize event, a protocol checker and negative
   controls, with a record.
-- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (open)) after #87 (open). Done
+- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (open)) after #87 (closed). Done
   when `klt signoff` grades item 1 `met`; closes #46 (open).
-- **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87 (open). No issue yet; file them once the
+- **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87 (closed). No issue yet; file them once the
   top-level port and register names exist, since each property is stated over them.
 - **Routed GDS** (#47 (open)) after #88 (open); then **DRC** (#48 (open)), **LVS** (#49 (open)),
   **power delivery** (#53 (open)) and **corner verification** (#50 (open)) on that layout.
