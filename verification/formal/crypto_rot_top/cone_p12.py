@@ -2,7 +2,7 @@
 """P-12 (and the top-level P-2/P-14 structural checks) on the flattened
 klt-synthesized netlist of crypto_rot_top (issue #88).
 
-Usage: cone_p12.py DESIGN.json [--expect pass|fail] [--out RESULT.json]
+Usage: cone_p12.py DESIGN.json [--liberty FILE] [--expect pass|fail] [--out RESULT.json]
 
 DESIGN.json is the Yosys write_json of the flattened `crypto_rot_top' top of
 the klt-synthesized sky130_fd_sc_hd netlist, read through the PDK liberty
@@ -24,9 +24,11 @@ Checks, per spec/key-isolation-properties.md:
         go through a defined result window. Every other output port is
         checked with NO cut at all: no key material may reach it by any
         route. Scan/DFT structure is checked by cell type (every cell must
-        be a plain sky130_fd_sc_hd cell; probe/lpflow/scan/latch-style types
-        are refused) and by the port list (it must equal the RTL module's,
-        so no debug/test/scan port was inserted).
+        be a plain sky130_fd_sc_hd cell; with --liberty the pinned liberty is
+        censused and every cell whose definition references a scan pin --
+        SCD or SCE -- is refused whatever its name; scan/DFT/latch-named
+        types are refused regardless) and by the port list (it must equal
+        the RTL module's, so no debug/test/scan port was inserted).
   P-2   the same cone statement as P-12's first half, read at the top level:
         no slot flop in any output cone except through the engine datapath.
   P-14  trng_bus_re is constant (its cone is empty of real bits -- the
@@ -95,12 +97,18 @@ ZEROIZE_NET = "zr"
 # hierarchy boundary). Every cell scope must name a plain sky130_fd_sc_hd
 # cell (no scan/DFT/debug/low-power/latch type); every module scope must be
 # one of this design's own modules. sky130_fd_sc_hd DOES ship scan-capable
-# cells (the sdf* mux-D scan flops and the sdlclkp scan clock gate), so a DFT
-# insertion can surface as ordinary-looking `sd*' cell scopes; the deny list
-# refuses those families by name prefix, together with the dl* latches,
-# lpflow_*/probe* and any scan/DFT-named cell.
+# cells, so a DFT insertion can surface as ordinary-looking cell scopes.
+# Scan capability is matched on the PROPERTY, not on a remembered family
+# list: --liberty censuses the pinned liberty and refuses every cell whose
+# definition references a scan pin (`SCD' or `SCE'), whatever its name. The
+# name arm below stays as defense-in-depth (any scan/DFT-named cell, the
+# dl* latches, lpflow_*/probe*, and every `sky130_fd_sc_hd__s*' name -- on
+# the pinned liberty that prefix is exactly the scan-capable set, measured).
 CELL_PREFIX = "sky130_fd_sc_hd__"
-CELL_DENY = re.compile(r"scan|dft|probe|lpflow|bscan|boundary|^sky130_fd_sc_hd__dl|^sky130_fd_sc_hd__sd")
+CELL_DENY = re.compile(r"scan|dft|probe|lpflow|bscan|boundary|^sky130_fd_sc_hd__dl|^sky130_fd_sc_hd__s")
+LIB_CELL_RE = re.compile(r'^\s*cell\s*\(\s*"([^"]+)"\s*\)')
+LIB_PIN_RE = re.compile(r'^\s*pin\s*\(\s*"([^"]+)"\s*\)')
+SCAN_PINS = ("SCD", "SCE")
 DESIGN_MODULE_RE = re.compile(
     r"^(?:\\\$paramod\$[0-9a-f]+\\)?(?:keyladder|hmac_sha256|aes_core|sha256_core|ctr_drbg|drbg_top|trng_if)$")
 
@@ -125,6 +133,38 @@ def rtl_ports(path: str) -> dict[str, str]:
     if not ports:
         raise SystemExit(f"no ports parsed from {path} (module {TOP} header changed?)")
     return ports
+
+
+def liberty_scan_cells(path: str) -> dict:
+    """Census the liberty: every cell whose definition references a scan pin
+    (`SCD' or `SCE') is scan-capable, whatever its name. The result feeds the
+    cell-scope check so the gate tracks the PDK instead of a name prefix.
+    Raises SystemExit if no cell block parses -- a parse failure must not
+    look like a scan-free liberty."""
+    scan: dict[str, str] = {}
+    n_cells = 0
+    cur = None
+    depth = 0
+    for line in open(path, errors="replace"):
+        if cur is None:
+            m = LIB_CELL_RE.match(line)
+            if m:
+                cur = m.group(1)
+                n_cells += 1
+                depth = line.count("{") - line.count("}")
+            continue
+        depth += line.count("{") - line.count("}")
+        if depth <= 0:
+            cur = None
+            continue
+        m = LIB_PIN_RE.match(line)
+        if m and m.group(1) in SCAN_PINS:
+            scan[cur] = re.sub(r"_\d+$", "", cur.removeprefix(CELL_PREFIX))
+    if n_cells == 0:
+        raise SystemExit(f"liberty {path}: no cell block parsed; refusing to "
+                         "run the cell-scope check without the scan census")
+    return {"cells": n_cells, "scan_capable": scan,
+            "families": sorted(set(scan.values()))}
 
 
 def load(path: str):
@@ -178,6 +218,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("design")
     ap.add_argument("--rtl", help="rtl/crypto_rot_top.v (port-list comparison)")
+    ap.add_argument("--liberty", help="pinned liberty (.lib): censused for SCD/SCE scan "
+                    "pins; every scan-capable cell name is refused by the cell-scope check")
     ap.add_argument("--expect", choices=("pass", "fail"), default="pass")
     ap.add_argument("--splice-scope", metavar="MODULE",
                     help="negative control: splice one extra $scopeinfo marker naming "
@@ -202,6 +244,7 @@ def main() -> int:
         top["ports"][args.splice_port] = {"direction": "output", "bits": bits}
     drivers, ins = build(top)
     nets = top["netnames"]
+    lib_census = liberty_scan_cells(args.liberty) if args.liberty else None
 
     def bits_of(name):
         rec = nets.get(name)
@@ -242,7 +285,7 @@ def main() -> int:
         # both, so the prefix is the classifier)
         if mod.startswith(CELL_PREFIX):
             n_cell_scopes += 1
-            if CELL_DENY.search(mod):
+            if CELL_DENY.search(mod) or (lib_census is not None and mod in lib_census["scan_capable"]):
                 bad_scopes.append(mod)
         elif not DESIGN_MODULE_RE.match(mod):
             bad_scopes.append(mod)
@@ -250,7 +293,8 @@ def main() -> int:
                            if t != "$scopeinfo" and not t.startswith("$_"))
     result["checks"]["cell_scopes"] = {"scopeinfo": len(scopeinfo),
                                        "cell_scopes": n_cell_scopes,
-                                       "offending": bad_scopes, "foreign_types": foreign_types}
+                                       "offending": bad_scopes, "foreign_types": foreign_types,
+                                       "liberty_census": lib_census or "skipped (--liberty not given)"}
     if bad_scopes:
         failures.append(f"non-plain or scan/DFT-style cells present: {bad_scopes[:10]}"
                         + (f" (+{len(bad_scopes) - 10} more)" if len(bad_scopes) > 10 else ""))

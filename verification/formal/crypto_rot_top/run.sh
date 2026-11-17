@@ -24,9 +24,12 @@
 #     hmac_key bits into the read data, synthesized fresh (a key-to-output
 #     path that does not go through a result window), must fail the P-12
 #     check AND must differ byte-wise from the committed netlist (what the
-#     freshness comparison catches); a spliced scan-flop scope
-#     (sky130_fd_sc_hd__sdfxtp_1), a spliced probe-cell scope and a
-#     spliced extra output port must each fail their structural check.
+#     freshness comparison catches); spliced scan-flop scopes
+#     (sky130_fd_sc_hd__sdfxtp_1 and sky130_fd_sc_hd__sedfxtp_1, two scan
+#     families, the second named outside any sd* prefix so it must be caught
+#     by the liberty census, not by a name pattern), a spliced probe-cell
+#     scope and a spliced extra output port must each fail their structural
+#     check.
 #
 # No sby/solver runs here: these are structural checks (full sequential
 # fan-in cones, "at every depth"), so nothing is bounded and no depth is
@@ -131,19 +134,36 @@ echo "  ok (flow/build/formal/crypto-rot-top-netlist/flat.json)"
 
 echo "== P-12 / P-2 / P-14 / P-10 structural checks on the committed netlist =="
 python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" --rtl "${REPO_ROOT}/rtl/crypto_rot_top.v" \
-  --expect pass --out "${STAGE}/result_clean.json"
+  --liberty "${LIB}" --expect pass --out "${STAGE}/result_clean.json"
+# the liberty census must flag both scan-control cells as scan-capable, so
+# each control is caught by the property arm, not by the name arm alone
+python3 - "${STAGE}/result_clean.json" <<'PY'
+import json, sys
+c = json.load(open(sys.argv[1]))["checks"]["cell_scopes"]["liberty_census"]
+lacking = [n for n in ("sky130_fd_sc_hd__sdfxtp_1", "sky130_fd_sc_hd__sedfxtp_1")
+           if n not in c["scan_capable"]]
+assert not lacking, f"liberty census does not flag {lacking} as scan-capable"
+print(f"  ok: liberty census ({c['cells']} cells, {len(c['scan_capable'])} scan-capable "
+      f"variants, {len(c['families'])} families)")
+PY
 
 echo "== splice controls (each must make its structural check fail) =="
-# primary control: a real mux-D scan flop (the cell family an actual DFT
-# insertion maps flops to), not a token already known to the deny list
-python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" \
+# scan controls: a real mux-D scan flop AND a scan-enable flop (the scan
+# image of an enable-D flop, what a synthesis tool maps a gated register
+# to), from two different name shapes, so the next widening of any name
+# pattern cannot silently outflank the check; neither is chosen to match the
+# matcher -- both must be census-identified above
+python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" --liberty "${LIB}" \
   --splice-scope sky130_fd_sc_hd__sdfxtp_1 --expect fail --out "${STAGE}/result_ctrl_scan.json" \
   && echo "  ok: scan-flop cell scope control fails the cell check"
-python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" \
+python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" --liberty "${LIB}" \
+  --splice-scope sky130_fd_sc_hd__sedfxtp_1 --expect fail --out "${STAGE}/result_ctrl_scan2.json" \
+  && echo "  ok: scan-enable-flop cell scope control fails the cell check"
+python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" --liberty "${LIB}" \
   --splice-scope sky130_fd_sc_hd__probe_p_8 --expect fail --out "${STAGE}/result_ctrl_scope.json" \
   && echo "  ok: probe-cell scope control fails the cell check"
 python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" --rtl "${REPO_ROOT}/rtl/crypto_rot_top.v" \
-  --splice-port scan_out --expect fail --out "${STAGE}/result_ctrl_port.json" \
+  --liberty "${LIB}" --splice-port scan_out --expect fail --out "${STAGE}/result_ctrl_port.json" \
   && echo "  ok: extra-port control fails the port check"
 
 echo "== freshness: the committed netlist is what the flow produces =="
@@ -196,7 +216,7 @@ echo "  ok: differs (the RTL edit is visible to the freshness check)"
 echo "== P-12 structural checks on the mutant netlist (must fail) =="
 flat "${STAGE}/net_neg_p12.v" "${STAGE}/flat_neg.json"
 python3 "${HERE}/cone_p12.py" "${STAGE}/flat_neg.json" --rtl "${REPO_ROOT}/rtl/crypto_rot_top.v" \
-  --expect fail --out "${STAGE}/result_neg.json" \
+  --liberty "${LIB}" --expect fail --out "${STAGE}/result_neg.json" \
   && echo "  ok: the mutant fails the P-12 cone check"
 
 echo "crypto-rot-top netlist formal: all checks met their expectation"

@@ -6,10 +6,12 @@ and freshness check outputs, the envelope consistency check). Fails (exit 1)
 unless every check met its expectation: the structural checks PASS on the
 committed netlist, the flow log and envelope checks PASS, the committed
 netlist is fresh, and every negative control (mutant RTL with a key-to-output
-path, spliced scan-flop scope, spliced probe-cell scope, spliced extra port)
-FAILS. The mutant control
+path, spliced scan-flop scope, spliced scan-enable-flop scope, spliced
+probe-cell scope, spliced extra port) FAILS. The mutant control
 must also be byte-different from the committed netlist (what the freshness
-comparison catches).
+comparison catches). The liberty census must be present and must flag both
+scan-control cells as scan-capable, so the scan controls are caught by the
+property arm (SCD/SCE), not by a name pattern alone.
 
 With --record it writes an append-only record under
 verification/records/crypto-rot-top-netlist-formal/records/, naming the
@@ -65,6 +67,7 @@ def main() -> int:
     neg = json.loads((st / "result_neg.json").read_text())
     ctrl_scope = json.loads((st / "result_ctrl_scope.json").read_text())
     ctrl_scan = json.loads((st / "result_ctrl_scan.json").read_text())
+    ctrl_scan2 = json.loads((st / "result_ctrl_scan2.json").read_text())
     ctrl_port = json.loads((st / "result_ctrl_port.json").read_text())
     envelope = json.loads((st / "envelope-check.json").read_text())
 
@@ -80,6 +83,7 @@ def main() -> int:
     want("p12 clean netlist", clean["status"], "pass")
     want("p12 mutant control", neg["status"], "fail")
     want("splice scan-flop control", ctrl_scan["status"], "fail")
+    want("splice scan-enable-flop control", ctrl_scan2["status"], "fail")
     want("splice probe-cell control", ctrl_scope["status"], "fail")
     want("splice extra-port control", ctrl_port["status"], "fail")
     if not envelope.get("match"):
@@ -114,6 +118,36 @@ def main() -> int:
         lines.append("  mutant control: failed without a cone violation (wrong reason)")
     else:
         lines.append(f"  mutant control fails on outputs: {', '.join(neg_cone_hits)}")
+
+    # negative-control attribution (cell controls): each scope splice must
+    # fail on the cell-scope check, and the liberty census must flag both
+    # scan controls as scan-capable, so they are caught by the SCD/SCE
+    # property arm and not by a name pattern alone.
+    census = clean["checks"]["cell_scopes"].get("liberty_census")
+    if not isinstance(census, dict):
+        ok = False
+        lines.append("  liberty census missing from the clean result "
+                     "(cone_p12.py ran without --liberty)")
+        lib_cells = lib_scan = lib_fams = 0
+    else:
+        cap = census["scan_capable"]
+        lacking = sorted(n for n in ("sky130_fd_sc_hd__sdfxtp_1",
+                                     "sky130_fd_sc_hd__sedfxtp_1") if n not in cap)
+        if lacking:
+            ok = False
+            lines.append(f"  liberty census does not flag {lacking} as scan-capable: "
+                         "the scan controls would be caught by the name arm only")
+        lib_cells = census["cells"]
+        lib_scan = len(cap)
+        lib_fams = len(census["families"])
+        lines.append(f"  liberty census: {lib_cells} cells, {lib_scan} scan-capable "
+                     f"variants, {lib_fams} families")
+    for name, res in (("scan-flop", ctrl_scan), ("scan-enable-flop", ctrl_scan2),
+                      ("probe-cell", ctrl_scope)):
+        if not res["checks"]["cell_scopes"]["offending"]:
+            ok = False
+            lines.append(f"  splice {name} control: failed without a cell-scope "
+                         "violation (wrong reason)")
 
     print("crypto-rot-top netlist formal:\n" + "\n".join(lines))
     print("RESULT:", "PASS" if ok else "FAIL")
@@ -173,7 +207,7 @@ Every non-`dat_o` output is checked with no cut at all; `dat_o`'s cone is checke
 ### P-12 (no key-to-output path, no scan/test structure)
 
 - **Cone statement**: the table above; no path from a key-bearing flop to any output port except through the P-4 carriers.
-- **Scan/DFT structure**: every flattened instance scope in the netlist is a plain `sky130_fd_sc_hd__*` cell ({clean['checks']['cell_scopes']['cell_scopes']} cell scopes checked; the scan-capable `sd*` families -- the `sdf*` mux-D scan flops and the `sdlclkp` scan clock gate, which the library does ship -- refused together with the `dl*` latches, `lpflow_*`, `probe*` and any scan/DFT-named cell), the netlist's port list equals the RTL module's (no debug/test/scan port inserted), and the recorded flow log contains no scan/DFT step (measured: {abc_excl} `abc` call(s) exclude the `lpflow_*`/`probe*` cell families, {sdft_hits} scan/DFT/boundary/test tokens). Negative controls: a spliced scan-flop scope (`sky130_fd_sc_hd__sdfxtp_1`), a spliced probe-cell scope and a spliced extra output port each make the structural check fail.
+- **Scan/DFT structure**: every flattened instance scope in the netlist is a plain `sky130_fd_sc_hd__*` cell ({clean['checks']['cell_scopes']['cell_scopes']} cell scopes checked). Scan capability is matched on the property, not on a remembered family list: the pinned liberty is censused at run time and every cell whose definition references a scan pin (`SCD`/`SCE`) is refused whatever its name (measured here: {lib_cells} liberty cells, {lib_scan} scan-capable variants across {lib_fams} families -- the library does ship scan-capable cells, including the `sedfxtp`/`sedfxbp` scan-enable flops whose names no `sd*` prefix covers); the name arm stays as defense-in-depth (the `dl*` latches, `lpflow_*`, `probe*`, any scan/DFT-named cell, and every `sky130_fd_sc_hd__s*' name -- on the pinned liberty that prefix is exactly the scan-capable set). The netlist's port list equals the RTL module's (no debug/test/scan port inserted), and the recorded flow log contains no scan/DFT step (measured: {abc_excl} `abc` call(s) exclude the `lpflow_*`/`probe*` cell families, {sdft_hits} scan/DFT/boundary/test tokens). Negative controls: spliced scan-flop scopes (`sky130_fd_sc_hd__sdfxtp_1` and `sky130_fd_sc_hd__sedfxtp_1`, two families of different name shapes, each verified census-flagged), a spliced probe-cell scope and a spliced extra output port each make the structural check fail.
 - **P-14 (same machinery)**: `trng_bus_re`'s cone is empty (the sequencer never reads the sibling), and no `trng_out_data` bit reaches any output except as DRBG output (through the `bd_q` carrier).
 - **P-2 (same machinery, top level)**: no slot flop (`u_kdf.s0..s3`) in any output cone except through the engine datapath, the top-level counterpart of the module-level P-2 in `verification/records/keyladder-formal/`.
 - **P-10 structural fallback**: the zeroize net `zr` is in the cone of every one of the {p10['registers']} key-bearing registers checked (slots, K0/inner, AES round keys, DRBG Key/V and df working values, DRBG private-AES state, seed buffer). The register-list completeness stays the review item the spec names; this check is not the P-10 proof, which does not exist yet on either side.
@@ -185,6 +219,7 @@ Every non-`dat_o` output is checked with no cut at all; `dat_o`'s cone is checke
 | mutant RTL: `dat_o` XORs `hmac_key[31:0]` into the read data (fresh `klt synthesize` of the mutated top) | one slot-to-output path through no result window | P-12 check FAILS on {neg_hits or 'n/a'} |
 | the same mutant vs the committed netlist | an unregenerated RTL edit | byte-different: the freshness comparison catches it |
 | spliced `$scopeinfo` naming `sky130_fd_sc_hd__sdfxtp_1` | a scan-capable cell type (mux-D scan flop, `SCD`/`SCE` in the liberty) | cell-scope check FAILS |
+| spliced `$scopeinfo` naming `sky130_fd_sc_hd__sedfxtp_1` | a scan-enable flop (the scan image of an enable-D flop; `SCD`/`SCE` in the liberty, name outside any `sd*` prefix) | cell-scope check FAILS |
 | spliced `$scopeinfo` naming `sky130_fd_sc_hd__probe_p_8` | a DFT-style cell type | cell-scope check FAILS |
 | spliced extra output port `scan_out` | an inserted test/debug port | port-list check FAILS |
 
