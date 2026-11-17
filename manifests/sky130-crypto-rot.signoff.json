@@ -343,7 +343,7 @@
         "command": null,
         "kind": "generic",
         "check_status": "pass",
-        "content_hash": "sha256:154380bfaf027517a43b0570a2226616cf808601262aa8285aeb1086be3dbc27",
+        "content_hash": "sha256:62565eb4533546050f16f58d29773f57a86cc07716394ea307c3998a1417bcb0",
         "input_verified": true,
         "exit_status": 0,
         "artifact_binding": {
@@ -352,15 +352,15 @@
             "path": "manifests/inventories/item-9.json",
             "scope": "repo"
           },
-          "content_hash": "sha256:154380bfaf027517a43b0570a2226616cf808601262aa8285aeb1086be3dbc27",
+          "content_hash": "sha256:62565eb4533546050f16f58d29773f57a86cc07716394ea307c3998a1417bcb0",
           "input_verified": true,
-          "summary": "T1 item 9 (Testbenches shipped): 51/51 attestation checks passed (klt signoff --attest)",
+          "summary": "T1 item 9 (Testbenches shipped): 57/57 attestation checks passed (klt signoff --attest)",
           "source": "manifests/inventories/item-9.json",
           "attestation": {
             "producer": "klt signoff --attest",
             "inventory_schema_version": 1,
-            "check_count": 51,
-            "passed_count": 51
+            "check_count": 57,
+            "passed_count": 57
           }
         }
       }
