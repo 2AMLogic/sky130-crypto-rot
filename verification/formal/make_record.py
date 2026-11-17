@@ -4,18 +4,25 @@
 Reads flow/build/formal/results.tsv (one line per sby task). Refuses to record
 unless every task met its expectation -- with the netlist exception of a proof
 that stopped at its depth or the 1500 s per-task cap: it is recorded as
-"reached depth N, not proven" (issue #177). Standard library only.
+"reached depth N, not proven" (issue #177). A run whose work directory has no
+config.sby at all, a config.sby with no `mode` line in its `[options]` block,
+or a bounded (`mode bmc`/`cover`) task whose config.sby names no depth, also
+refuses: the mode or the Depth column cannot be filled (issue #224, #243).
+A depth-less `mode prove` task is the unbounded proof and records as
+`unbounded`. With --check-only it stops right after that verdict and writes
+nothing, so run.sh judges every run through this one EXPECT table, --record or
+not (issue #207). Standard library only.
 """
 
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flow/common"))
 import record_lib as rc  # noqa: E402
+from record_lib import sby_depth, sby_mode  # noqa: E402
 
 EXPERIMENT = "drbg-trng-formal"
 # The inputs OUTSIDE this directory. The tracked files beside this generator
@@ -55,48 +62,20 @@ EXPECT = {
 }
 
 
-def sby_depth(d: Path) -> int | None:
-    """The depth SymbiYosys ran this task at, from its own work directory.
-
-    sby writes the resolved per-task configuration to `<d>/config.sby` with the
-    `[tasks]` prefixes already applied (the same reader contract as
-    keyladder/make_record.py, issue #165). Returns None when absent; sby's own
-    default (20) is never assumed.
-    """
-    cfg = d / "config.sby"
-    if not cfg.exists():
-        return None
-    depth, section = None, None
-    for raw in cfg.read_text().splitlines():
-        m = re.match(r"^\s*\[(.*)\]\s*$", raw)
-        if m:
-            head = m.group(1).strip().split()
-            section = head[0] if head else None
-            continue
-        if section != "options":
-            continue
-        line = re.sub(r"\s*(\s#.*)?$", "", raw)
-        if not line or line.startswith("#"):
-            continue
-        entries = line.split(maxsplit=1)
-        if len(entries) == 2 and entries[0] == "depth" and entries[1].isdigit():
-            depth = int(entries[1])
-    return depth
-
-
 def steps_checked(d: Path) -> int | None:
-    """The last step the engine checked, from the run's logfile.txt."""
+    """The last step the engine checked, from the run's logfile.txt.
+
+    The scrape itself is record_lib's shared sby_steps_checked(), so this and
+    the keyladder generator cannot state different reached depths (issue #259).
+    """
     log = d / "logfile.txt"
-    if not log.exists():
-        return None
-    steps = [int(m) for m in re.findall(r"Checking (?:assertions|assumptions and assertions) in step (\d+)",
-                                        log.read_text())]
-    return max(steps) if steps else None
+    return rc.sby_steps_checked(log.read_text()) if log.exists() else None
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out-dir", type=Path, required=True)
+    ap.add_argument("--check-only", action="store_true")
     args = ap.parse_args()
     rows = [line.split("\t") for line in (args.out_dir / "results.tsv").read_text().splitlines() if line]
     if not rows:
@@ -113,6 +92,7 @@ def main() -> int:
         expect = EXPECT[key][0]
         d = args.out_dir / f"{f[:-4]}_{t}"
         depth = sby_depth(d)
+        mode = sby_mode(d)
         if expect == "PASS":
             ok = rc_s == "0" and status == "PASS"
         elif expect == "FAIL":
@@ -125,17 +105,41 @@ def main() -> int:
                 depth_reached.append((f, t, steps, status))
         if not ok:
             verdicts.append(f"{f} {t}: expected {expect}, got status {status} (sby exit {rc_s})")
+        if mode is None:
+            # A task needs a mode statement whatever its status: the record is
+            # append-only, and what ran cannot be stated without one (issue
+            # #224). sby_mode's None has two meanings -- say which occurred,
+            # not a blanket "no config.sby" (issue #243).
+            if not (d / "config.sby").exists():
+                verdicts.append(f"{f} {t}: the run's work directory has no config.sby: "
+                                "neither the mode nor the depth of what ran can be stated")
+            else:
+                verdicts.append(f"{f} {t}: the run's config.sby has no mode line in [options]: "
+                                "the mode of what ran cannot be stated")
+        elif mode in ("bmc", "cover") and depth is None:
+            verdicts.append(f"{f} {t}: mode {mode} is bounded, but the run's config.sby "
+                            "names no depth: the Depth column cannot be filled")
+        # A depth-less `mode prove` run needs neither guard: it is the unbounded
+        # proof (p7_p8.sby/prove, p9.sby/prove) and records as `unbounded`.
     if verdicts:
         print("formal: not recording, a task did not meet its expectation:", file=sys.stderr)
         for v in verdicts:
             print(f"  {v}", file=sys.stderr)
         return 1
+    if args.check_only:
+        # Judged and clean; stop before require_clean_inputs / the tool-version
+        # and record work, so a check costs nothing but reading results.tsv
+        # (the keyladder generator's contract, issue #207).
+        return 0
     rev = rc.require_clean_inputs(INPUTS, generator=__file__)
     v = rc.tool_versions()
     v["sby"] = rc.run(str(rc.REPO / ".venv/bin/yowasp-sby"), "--version")
 
     def depth_of(f, t):
-        return sby_depth(args.out_dir / f"{f[:-4]}_{t}")
+        # Reachable only after the verdict guards: a None depth here is a
+        # depth-less `mode prove` run -- the unbounded proof -- not a broken one.
+        depth = sby_depth(args.out_dir / f"{f[:-4]}_{t}")
+        return "unbounded" if depth is None else depth
 
     def result_cell(f, t, s):
         if s in ("TIMEOUT", "UNKNOWN") and (f, t) in EXPECT and EXPECT[(f, t)][0] == "PASS_OR_DEPTH":
@@ -156,7 +160,7 @@ def main() -> int:
     body = f"""- **Claim**: properties P-7, P-8 and P-9 of `spec/key-isolation-properties.md` hold on the RTL of `rtl/drbg/ctr_drbg.v` and `rtl/trng_if/trng_if.v` and on the `klt synthesize` sky130_fd_sc_hd netlist of the same modules as written in the task table below, with the AES engine abstracted to its busy/done handshake (an unconstrained latency of at least one cycle and an unconstrained result: the DRBG's control decisions never read the AES result). P-7: `blk_valid` implies seeded and not reseed-required. P-8: the reseed counter never exceeds interval + 1, a generate is never started above the interval, and the exhausted state persists until a reseed completes. P-9: if the synchronized alarm was high two cycles ago, DRBG `Key`/`V`, `chain`, df/Update working registers, the output register, the seed buffer and `out_ready` are zero (so zero within two core cycles of the synchronizer output, within the stated bound of 4, and held zero while the alarm stays asserted).{depth_note} Not covering key slots (issue #46, top-level #88), the AES core's own registers (issue #43), or the clock-domain timing of the synchronizer (modelled as an ordinary register chain at the core clock). This record supersedes 20261031-003845-70b0a85, which covered the RTL half only (its pointer named issue #46); the netlist re-proof tracked as issue #177.
 - **Design provenance**: RTL and the `klt synthesize` sky130_fd_sc_hd netlist (liberty corner `tt_025C_1v80`, pre-P&R), formal. Both halves run Yosys-internal engines through SymbiYosys (`abc pdr`/`abc bmc3`); the netlist cells are modelled by Yosys from the liberty `function`/`ff` groups (`read_liberty -ignore_miss_func`), no hand-written cell models.
 - **Run configuration**: `./scripts/setup-env.sh` then `./verification/formal/run.sh --record` (RTL) and `./verification/formal/run.sh --netlist --record` (netlist). Engines `abc pdr` (unbounded) and `abc bmc3` (bounded) on both the RTL and the netlist tasks, `aigsmt none`. Assertions are in the RTL under `ifdef FORMAL`; wrappers `fv_drbg.v` and `fv_p9.v` supply the environment (free commands, sizes, seeds, sibling pins and zeroize; reset/zeroize asserted in the first cycle, assertions gated on a first-zeroize/reset flag because the design has no reset of its own).
-- **Result**: every task below met its expectation. The Depth column is the depth SymbiYosys ran each task at, read from the `config.sby` in that run's own work directory (the issue #165 reader contract).
+- **Result**: every task below met its expectation. The Depth column is the depth SymbiYosys ran each task at, read from the `config.sby` in that run's own work directory (the issue #165 reader contract); a bounded task must name one and the run refuses to record without it, while an unbounded `mode prove` task names none by design and is recorded as `unbounded`.
 
   | file | task | sby result | engine | depth | counterexample frame | seconds | meaning |
   |---|---|---|---|---|---|---|---|

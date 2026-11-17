@@ -34,11 +34,11 @@ rung partly recorded and nothing beyond it claimed.
 - **TRNG interface**: `drbg_top` passes against a port-protocol stub and against the sibling's RTL
   at the pinned commit, with the sibling's start-up length and conditioner block shortened by
   parameter (`verification/records/trng-if-sim/`).
-- **T1 checklist** (`klt signoff`, klayout-tools 0.8.0): **2 of 11 met, 1 not applicable.**
+- **T1 checklist** (`klt signoff`, klayout-tools 0.8.0): **3 of 11 met, 1 not applicable** (`manifests/sky130-crypto-rot.signoff.json`, `t1_met_count`).
 
 | Item | Status | Issue |
 |---|---|---|
-| 1 Design sources | unmet: no top level, no committed netlist | #46 (#87, #88) |
+| 1 Design sources | met (`manifests/inventories/item-1.envelope.json`, 11/11 attestation checks) | #46 (#87, #88) |
 | 2 Layout | unmet | #47 |
 | 3 DRC clean | unmet | #48 |
 | 4 LVS clean | unmet | #49 |
@@ -47,7 +47,7 @@ rung partly recorded and nothing beyond it claimed.
 | 7 Post-layout verification | unmet | #82 |
 | 8 Characterization report | unmet | #83 |
 | 9 Testbenches shipped | met (`scripts/cold-start-benches.sh`, attested) | - |
-| 10 Repo hygiene | met (attested; CI re-hashes both envelopes) | - |
+| 10 Repo hygiene | met (attested; CI re-hashes all three envelopes: items 1, 9, 10) | - |
 | 11 Power delivery | unmet | #53 |
 
 Since the last core was added (2026-10-27), most merged work has been on the evidence
@@ -56,18 +56,19 @@ caught, and attestation envelopes that fail CI when they go stale.
 
 ## Now
 
-1. **Land the register map** (#89, PR #90) — done: `spec/decision-records/0009-register-map.md`
+1. **Land the register map** (#89 (closed), PR #90 (merged)) — done: `spec/decision-records/0009-register-map.md`
    and its lint (`verification/check_regmap.py`, wired into `npm run check:ci`) are on `main`
-   (PR #90 merged 2026-11-14). This was the head of the whole T1 chain; #87 down is unblocked.
-2. **Remove the 12 hand-copied negative-control request files** (#161) — done: each
-   `--negative-control` run derives its request from the positive one (PR #175, merged
+   (PR #90 (merged) 2026-11-14). This was the head of the whole T1 chain; #87 (closed) down is unblocked.
+2. **Remove the 12 hand-copied negative-control request files** (#161 (closed)) — done: each
+   `--negative-control` run derives its request from the positive one (PR #175 (merged),
    2026-11-14) and the item-9 envelope is re-attested.
-3. **Finish the two record-accuracy changes in review** — done: PR #171 (#164) and PR #170 (#165)
-   are both merged (2026-11-14). #169 (a live key-ladder formal run confirming the depth reader),
-   which followed #165, is approved and open.
-4. **Bring the remaining hand-copied klayout-tools pins under `check_pins.py`** (#172) — done:
-   `npm run lint` now fails on a mismatch in `signoff.yml` or `manifests/README.md` (PR #184,
-   merged 2026-11-14).
+3. **Finish the two record-accuracy changes in review** — done: PR #171 (merged) (#164 (closed)) and
+   PR #170 (merged) (#165 (closed)) are both merged (2026-11-14). #169 (closed) (a live key-ladder
+   formal run confirming the depth reader), which followed #165 (closed), closed as completed on
+   2026-11-15.
+4. **Bring the remaining hand-copied klayout-tools pins under `check_pins.py`** (#172 (closed)) — done:
+   `npm run lint` now fails on a mismatch in `signoff.yml` or `manifests/README.md` (PR #184 (merged),
+   2026-11-14).
 5. **Re-prove P-7, P-8 and P-9 on the synthesized netlist** (no issue; seed 1). Done when a
    `drbg-trng-formal` record carries a netlist row and a netlist negative control for each property,
    or records the depth reached.
@@ -88,17 +89,18 @@ gate-level simulation) that the top level will need anyway.
 
 ## Next
 
-- **Top-level RTL and bus-level bench** (#87) after #89. Done when `rtl/crypto_rot_top.v` passes
+- **Top-level RTL and bus-level bench** (#87 (closed)) after #89 (closed). Done when `rtl/crypto_rot_top.v` passes
   end-to-end KATs through the bus, one test per zeroize event, a protocol checker and negative
   controls, with a record.
-- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88) after #87. Done
-  when `klt signoff` grades item 1 `met`; closes #46.
-- **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87. No issue yet; file them once the
+- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (closed)) after #87 (closed). Done
+  when `klt signoff` grades item 1 `met`; closes #46 (closed).
+- **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87 (closed). No issue yet; file them once the
   top-level port and register names exist, since each property is stated over them.
-- **Routed GDS** (#47) after #88; then **DRC** (#48), **LVS** (#49), **power delivery** (#53) and
-  **corner verification** (#50) on that layout.
-- **Post-layout verification** (#82) and the **characterization report** (#83) after #47 and #50.
-- **Include the shared bench driver in the item-9 inventory** (#163) — done (PR #175, merged
+- **Routed GDS** (#47 (open)) after #88 (closed); then **DRC** (#48 (open)), **LVS** (#49 (open)),
+  **power delivery** (#53 (open)) and **corner verification** (#50 (open)) on that layout.
+- **Post-layout verification** (#82 (open)) and the **characterization report** (#83 (open)) after
+  #47 (open) and #50 (open).
+- **Include the shared bench driver in the item-9 inventory** (#163 (closed)) — done (PR #175 (merged),
   2026-11-14).
 
 ## Later
@@ -119,7 +121,7 @@ gate-level simulation) that the top level will need anyway.
 
 ## Blocked and waiting
 
-- The register map (#89) landed, so nothing down the T1 chain waits on it; #87 is in progress.
+- The register map (#89) landed, so nothing down the T1 chain waits on it; #87 and #88 are closed.
 - Three scope-reduction proposals wait on a maintainer decision: #121 (drop the vendored tiers doc),
   #129 (unify the two formal harnesses), #134 (drop the three vendored `sky130-modexp` workaround
   files). #129 and #134 touch the formal and gate-level paths that Now items 5 and 7 use; whichever

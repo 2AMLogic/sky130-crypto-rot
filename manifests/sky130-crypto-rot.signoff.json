@@ -26,10 +26,35 @@
       "partition": null,
       "text": "committed RTL sources plus the synthesized gate-level netlist derived from them, regenerated on design change. For a hand-captured full-custom digital partition (no RTL, no synthesis step \u2014 see \"Full-custom digital sub-case\" above), this item is satisfied instead by the Analog column's artifact: committed schematic sources (or generator) plus the netlist derived from them, regenerated on design change, with every logic gate captured as a schematic exactly like an analog partition's.",
       "notes": [],
-      "status": "unmet",
-      "reason": "no_evidence",
+      "status": "met",
+      "reason": null,
       "graded_by_build": true,
-      "citation": null
+      "citation": {
+        "file": "manifests/inventories/item-1.envelope.json",
+        "command": null,
+        "kind": "generic",
+        "check_status": "pass",
+        "content_hash": "sha256:78001b4be5958b239396d0bb6dbd9992bfdfbd73023d7612a3aea3d9d798af8a",
+        "input_verified": true,
+        "exit_status": 0,
+        "artifact_binding": {
+          "t1_item": 1,
+          "path": {
+            "path": "manifests/inventories/item-1.json",
+            "scope": "repo"
+          },
+          "content_hash": "sha256:78001b4be5958b239396d0bb6dbd9992bfdfbd73023d7612a3aea3d9d798af8a",
+          "input_verified": true,
+          "summary": "T1 item 1 (Design sources): 11/11 attestation checks passed (klt signoff --attest)",
+          "source": "manifests/inventories/item-1.json",
+          "attestation": {
+            "producer": "klt signoff --attest",
+            "inventory_schema_version": 1,
+            "check_count": 11,
+            "passed_count": 11
+          }
+        }
+      }
     },
     {
       "tier": "T1",
@@ -335,35 +360,10 @@
       "partition": null,
       "text": "every claimed measurement's testbench committed, with a documented cold-start invocation a third party can run; pinned PDK revision.",
       "notes": [],
-      "status": "met",
-      "reason": null,
+      "status": "unmet",
+      "reason": "stale_evidence",
       "graded_by_build": true,
-      "citation": {
-        "file": "manifests/inventories/item-9.envelope.json",
-        "command": null,
-        "kind": "generic",
-        "check_status": "pass",
-        "content_hash": "sha256:7640ddc97719a0b3d8aad80d9b23c44900b5fe9fd3a099050a0258a153745391",
-        "input_verified": true,
-        "exit_status": 0,
-        "artifact_binding": {
-          "t1_item": 9,
-          "path": {
-            "path": "manifests/inventories/item-9.json",
-            "scope": "repo"
-          },
-          "content_hash": "sha256:7640ddc97719a0b3d8aad80d9b23c44900b5fe9fd3a099050a0258a153745391",
-          "input_verified": true,
-          "summary": "T1 item 9 (Testbenches shipped): 51/51 attestation checks passed (klt signoff --attest)",
-          "source": "manifests/inventories/item-9.json",
-          "attestation": {
-            "producer": "klt signoff --attest",
-            "inventory_schema_version": 1,
-            "check_count": 51,
-            "passed_count": 51
-          }
-        }
-      }
+      "citation": null
     },
     {
       "tier": "T1",

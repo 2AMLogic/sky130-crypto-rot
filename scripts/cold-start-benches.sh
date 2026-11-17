@@ -13,7 +13,7 @@
 # expectation, which for its reach_*/neg_* tasks means FAILING.
 #
 # Records this covers: sha256-core-sim-synth, aes-core-sim-synth, drbg-sim-synth,
-# hmac-sha256-sim-synth, keyladder-sim-synth, trng-if-sim, and the RTL half of
+# hmac-sha256-sim-synth, keyladder-sim-synth, crypto-rot-top-sim, trng-if-sim, and the RTL half of
 # drbg-trng-formal.
 #
 # Records this does NOT cover, and why:
@@ -54,8 +54,11 @@ cd "${REPO_ROOT}"
 # completes, and klt kills yosys at its 300 s watchdog). The ambient TMPDIR can
 # be long enough to trip that, and every synth step below goes through klt, so
 # run the whole cold start with a short temp directory.
-TMPDIR="$(mktemp -d /tmp/coldstartXXXXXX)"
-export TMPDIR
+COLD_TMP="$(mktemp -d /tmp/coldstartXXXXXX)"
+export TMPDIR="${COLD_TMP}"
+# Remove the pinned short temp dir on the way out, error paths included
+# (issue #207; set -euo pipefail makes the EXIT trap cover them).
+trap 'rm -rf "${COLD_TMP}"' EXIT
 
 ./scripts/setup-env.sh
 # pytest for the model and reuse checks; the same package CI installs.
@@ -65,7 +68,7 @@ export TMPDIR
 .venv/bin/python verification/check_reuse.py
 .venv/bin/python -m pytest verification/test_check_reuse.py
 
-for core in sha256 aes drbg hmac keyladder trng_if; do
+for core in sha256 aes drbg hmac keyladder crypto_rot_top trng_if; do
   if [ "${core}" = sha256 ]; then
     ./verification/rtl/sha256/run.sh --million-a
   else

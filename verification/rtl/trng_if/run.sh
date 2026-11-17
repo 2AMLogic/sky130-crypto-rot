@@ -38,18 +38,12 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=trng_if
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-RECORD=0; NEG=0; REAL=1; REAL_FULL=1
-for arg in "$@"; do
-  case "${arg}" in
-    --record) RECORD=1 ;;
-    --negative-control) NEG=1 ;;
-    # --skip-real drops BOTH sibling benches; --skip-real-full keeps the
-    # shortened one and drops only the unshortened pass.
-    --skip-real) REAL=0 ;;
-    --skip-real-full) REAL_FULL=0 ;;
-    *) echo "unknown option: ${arg}" >&2; exit 2 ;;
-  esac
-done
+SKIP_REAL=0; SKIP_REAL_FULL=0
+# --skip-real drops BOTH sibling benches; --skip-real-full keeps the
+# shortened one and drops only the unshortened pass.
+CORE_FLOW_EXTRA_OPTS="--skip-real:SKIP_REAL --skip-real-full:SKIP_REAL_FULL"
+CORE_FLOW_UNSUPPORTED="--sim-only"  # stops before a synthesis this core never runs
+core_flow_parse_opts "$@"
 
 core_flow_setup
 # The nine sim-*-request.json files the benches below read are mk_req.py's
@@ -57,15 +51,7 @@ core_flow_setup
 # every run, and mk_req.py is the request input make_record.py hashes.
 python3 -I mk_req.py
 
-BENCH_LOG=.klt/functional-verification/test_icarus.log
-# These benches assert with an unprefixed message, so what shows that the BENCH
-# (not the build) failed is their own SUMMARY line with a non-zero failure count;
-# the passing tests of the same elaboration log `failures=0` and do not match.
-NEG_EVIDENCE='SUMMARY.*failures=[1-9][0-9]*'
-
 sim() { klt functional-verification "$1" --format json > "$2"; }
-summaries() { grep -o 'SUMMARY[^<]*' "${BENCH_LOG}" || true; }
-status() { _json_line "$1" 'd["status"], d["passed_count"], "/", d["test_count"], "tests"'; }
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each corrupted build MUST fail =="
@@ -88,34 +74,34 @@ if [ "${NEG}" = 1 ]; then
 fi
 
 echo "== trng_if alone vs the port-protocol stub (40:1 and 1000:1 clock ratios) =="
-sim sim-if-request.json "${OUT}/if.json"; status "${OUT}/if.json"
-summaries | tee "${OUT}/summary-if.txt"
+sim sim-if-request.json "${OUT}/if.json"; core_flow_status "${OUT}/if.json"
+core_flow_summaries | tee "${OUT}/summary-if.txt"
 
 echo "== drbg_top (trng_if + ctr_drbg + aes_core) vs the stub =="
-sim sim-sys-request.json "${OUT}/sys.json"; status "${OUT}/sys.json"
-summaries | tee "${OUT}/summary-sys.txt"
+sim sim-sys-request.json "${OUT}/sys.json"; core_flow_status "${OUT}/sys.json"
+core_flow_summaries | tee "${OUT}/summary-sys.txt"
 
 rm -f "${OUT}/real.json" "${OUT}/summary-real.txt"
-if [ "${REAL}" = 1 ]; then
+if [ "${SKIP_REAL}" = 0 ]; then
   echo "== drbg_top vs the sibling's RTL at its pinned commit =="
   ./fetch_trng.sh > "${OUT}/trng_path.txt"
-  sim sim-real-request.json "${OUT}/real.json"; status "${OUT}/real.json"
-  summaries | tee "${OUT}/summary-real.txt"
+  sim sim-real-request.json "${OUT}/real.json"; core_flow_status "${OUT}/real.json"
+  core_flow_summaries | tee "${OUT}/summary-real.txt"
 else
   echo "== real-sibling bench SKIPPED (--skip-real); a record will say so =="
 fi
 
 rm -f "${OUT}/real-full.json" "${OUT}/summary-real-full.txt" "${OUT}/real-full-wall.txt"
-if [ "${REAL}" = 1 ] && [ "${REAL_FULL}" = 1 ]; then
+if [ "${SKIP_REAL}" = 0 ] && [ "${SKIP_REAL_FULL}" = 0 ]; then
   echo "== drbg_top vs the sibling's RTL with NO parameter overrides =="
   # SECONDS is reset so the elapsed time below is this simulation alone; it is
   # the measured wall time make_record.py quotes, rather than hand-typed prose.
   SECONDS=0
   sim sim-real-full-request.json "${OUT}/real-full.json"
   echo "${SECONDS}" > "${OUT}/real-full-wall.txt"
-  status "${OUT}/real-full.json"
+  core_flow_status "${OUT}/real-full.json"
   echo "wall time: ${SECONDS} s"
-  summaries | tee "${OUT}/summary-real-full.txt"
+  core_flow_summaries | tee "${OUT}/summary-real-full.txt"
 else
   echo "== unshortened-sibling bench SKIPPED (--skip-real/--skip-real-full); a record will say so =="
 fi

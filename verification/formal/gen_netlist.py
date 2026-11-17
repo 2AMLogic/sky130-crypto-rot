@@ -171,6 +171,61 @@ def check_registers(mod: str, regs, ctr_width: int, module: str) -> None:
             f"width mismatch: {wrong or '[]'}")
 
 
+def parse_probe_patterns(stdout: str, stderr: str, variant: str) -> tuple[str, str]:
+    """(INST, GEN) op_q patterns as tb_net_probe printed them, MSB first.
+
+    `$display("%b", ...)` emits one unspaced run per line, so the pattern is
+    captured whole: the old `{3}` bound here silently truncated a wider op_q
+    to its first three characters and bound the wrong bits (issue #206). The
+    captured token is validated whole against the `%b` alphabet 01xXzZ: a
+    permissive capture class alone would silently truncate at the first
+    out-of-class character (a simulator-swap trap, issue #219) where `{3}`
+    failed loudly. Both patterns must appear; their widths are checked where
+    they are bound.
+    """
+    pats = dict(re.findall(r"(OP_AFTER_INST|OP_AFTER_GEN)=(\S+)", stdout))
+    for name, pat in pats.items():
+        bad = "".join(sorted(set(pat) - set("01xXzZ")))
+        if bad:
+            die(f"op_q probe for {variant}: {name}={pat} has character(s) "
+                f"outside the %b alphabet 01xXzZ ({bad}); the probe or the "
+                "simulator changed output format -- refusing to bind a "
+                "truncated pattern")
+    if "PROBE_FAIL" in stdout or len(pats) != 2:
+        die(f"op_q probe for {variant} did not produce both patterns; output:\n"
+            f"{stdout}\n{stderr}")
+    return pats["OP_AFTER_INST"], pats["OP_AFTER_GEN"]
+
+
+def opgen_binding(inst_pat: str, gen_pat: str, variant: str) -> str:
+    """The op_q == OP_GEN conjunction over the driven bits, Verilog-indexed.
+
+    `%b` prints MSB first, so bit i of the netlist's op_q is
+    reversed(gen_pat)[i]; reading the string left to right swapped the two
+    driven bits (issue #206), harmless only while the GEN pattern stayed
+    symmetric over them. The conjunction must also be false for the INST
+    pattern: the property text's `op_q != OP_GEN' is replaced by its negation,
+    so a conjunction satisfied in more op states than OP_GEN silently weakens
+    the P-8 reseed term. Checked here, at generation time, it costs no solver
+    time and adds no proof obligation -- unlike a netlist-side negative
+    assertion, which would need every variant re-proven.
+    """
+    if len(inst_pat) != len(gen_pat):
+        die(f"op_q probe for {variant}: INST and GEN patterns disagree in width "
+            f"(inst={inst_pat} is {len(inst_pat)} bits, gen={gen_pat} is "
+            f"{len(gen_pat)} bits); the probe or the netlist changed shape")
+    gen_bits = list(reversed(gen_pat))   # %b is MSB first: index i here is op_q[i]
+    driven = [(bit, b) for bit, b in enumerate(gen_bits) if b in "01"]
+    if not driven:
+        die(f"op_q probe for {variant}: no driven bits")
+    inst_bits = list(reversed(inst_pat))
+    if all(inst_bits[bit] == b for bit, b in driven):
+        die(f"op_q probe for {variant}: the OP_GEN binding is also satisfied by the "
+            f"INST pattern (inst={inst_pat}, gen={gen_pat}); the conjunction is too "
+            "wide to stand in for `op_q != OP_GEN'")
+    return "(" + " && ".join(f"op_q[{bit}] == 1'b{b}" for bit, b in driven) + ")"
+
+
 def probe_opgen(stage: Path, variant: str, lib: str, net: Path, tb: Path) -> str:
     """The driven-bit conjunction for op_q == OP_GEN, for one variant netlist.
 
@@ -204,23 +259,8 @@ def probe_opgen(stage: Path, variant: str, lib: str, net: Path, tb: Path) -> str
         die(f"probe compile for {variant} failed:\n{r.stderr}")
     r = subprocess.run(["vvp", f"probe_{variant}.vvp"], cwd=stage,
                        capture_output=True, text=True)
-    pats = dict(re.findall(r"(OP_AFTER_INST|OP_AFTER_GEN)=([01zXx]{3})", r.stdout))
-    if "PROBE_FAIL" in r.stdout or len(pats) != 2:
-        die(f"op_q probe for {variant} did not produce both patterns; output:\n"
-            f"{r.stdout}\n{r.stderr}")
-    inst_pat, gen_pat = pats["OP_AFTER_INST"], pats["OP_AFTER_GEN"]
-    if inst_pat == gen_pat:
-        die(f"op_q probe for {variant}: INST and GEN patterns are identical "
-            f"({inst_pat}); the ops are not distinguishable over the driven bits")
-    terms = []
-    for i in range(3):
-        b = gen_pat[i]
-        if b not in "01":
-            continue
-        terms.append(f"op_q[{i}] == 1'b{b}")
-    if not terms:
-        die(f"op_q probe for {variant}: no driven bits")
-    return "(" + " && ".join(terms) + ")"
+    inst_pat, gen_pat = parse_probe_patterns(r.stdout, r.stderr, variant)
+    return opgen_binding(inst_pat, gen_pat, variant)
 
 
 def strip_instantiation_params(wrapper: str, name: str, from_str: str, to_str: str) -> str:

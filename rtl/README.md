@@ -26,3 +26,9 @@
   (decision record 0003), write-only software load, engine key release gated
   on the use-mask, `zeroize` input; slot contents reach only the engine key
   outputs. Run and verify it with `verification/rtl/keyladder/run.sh`.
+- `crypto_rot_top.v` -- the top level: the register bus (0005) and register
+  map (0009), the lifecycle/zeroize FSM of `spec/target-spec.md` section 5,
+  and the integration of the blocks above (`drbg_top` embeds `trng_if`; the
+  sibling's pins pass through). No register returns key, seed or DRBG state;
+  no debug path, no scan. Run and verify it with
+  `verification/rtl/crypto_rot_top/run.sh`.

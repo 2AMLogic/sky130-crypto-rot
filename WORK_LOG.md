@@ -3,8 +3,79 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-17
+
+- **PR #272**: docs: correct T1 item-10 envelope count to three (items 1, 9, 10)
+- **PR #270**: docs: sync roadmap T1 table and blocked note with the committed signoff manifest
+- **Issue #271** (closed): docs/roadmap.md T1 item-10 row says CI re-hashes "both envelopes"; it now re-checks three
+- **Issue #269** (closed): docs/roadmap.md's T1 table says item 1 unmet / 2 of 11 met, but the committed signoff record grades item 1 met with 3 met
+- **PR #267**: netlist: commit the crypto_rot_top netlist with freshness check and P-12 structural re-proof
+- **PR #265**: chore(loom): resync installed Loom to v0.19.1306
+- **PR #264**: test: pin the mode reader and steps scrape to the shared record_lib readers
+- **PR #261**: fix: consolidate sby_mode and the steps scrape into record_lib's shared readers
+- **PR #258**: docs: correct sby_depth's docstring after the mode-aware depth rule
+- **PR #257**: fix: name the two sby_mode None cases in the formal record refusal
+- **PR #196**: top: crypto_rot_top behind the 0005 bus, 0009 register map and the section 5 lifecycle FSM
+- **Issue #88** (closed): T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
+- **Issue #46** (closed): T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
+- **Issue #262** (closed): Extend the one-parser identity guard to sby_mode and sby_steps_checked
+- **Issue #259** (closed): Consolidate sby_mode and the steps_checked scrape into record_lib: a second config.sby reader re-grew after #211
+- **Issue #255** (closed): flow/common/record_lib.py sby_depth docstring is stale after #224's mode-aware Depth rule
+- **Issue #243** (closed): sby_mode() collapses "no config.sby" and "config.sby with no mode line", and the refusal names only the first
+- **Issue #87** (closed): T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
+- **PR #242**: fix: share one sby_depth reader so the formal generator honors commented section headers
+- **Issue #221** (closed): verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
+- **PR #253**: fix: strip and case-fold Ports tokens in check_regmap key-port lint
+- **PR #239**: formal: make the DRBG/TRNG record's Depth verdict mode-aware
+- **Issue #236** (closed): check_regmap.py key-port lint: residual token-hygiene evasions (trailing space, case, nested bit ranges)
+- **Issue #224** (closed): DRBG/TRNG formal generator records a run whose config.sby names no depth; the keyladder judge fails it
+
+### 2026-11-16
+
+- **PR #237**: chore(loom): resync installed Loom to v0.19.1302
+- **PR #251**: docs: state the load-bearing reverse-assertion rationale in check_script_docs.py
+- **PR #249**: docs: record check_script_docs.py's one-directional design in its docstring
+- **Issue #250** (closed): check_script_docs.py docstring: the two cited prose mentions do not demonstrate reverse-assertion unsafety
+- **Issue #235** (closed): check_script_docs.py is one-directional: a stale filename left in the CI table is not flagged
+- **PR #227**: lint: check docs/roadmap.md #N status tokens against WORK_LOG.md in npm run lint
+- **Issue #213** (closed): docs/roadmap.md status lines drift within hours: make the #N claims checked in CI rather than re-measured by hand
+- **PR #246**: docs(manifests): document the toolchain-free --skip-local-only item-9 re-attest route
+- **PR #245**: test: make the check-only tripwire drop an untracked stray, not a spec write
+- **PR #238**: test: pin the drbg-trng formal EXPECT judge (--check-only) like its keyladder sibling
+- **PR #234**: test(formal): pin opgen_binding classifies uppercase X/Z as undriven
+- **PR #233**: fix: see through bit-range port spellings in the regmap key-port lint
+- **PR #232**: checkers: derive the CI-table lint/test inventory from package.json
+- **PR #228**: timing: stamp each run's measured inputs and refuse stale scratch at record time
+- **PR #225**: formal: validate op_q probe tokens whole; die outside 01xXzZ
+- **PR #223**: formal: keep PROVE_DEPTH off the P-5 negative controls
+- **PR #220**: fix(formal): judge every run with make_record.py's EXPECT, not a bash copy
+- **PR #216**: refactor: share one sby_depth config.sby reader between both formal generators
+- **PR #214**: fix: mirror sby's mode-conditional comment strip in the sby_depth header match
+- **PR #203**: refactor(verification): one option parser, one evidence definition, one summaries helper
+- **PR #198**: lint: fold check_regmap into npm run lint and add the engine-side key ports to its denylist
+- **Issue #241** (closed): test_drbg_trng_formal_record.py's check-only tripwire writes into the shared checkout (spec/key-isolation-properties.md)
+- **Issue #240** (closed): manifests/README.md does not document the --skip-local-only route for re-attesting item 9 on a host without the bench toolchain
+- **Issue #230** (closed): formal: pin that opgen_binding treats uppercase X/Z as undriven (#219 test-plan item b)
+- **Issue #229** (closed): The lint/test inventory in README.md and verification/README.md is hand-maintained and omits check_roadmap.py
+- **Issue #226** (closed): formal: the drbg-trng EXPECT judge is now the sole verdict for every run but has no committed test (the sibling keyladder judge does)
+- **Issue #219** (closed): formal: gen_netlist probe regex can silently truncate an unexpected op_q character (uppercase Z)
+- **Issue #218** (closed): make_timing_record.py can stamp one core's stale timing run with another revision: tie flow/build/<core>/sta.json to the revision that produced it
+- **Issue #215** (closed): check_regmap.py key-port denylist is evaded by a bit-range port spelling (`aes_key[127:0]`)
+- **Issue #211** (closed): Dedupe sby_depth: identical config.sby reader copied across both formal generators
+- **Issue #210** (closed): keyladder formal: PROVE_DEPTH below 9 turns the P-5 negative controls UNKNOWN and fails the flow verdict (no record written)
+- **Issue #207** (closed): formal netlist: run.sh's reached-depth leniency also swallows a timed-out negative control, so a vacuity check that never ran exits 0
+- **Issue #194** (closed): keyladder record: sby_depth() matches a section header before stripping its trailing comment, unlike sby itself
+- **Issue #193** (closed): Follow-up on 0009 register-map lint: CI wiring, README enumerations, key-port denylist
+- **Issue #186** (closed): Finish the core_flow.sh convergence: six copies of the run.sh option parser, two of the negative-control evidence pattern
+
 ### 2026-11-15
 
+- **PR #217**: formal: index the netlist op_q probe binding from the LSB end
+- **Issue #206** (closed): formal netlist: gen_netlist.py binds the op_q probe pattern with an inverted bit index
+- **PR #197**: feat: pre-layout setup-timing mode for aes_core and sha256_core (klt sta at ss_100C_1v60, 20 ns)
+- **Issue #178** (closed): First timing measurement: record pre-layout setup slack for aes_core and sha256_core at ss_100C_1v60 against the 20 ns clock
+- **PR #199**: docs: roadmap as of 2026-11-15 at a1b3ae1; rename to docs/roadmap.md, link from README
+- **Issue #181** (closed): docs/ROADMAP.md: fix the 'cores landed' date, refresh three moved status lines, link it from README
 - **PR #209**: fix(verification): trng_if record names the real skip flag; cite spec 3.4
 - **Issue #202** (closed): trng_if bench: wrong spec cross-reference (3.2 should be 3.4) and a --skip-real record naming the wrong skip flag
 - **PR #205**: formal: re-prove P-7/P-8/P-9 on the klt synthesize sky130_fd_sc_hd netlist (run.sh --netlist)

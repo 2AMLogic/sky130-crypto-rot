@@ -15,8 +15,12 @@
 # they reached is recorded, which is not a failure; a counterexample is.
 #
 # Knobs (environment): PDK_ROOT, P1_DEPTH_RTL (24), P1_DEPTH_NET (10), P1_TIMEOUT_S (1500),
-# P6_NET_DEPTH (2), PROVE_DEPTH (16; P-5 only -- p6.sby fixes its own RTL and
-# negative-control depths). Solver runs are single-threaded, one at a time.
+# P6_NET_DEPTH (2), PROVE_DEPTH (16; P-5 proof depths only). p5.sby fixes its negative
+# controls at 16 because their counterexample sits at step 9 (records 20261027-065038-a7475f5
+# and 20261030-070100-8e25d3d, both at depth 16; as of 2026-11-15) -- a lower knob must never
+# reach a must-fail control, or the BMC stops before the counterexample and the control ends
+# UNKNOWN (issue #210) -- and p6.sby fixes its own RTL and negative-control depths.
+# Solver runs are single-threaded, one at a time.
 # The record's Depth column is not taken from these knobs: make_record.py reads each
 # run's depth from the config.sby sby wrote into that run's work directory (issue #165).
 
