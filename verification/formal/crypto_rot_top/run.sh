@@ -24,7 +24,8 @@
 #     hmac_key bits into the read data, synthesized fresh (a key-to-output
 #     path that does not go through a result window), must fail the P-12
 #     check AND must differ byte-wise from the committed netlist (what the
-#     freshness comparison catches); a spliced probe-cell scope and a
+#     freshness comparison catches); a spliced scan-flop scope
+#     (sky130_fd_sc_hd__sdfxtp_1), a spliced probe-cell scope and a
 #     spliced extra output port must each fail their structural check.
 #
 # No sby/solver runs here: these are structural checks (full sequential
@@ -90,21 +91,25 @@ python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["match"], 
 echo "  ok (klt $(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d["klt_version"])' "${STAGE}/envelope-check.json"), $(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d["instance_count"])' "${STAGE}/envelope-check.json") instances)"
 
 echo "== flow-log check (no scan/DFT insertion in the recorded synthesis) =="
-{
-  echo "flow-log: plain synthesis steps only; abc excludes lpflow_*/probe*; no scan/DFT token"
-} > "${STAGE}/flowlog-check.txt"
 # every abc call must still EXCLUDE the special (low-power / probe) cell
 # families, which is where a scan/test-capable cell could enter; and no line
 # may mention scan/DFT/test insertion at all. (The abc call is recorded
 # through a `tee -q -o ...` wrapper, so do not anchor at the line start.)
-grep -qE '(^| )abc .*-dont_use sky130_fd_sc_hd__lpflow_\* .*-dont_use sky130_fd_sc_hd__probe\*' "${NETDIR}/flow-log.ys" \
-  || { echo "flow-log: abc does not exclude lpflow_*/probe* cells" >&2; exit 1; }
-if grep -qiE 'scan|dft|\btest_|boundary|bscan' "${NETDIR}/flow-log.ys"; then
+# The measured counts are written to flowlog-check.txt so the record's
+# flow-log statement traces to these greps' outcome, not to a constant.
+ABC_EXCL="$(grep -cE '(^| )abc .*-dont_use sky130_fd_sc_hd__lpflow_\* .*-dont_use sky130_fd_sc_hd__probe\*' "${NETDIR}/flow-log.ys" || true)"
+[ "${ABC_EXCL}" -ge 1 ] || { echo "flow-log: abc does not exclude lpflow_*/probe* cells" >&2; exit 1; }
+SDFT_HITS="$(grep -ciE 'scan|dft|\btest_|boundary|bscan' "${NETDIR}/flow-log.ys" || true)"
+if [ "${SDFT_HITS}" != "0" ]; then
   echo "flow-log: scan/DFT-related token present in the recorded synthesis:" >&2
   grep -inE 'scan|dft|\btest_|boundary|bscan' "${NETDIR}/flow-log.ys" >&2
   exit 1
 fi
-echo "  ok"
+{
+  echo "flow-log: abc calls excluding lpflow_*/probe*: ${ABC_EXCL}"
+  echo "flow-log: scan/DFT/boundary/test-token matches: ${SDFT_HITS}"
+} > "${STAGE}/flowlog-check.txt"
+echo "  ok (${ABC_EXCL} abc call(s) exclude lpflow_*/probe*, ${SDFT_HITS} scan/DFT tokens)"
 
 echo "== flatten the committed netlist (yosys, liberty models) =="
 NET_TMP="$(mktemp -d /tmp/kltp12XXXXXX)"
@@ -129,6 +134,11 @@ python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" --rtl "${REPO_ROOT}/rtl/crypt
   --expect pass --out "${STAGE}/result_clean.json"
 
 echo "== splice controls (each must make its structural check fail) =="
+# primary control: a real mux-D scan flop (the cell family an actual DFT
+# insertion maps flops to), not a token already known to the deny list
+python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" \
+  --splice-scope sky130_fd_sc_hd__sdfxtp_1 --expect fail --out "${STAGE}/result_ctrl_scan.json" \
+  && echo "  ok: scan-flop cell scope control fails the cell check"
 python3 "${HERE}/cone_p12.py" "${STAGE}/flat.json" \
   --splice-scope sky130_fd_sc_hd__probe_p_8 --expect fail --out "${STAGE}/result_ctrl_scope.json" \
   && echo "  ok: probe-cell scope control fails the cell check"

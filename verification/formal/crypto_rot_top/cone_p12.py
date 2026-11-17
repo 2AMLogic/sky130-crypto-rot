@@ -94,10 +94,13 @@ ZEROIZE_NET = "zr"
 # parameters.TYPE naming "cell" (a standard cell) or "module" (a design
 # hierarchy boundary). Every cell scope must name a plain sky130_fd_sc_hd
 # cell (no scan/DFT/debug/low-power/latch type); every module scope must be
-# one of this design's own modules. No scan cell exists in sky130_fd_sc_hd,
-# so a DFT insertion would surface here as an extra scope or an extra port.
+# one of this design's own modules. sky130_fd_sc_hd DOES ship scan-capable
+# cells (the sdf* mux-D scan flops and the sdlclkp scan clock gate), so a DFT
+# insertion can surface as ordinary-looking `sd*' cell scopes; the deny list
+# refuses those families by name prefix, together with the dl* latches,
+# lpflow_*/probe* and any scan/DFT-named cell.
 CELL_PREFIX = "sky130_fd_sc_hd__"
-CELL_DENY = re.compile(r"scan|dft|probe|lpflow|bscan|boundary|^sky130_fd_sc_hd__dl|^sky130_fd_sc_hd__sdl")
+CELL_DENY = re.compile(r"scan|dft|probe|lpflow|bscan|boundary|^sky130_fd_sc_hd__dl|^sky130_fd_sc_hd__sd")
 DESIGN_MODULE_RE = re.compile(
     r"^(?:\\\$paramod\$[0-9a-f]+\\)?(?:keyladder|hmac_sha256|aes_core|sha256_core|ctr_drbg|drbg_top|trng_if)$")
 

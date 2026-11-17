@@ -6,7 +6,8 @@ and freshness check outputs, the envelope consistency check). Fails (exit 1)
 unless every check met its expectation: the structural checks PASS on the
 committed netlist, the flow log and envelope checks PASS, the committed
 netlist is fresh, and every negative control (mutant RTL with a key-to-output
-path, spliced probe-cell scope, spliced extra port) FAILS. The mutant control
+path, spliced scan-flop scope, spliced probe-cell scope, spliced extra port)
+FAILS. The mutant control
 must also be byte-different from the committed netlist (what the freshness
 comparison catches).
 
@@ -19,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -62,6 +64,7 @@ def main() -> int:
     clean = json.loads((st / "result_clean.json").read_text())
     neg = json.loads((st / "result_neg.json").read_text())
     ctrl_scope = json.loads((st / "result_ctrl_scope.json").read_text())
+    ctrl_scan = json.loads((st / "result_ctrl_scan.json").read_text())
     ctrl_port = json.loads((st / "result_ctrl_port.json").read_text())
     envelope = json.loads((st / "envelope-check.json").read_text())
 
@@ -76,6 +79,7 @@ def main() -> int:
 
     want("p12 clean netlist", clean["status"], "pass")
     want("p12 mutant control", neg["status"], "fail")
+    want("splice scan-flop control", ctrl_scan["status"], "fail")
     want("splice probe-cell control", ctrl_scope["status"], "fail")
     want("splice extra-port control", ctrl_port["status"], "fail")
     if not envelope.get("match"):
@@ -87,12 +91,19 @@ def main() -> int:
         lines.append(f"  freshness: run did not report fresh ({(st / 'freshness.txt').name})")
     else:
         lines.append("  freshness: fresh (byte-identical re-synthesis)")
-    flowlog = (st / "flowlog-check.txt").read_text().strip()
-    if "no scan/DFT token" not in flowlog:
+    flowlog = (st / "flowlog-check.txt").read_text().strip().splitlines()
+    m_abc = re.fullmatch(r"flow-log: abc calls excluding lpflow_\*/probe\*: (\d+)",
+                         flowlog[0]) if flowlog else None
+    m_sdft = (re.fullmatch(r"flow-log: scan/DFT/boundary/test-token matches: (\d+)",
+                           flowlog[1]) if len(flowlog) > 1 else None)
+    if not m_abc or int(m_abc.group(1)) < 1 or not m_sdft or int(m_sdft.group(1)) != 0:
         ok = False
-        lines.append("  flow-log: check output malformed")
+        lines.append("  flow-log: check output malformed or a grep failed: " + " | ".join(flowlog))
     else:
-        lines.append("  flow-log: no scan/DFT insertion; abc excludes lpflow_*/probe*")
+        lines.append(f"  flow-log: abc excludes lpflow_*/probe* on {m_abc.group(1)} call(s); "
+                     f"scan/DFT/boundary/test tokens: {m_sdft.group(1)}")
+    abc_excl = m_abc.group(1) if m_abc else "MALFORMED"
+    sdft_hits = m_sdft.group(1) if m_sdft else "MALFORMED"
 
     # negative-control attribution: the mutant must fail on a CONE violation
     # (a key-to-output path), not merely on some unrelated row.
@@ -162,7 +173,7 @@ Every non-`dat_o` output is checked with no cut at all; `dat_o`'s cone is checke
 ### P-12 (no key-to-output path, no scan/test structure)
 
 - **Cone statement**: the table above; no path from a key-bearing flop to any output port except through the P-4 carriers.
-- **Scan/DFT structure**: every flattened instance scope in the netlist is a plain `sky130_fd_sc_hd__*` cell ({clean['checks']['cell_scopes']['cell_scopes']} cell scopes checked; probe/lpflow/scan/latch-style types refused), no scan cell exists in the library, the netlist's port list equals the RTL module's (no debug/test/scan port inserted), and the recorded flow log contains no scan/DFT step (its `abc` call excludes the `lpflow_*`/`probe*` cell families). Negative controls: a spliced probe-cell scope and a spliced extra output port each make the structural check fail.
+- **Scan/DFT structure**: every flattened instance scope in the netlist is a plain `sky130_fd_sc_hd__*` cell ({clean['checks']['cell_scopes']['cell_scopes']} cell scopes checked; the scan-capable `sd*` families -- the `sdf*` mux-D scan flops and the `sdlclkp` scan clock gate, which the library does ship -- refused together with the `dl*` latches, `lpflow_*`, `probe*` and any scan/DFT-named cell), the netlist's port list equals the RTL module's (no debug/test/scan port inserted), and the recorded flow log contains no scan/DFT step (measured: {abc_excl} `abc` call(s) exclude the `lpflow_*`/`probe*` cell families, {sdft_hits} scan/DFT/boundary/test tokens). Negative controls: a spliced scan-flop scope (`sky130_fd_sc_hd__sdfxtp_1`), a spliced probe-cell scope and a spliced extra output port each make the structural check fail.
 - **P-14 (same machinery)**: `trng_bus_re`'s cone is empty (the sequencer never reads the sibling), and no `trng_out_data` bit reaches any output except as DRBG output (through the `bd_q` carrier).
 - **P-2 (same machinery, top level)**: no slot flop (`u_kdf.s0..s3`) in any output cone except through the engine datapath, the top-level counterpart of the module-level P-2 in `verification/records/keyladder-formal/`.
 - **P-10 structural fallback**: the zeroize net `zr` is in the cone of every one of the {p10['registers']} key-bearing registers checked (slots, K0/inner, AES round keys, DRBG Key/V and df working values, DRBG private-AES state, seed buffer). The register-list completeness stays the review item the spec names; this check is not the P-10 proof, which does not exist yet on either side.
@@ -173,6 +184,7 @@ Every non-`dat_o` output is checked with no cut at all; `dat_o`'s cone is checke
 |---|---|---|
 | mutant RTL: `dat_o` XORs `hmac_key[31:0]` into the read data (fresh `klt synthesize` of the mutated top) | one slot-to-output path through no result window | P-12 check FAILS on {neg_hits or 'n/a'} |
 | the same mutant vs the committed netlist | an unregenerated RTL edit | byte-different: the freshness comparison catches it |
+| spliced `$scopeinfo` naming `sky130_fd_sc_hd__sdfxtp_1` | a scan-capable cell type (mux-D scan flop, `SCD`/`SCE` in the liberty) | cell-scope check FAILS |
 | spliced `$scopeinfo` naming `sky130_fd_sc_hd__probe_p_8` | a DFT-style cell type | cell-scope check FAILS |
 | spliced extra output port `scan_out` | an inserted test/debug port | port-list check FAILS |
 

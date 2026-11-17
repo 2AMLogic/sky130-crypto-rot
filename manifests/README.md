@@ -11,7 +11,7 @@ rather than from prose.
   `not_applicable` outcome for item 6.
 - **`inventories/item-1.json`** — the item-1 attestation inventory (the RTL
   sources of the committed crypto_rot_top synthesis request and the committed
-  gate-level netlist derived from them, with its freshness check); 
+  gate-level netlist derived from them, with its freshness check);
   **`inventories/item-1.envelope.json`** is the tool-produced envelope the
   manifest cites. Never hand-edit it.
 - **`inventories/item-9.json`** — the item-9 attestation inventory (the benches
