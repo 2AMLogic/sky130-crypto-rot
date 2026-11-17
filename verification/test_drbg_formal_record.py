@@ -153,6 +153,20 @@ def test_sby_mode_last_assignment_wins(gen, tmp_path):
     assert gen.sby_mode(d) == "prove"
 
 
+def test_sby_mode_commented_header_inside_script_is_not_a_header(gen, tmp_path):
+    """sby does NOT strip comments inside [script], so a commented `[options]`
+    there opens no options block and a later bare `mode` line is not one either.
+    The generator-local copy this replaces stripped every line before matching a
+    header and misread this config as `prove` -- the #194 defect in a third copy
+    (issue #259)."""
+    cfg = ("[options]\nmode bmc\n\n[script]\n"
+           "# [options]\nmode prove\nprep -top top\n")
+    d = tmp_path / "p9_bmc"
+    d.mkdir()
+    (d / "config.sby").write_text(cfg)
+    assert gen.sby_mode(d) == "bmc"
+
+
 def test_depthless_prove_run_is_distinguishable_from_a_broken_one(gen, tmp_path):
     """The issue #224 premise: sby_depth alone collapses the two None cases;
     sby_mode tells them apart."""

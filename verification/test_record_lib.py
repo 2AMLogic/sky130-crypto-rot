@@ -411,3 +411,15 @@ def _sby_workdir(tmp_path, config):
 ])
 def test_sby_depth(tmp_path, config, expected):
     assert record_lib.sby_depth(_sby_workdir(tmp_path, config)) == expected
+
+
+def test_sby_steps_checked_takes_the_max_over_both_checking_lines():
+    """The one scrape behind both record families' steps_checked (issue #259):
+    the assertion lines a bounded run emits and the cover-reachability line a
+    `mode cover` run emits, maximum over all of them; a log with no checking
+    line says nothing."""
+    text = ("##   Checking assumptions and assertions in step 0..\n"
+            "##   Checking cover reachability in step 9..\n"
+            "##   Checking assertions in step 14..\n")
+    assert record_lib.sby_steps_checked(text) == 14
+    assert record_lib.sby_steps_checked("engine killed before any step\n") is None

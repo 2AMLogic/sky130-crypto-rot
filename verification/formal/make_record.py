@@ -17,13 +17,12 @@ not (issue #207). Standard library only.
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flow/common"))
 import record_lib as rc  # noqa: E402
-from record_lib import sby_depth  # noqa: E402
+from record_lib import sby_depth, sby_mode  # noqa: E402
 
 EXPERIMENT = "drbg-trng-formal"
 # The inputs OUTSIDE this directory. The tracked files beside this generator
@@ -63,50 +62,14 @@ EXPECT = {
 }
 
 
-def sby_mode(d: Path) -> str | None:
-    """The mode SymbiYosys ran this task in, from its own work directory.
-
-    Same resolved-config contract as sby_depth (issue #165): sby writes
-    `<d>/config.sby` with the `[tasks]` prefixes already applied, so one
-    `[options]` block states THIS task's mode. Returns None with two meanings
-    the caller must tell apart (issue #243): the run directory has no readable
-    config.sby at all -- sby never wrote one, a broken run, not an unbounded
-    one (issue #224) -- or a config.sby is present whose `[options]` block
-    carries no `mode` line (reachable only on a malformed config; sby always
-    writes one). Either way the mode of what ran is unstated and the run
-    refuses: a depth-less `mode prove` config is the unbounded proof and
-    records, a config that states no mode states neither fact. The caller
-    separates the two by testing `config.sby`'s existence.
-    """
-    cfg = d / "config.sby"
-    if not cfg.exists():
-        return None
-    mode, section = None, None
-    for raw in cfg.read_text().splitlines():
-        m = re.match(r"^\s*\[(.*)\]\s*$", raw)
-        if m:
-            head = m.group(1).strip().split()
-            section = head[0] if head else None
-            continue
-        if section != "options":
-            continue
-        line = re.sub(r"\s*(\s#.*)?$", "", raw)
-        if not line or line.startswith("#"):
-            continue
-        entries = line.split(maxsplit=1)
-        if len(entries) == 2 and entries[0] == "mode":
-            mode = entries[1]
-    return mode
-
-
 def steps_checked(d: Path) -> int | None:
-    """The last step the engine checked, from the run's logfile.txt."""
+    """The last step the engine checked, from the run's logfile.txt.
+
+    The scrape itself is record_lib's shared sby_steps_checked(), so this and
+    the keyladder generator cannot state different reached depths (issue #259).
+    """
     log = d / "logfile.txt"
-    if not log.exists():
-        return None
-    steps = [int(m) for m in re.findall(r"Checking (?:assertions|assumptions and assertions) in step (\d+)",
-                                        log.read_text())]
-    return max(steps) if steps else None
+    return rc.sby_steps_checked(log.read_text()) if log.exists() else None
 
 
 def main() -> int:
