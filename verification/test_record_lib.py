@@ -405,8 +405,12 @@ def _sby_workdir(tmp_path, config):
     ("[options]\ndepth 4\n\n[script]  # a ] b\ndepth 99\n", 4),
     # [options] re-entered after [script]: last assignment wins
     ("[options]\ndepth 4\n\n[script]\nx\n\n[options]\ndepth 6\n", 6),
-    # a depth that is not all digits is ignored, never a crash
+    # a depth that is not all digits is no depth, never a crash: the last
+    # assignment in [options] wins whatever it holds, so a trailing non-digit
+    # erases an earlier valid depth (sby's [options] reader is a dict
+    # assignment) and an earlier non-digit is simply overwritten by a valid one
     ("[options]\ndepth abc\n", None),
+    ("[options]\ndepth 7\ndepth 4x\n", None),
     ("[options]\ndepth 4x\ndepth 7\n", 7),
 ])
 def test_sby_depth(tmp_path, config, expected):

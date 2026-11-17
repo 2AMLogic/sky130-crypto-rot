@@ -318,7 +318,11 @@ def sby_depth(d: Path) -> int | None:
     The `depth` option of the resolved config.sby, through the one shared
     sby_option() walk. The last `depth` assignment in [options] wins, and a
     value that is not all digits is no depth -- never a crash (sby reads depth
-    as an int, so only a hand-mangled config can carry one).
+    as an int, so only a hand-mangled config can carry one). A trailing
+    non-digit assignment wins too, so it is no depth even over an earlier
+    valid one (`depth 7` then `depth 4x` records no depth): sby's [options]
+    reader is a dict assignment, so this is what sby itself read, and the
+    generators must refuse rather than record a depth sby did not run at.
 
     Returns None when the file or the option is absent. sby's own default depth (20)
     is deliberately NOT assumed: a record must state the depth that ran, and no run
