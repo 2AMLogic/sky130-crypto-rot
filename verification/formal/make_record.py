@@ -5,8 +5,9 @@ Reads flow/build/formal/results.tsv (one line per sby task). Refuses to record
 unless every task met its expectation -- with the netlist exception of a proof
 that stopped at its depth or the 1500 s per-task cap: it is recorded as
 "reached depth N, not proven" (issue #177). A run whose work directory has no
-config.sby at all, or a bounded (`mode bmc`/`cover`) task whose config.sby
-names no depth, also refuses: the Depth column cannot be filled (issue #224).
+config.sby at all, a config.sby with no `mode` line in its `[options]` block,
+or a bounded (`mode bmc`/`cover`) task whose config.sby names no depth, also
+refuses: the mode or the Depth column cannot be filled (issue #224, #243).
 A depth-less `mode prove` task is the unbounded proof and records as
 `unbounded`. With --check-only it stops right after that verdict and writes
 nothing, so run.sh judges every run through this one EXPECT table, --record or
@@ -67,11 +68,15 @@ def sby_mode(d: Path) -> str | None:
 
     Same resolved-config contract as sby_depth (issue #165): sby writes
     `<d>/config.sby` with the `[tasks]` prefixes already applied, so one
-    `[options]` block states THIS task's mode. Returns None when the run
-    directory has no readable config.sby -- sby never wrote one, a broken run,
-    not an unbounded one (issue #224): a depth-less `mode prove` config is the
-    unbounded proof and records, a missing config.sby states neither fact and
-    refuses the run.
+    `[options]` block states THIS task's mode. Returns None with two meanings
+    the caller must tell apart (issue #243): the run directory has no readable
+    config.sby at all -- sby never wrote one, a broken run, not an unbounded
+    one (issue #224) -- or a config.sby is present whose `[options]` block
+    carries no `mode` line (reachable only on a malformed config; sby always
+    writes one). Either way the mode of what ran is unstated and the run
+    refuses: a depth-less `mode prove` config is the unbounded proof and
+    records, a config that states no mode states neither fact. The caller
+    separates the two by testing `config.sby`'s existence.
     """
     cfg = d / "config.sby"
     if not cfg.exists():
@@ -138,11 +143,16 @@ def main() -> int:
         if not ok:
             verdicts.append(f"{f} {t}: expected {expect}, got status {status} (sby exit {rc_s})")
         if mode is None:
-            # A task needs a readable config.sby whatever its status: without
-            # one, neither the mode nor the depth of what ran can be stated,
-            # and the record is append-only (issue #224).
-            verdicts.append(f"{f} {t}: the run's work directory has no config.sby: "
-                            "neither the mode nor the depth of what ran can be stated")
+            # A task needs a mode statement whatever its status: the record is
+            # append-only, and what ran cannot be stated without one (issue
+            # #224). sby_mode's None has two meanings -- say which occurred,
+            # not a blanket "no config.sby" (issue #243).
+            if not (d / "config.sby").exists():
+                verdicts.append(f"{f} {t}: the run's work directory has no config.sby: "
+                                "neither the mode nor the depth of what ran can be stated")
+            else:
+                verdicts.append(f"{f} {t}: the run's config.sby has no mode line in [options]: "
+                                "the mode of what ran cannot be stated")
         elif mode in ("bmc", "cover") and depth is None:
             verdicts.append(f"{f} {t}: mode {mode} is bounded, but the run's config.sby "
                             "names no depth: the Depth column cannot be filled")
