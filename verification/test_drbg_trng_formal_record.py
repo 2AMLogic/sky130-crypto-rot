@@ -67,6 +67,16 @@ def _out_dir(tmp_path: Path, rows: list[str]) -> Path:
     d = tmp_path / "formal-out"
     d.mkdir()
     (d / "results.tsv").write_text("".join(row + "\n" for row in rows))
+    # Issue #224: the generator refuses a run whose work directory has no
+    # config.sby (neither mode nor depth can be stated), so every synthetic row
+    # gets the config sby would have resolved: a depth-less `mode prove` for a
+    # proof task, a bounded bmc otherwise. Tests that care overwrite it via
+    # _workdir(config=...).
+    for row in rows:
+        base, task = row.split("\t")[:2]
+        cfg = ("[options]\nmode prove\n" if task.endswith("prove")
+               else "[options]\nmode bmc\ndepth 20\n")
+        _workdir(d, base, task, config=cfg)
     return d
 
 
@@ -165,7 +175,7 @@ def test_netlist_proof_timeout_without_a_depth_is_still_clean(gen, tmp_path, no_
     depth at all (no logfile.txt): recorded as not proven, no depth reached --
     never guessed from sby's own default."""
     out = _out_dir(tmp_path, [_row("net_p7_p8.sby", "net_prove", "UNKNOWN", rc="1")])
-    _workdir(out, "net_p7_p8.sby", "net_prove")
+    _workdir(out, "net_p7_p8.sby", "net_prove", config="[options]\nmode prove\n")
     r = _check(out)
     assert r.returncode == 0
     assert r.stderr == ""

@@ -38,7 +38,7 @@
         "role": "testbench",
         "path": "verification/formal/make_record.py",
         "passed": true,
-        "content_hash": "sha256:15c3ab081a4eec6e606bb90655d8a8955c786c88f2ee41941c18149a26ad26cb"
+        "content_hash": "sha256:9fc646723c8c70aa26bc76289ee7e4146c195ddf18e46c886eea4e79402b736c"
       },
       {
         "check": "present",
@@ -383,7 +383,7 @@
     ]
   },
   "provenance": {
-    "klt_version": "0.9.3.dev21+g008b4d7f7b01",
+    "klt_version": "0.9.3.dev234+g5ed4e55bffbd",
     "klayout_version": null,
     "pdk": null,
     "deck": null,
