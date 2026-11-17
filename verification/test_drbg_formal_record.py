@@ -18,10 +18,12 @@ with this one (issue #224, out of scope).
 
 The formal flow itself is local-only (PDK, pinned sby, bounded runs past the CI
 budget -- see verification/README.md), so this is the only automated check the
-generator's verdict rule gets. It exercises the reader, the verdict and the
-Depth-cell rendering, not the solver: the record-path plumbing (clean-tree
-check, tool-version probes) is stubbed, and --check-only pins that a refused
-run stops before any of it.
+generator's verdict rule gets. It exercises the verdict and the Depth-cell
+rendering, not the solver: the record-path plumbing (clean-tree check,
+tool-version probes) is stubbed, and --check-only pins that a refused run
+stops before any of it. The sby_mode reader contract itself lives with the
+other shared readers in verification/test_keyladder_formal_record.py,
+parametrized over this generator's import and record_lib (issues #259, #262).
 """
 
 from __future__ import annotations
@@ -108,79 +110,9 @@ def _run_gen(gen, out_dir, monkeypatch, check_only=True):
     return gen.main()
 
 
-# --- the reader: sby_mode, same resolved-config contract as sby_depth --------
-
-
-def test_sby_mode_reads_a_resolved_config(gen, tmp_path):
-    d = tmp_path / "p9_bmc"
-    d.mkdir()
-    (d / "config.sby").write_text(CONFIG["bmc30"])
-    assert gen.sby_mode(d) == "bmc"
-
-
-def test_sby_mode_none_when_no_config_sby(gen, tmp_path):
-    """No config.sby means sby never wrote one: None, and the caller must
-    refuse -- this is the one None that is a broken run, not an unbounded one."""
-    d = tmp_path / "p9_prove"
-    d.mkdir()
-    assert gen.sby_mode(d) is None
-    assert gen.sby_depth(d) is None
-
-
-def test_sby_mode_outside_options_is_ignored(gen, tmp_path):
-    """Only `[options]` configures the run; a `mode` word elsewhere is not one.
-    The `[script]` body carries a literal `mode prove` line, so this fails if
-    `[options]` tracking is removed and every line is scanned (issue #243)."""
-    cfg = ("[options]\nmode bmc\n\n[script]\n"
-           "mode prove\nread_verilog -formal dut.v\nprep -top top\n")
-    d = tmp_path / "p9_bmc"
-    d.mkdir()
-    (d / "config.sby").write_text(cfg)
-    assert gen.sby_mode(d) == "bmc"
-
-
-def test_sby_mode_trailing_comment(gen, tmp_path):
-    d = tmp_path / "p9_prove"
-    d.mkdir()
-    (d / "config.sby").write_text("[options]\nmode prove  # unbounded\n")
-    assert gen.sby_mode(d) == "prove"
-
-
-def test_sby_mode_last_assignment_wins(gen, tmp_path):
-    d = tmp_path / "t"
-    d.mkdir()
-    (d / "config.sby").write_text("[options]\nmode bmc\nmode prove\n")
-    assert gen.sby_mode(d) == "prove"
-
-
-def test_sby_mode_commented_header_inside_script_is_not_a_header(gen, tmp_path):
-    """sby does NOT strip comments inside [script], so a commented `[options]`
-    there opens no options block and a later bare `mode` line is not one either.
-    This pins correct behaviour, not a regression fix: the generator-local copy
-    this replaced matched the header on the raw line before any strip, so it
-    read this config as `bmc` too (issue #259)."""
-    cfg = ("[options]\nmode bmc\n\n[script]\n"
-           "# [options]\nmode prove\nprep -top top\n")
-    d = tmp_path / "p9_bmc"
-    d.mkdir()
-    (d / "config.sby").write_text(cfg)
-    assert gen.sby_mode(d) == "bmc"
-
-
-def test_sby_mode_header_with_trailing_comment_inside_strip_section(gen, tmp_path):
-    """The case the generator-local copy this replaced actually got wrong
-    (issue #259): `[script]` carries a trailing comment, inside a section sby
-    itself comment-strips, so sby -- and the shared reader -- see the header on
-    the stripped line. The old copy matched the header on the raw line, the
-    commented header never matched, `[options]` never closed, and it misread
-    the script's `mode prove` as this task's mode. Fails against the
-    pre-consolidation copy."""
-    cfg = ("[options]\nmode bmc\n\n[script]  # a ] b\n"
-           "mode prove\nprep -top top\n")
-    d = tmp_path / "p9_bmc"
-    d.mkdir()
-    (d / "config.sby").write_text(cfg)
-    assert gen.sby_mode(d) == "bmc"
+# --- the sby_mode reader contract: pinned in test_keyladder_formal_record.py --
+# --- against this generator's import and record_lib itself (issue #262). The --
+# --- premise test below stays: it is the verdict rule's, not a reader contract.
 
 
 def test_depthless_prove_run_is_distinguishable_from_a_broken_one(gen, tmp_path):
