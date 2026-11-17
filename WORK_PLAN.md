@@ -8,7 +8,7 @@ The region between the markers is machine-generated and overwritten wholesale.
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
 
-- **#254**: chore(loom): resync installed Loom to v0.19.1305
+_None._
 
 ## Very Important
 
@@ -20,54 +20,50 @@ _None._
 
 `loom:important`; taken before unlabelled work.
 
-- **#46**: T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
-- **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
-- **#88**: T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
+- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 
 ## Ready
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-- **#243**: sby_mode() collapses "no config.sby" and "config.sby with no mode line", and the refusal names only the first
+_None._
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
-- **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
+- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 - **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
-- **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-- **#242**: fix: share one sby_depth reader so the formal generator honors commented section headers
+_None._
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#254**: chore(loom): resync installed Loom to v0.19.1305
+_None._
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
+- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(curated)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
-- **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader *(curated)*
-- **#243**: sby_mode() collapses "no config.sby" and "config.sby with no mode line", and the refusal names only the first *(curated)*
-- **#255**: flow/common/record_lib.py sby_depth docstring is stale after #224's mode-aware Depth rule *(curated)*
 
 ## Proposed (Architect / Hermit)
 
-- **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)*
-- **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)*
-- **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
-- **#185**: Remove 15 derived klt request JSONs: each is sim-request.json plus one defines key *(hermit)*
+- **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)* *(held)*
+- **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)* *(held)*
+- **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)* *(held)*
+- **#185**: Remove 15 derived klt request JSONs: each is sim-request.json plus one defines key *(hermit)* *(held)*
+- **#263**: Consolidate the config.sby reader tests: one contract in test_record_lib.py instead of three generator suites (one run 3x) *(hermit)* *(held)*
 
 ## Epics
 
@@ -77,14 +73,14 @@ _None._
 
 | Bucket | Count |
 |------|-------|
-| Operator merge-risk holds | 1 |
+| Operator merge-risk holds | 0 |
 | Very important | 0 |
-| Important | 4 |
-| Ready (`loom:issue`) | 1 |
-| In Progress (`loom:building`) | 4 |
-| PRs awaiting review | 1 |
-| Approved PRs awaiting merge | 1 |
-| Curated | 5 |
-| Architect / Hermit proposals | 4 |
+| Important | 2 |
+| Ready (`loom:issue`) | 0 |
+| In Progress (`loom:building`) | 3 |
+| PRs awaiting review | 0 |
+| Approved PRs awaiting merge | 0 |
+| Curated | 3 |
+| Architect / Hermit proposals | 5 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->

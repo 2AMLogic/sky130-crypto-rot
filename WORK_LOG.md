@@ -5,6 +5,10 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-17
 
+- **PR #272**: docs: correct T1 item-10 envelope count to three (items 1, 9, 10)
+- **PR #270**: docs: sync roadmap T1 table and blocked note with the committed signoff manifest
+- **Issue #271** (closed): docs/roadmap.md T1 item-10 row says CI re-hashes "both envelopes"; it now re-checks three
+- **Issue #269** (closed): docs/roadmap.md's T1 table says item 1 unmet / 2 of 11 met, but the committed signoff record grades item 1 met with 3 met
 - **PR #267**: netlist: commit the crypto_rot_top netlist with freshness check and P-12 structural re-proof
 - **PR #265**: chore(loom): resync installed Loom to v0.19.1306
 - **PR #264**: test: pin the mode reader and steps scrape to the shared record_lib readers
