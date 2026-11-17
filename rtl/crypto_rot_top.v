@@ -74,6 +74,9 @@
 //                    (slots survive ZEROIZE; the zeroize tests must fail)
 //   TOP_NEG_FAULT    an undefined-address access no longer records FAULT_CLS
 //                    bit 0 (the fault tests must fail)
+//   TOP_NEG_IRQ_STICKY a register write on an event cycle swallows the event
+//                    again (IRQ_PEND/ZCAUSE lose set dominance; the directed
+//                    IRQ stickiness test must fail)
 //
 // No timing, entropy, side-channel or certification claim is made here
 // (target-spec.md section 8, decision record 0008).
@@ -263,16 +266,30 @@ module crypto_rot_top (
     // FAULT_CLS (0x04, W1C) and ZCAUSE (0x05, W1C)
     // ------------------------------------------------------------------
     reg [3:0] fault_cls_q;
+    // The exclusive clear/set branches here are safe by construction: every
+    // set term requires viol and hit = sel & ~viol, so a FAULT_CLS write can
+    // never land on the same cycle as a class bit (IRQ_PEND/ZCAUSE below have
+    // no such guard and are set-dominant instead).
     always @(posedge clk or negedge rst_n)
         if (!rst_n) fault_cls_q <= 4'd0;
         else if (hit & wr & d_fault) fault_cls_q <= fault_cls_q & ~dat_i[3:0];
         else fault_cls_q <= fault_cls_q | {cls4, cls3, cls2, cls1_eff};
 
-    reg [3:0] zcause_q;
+    reg  [3:0] zcause_q;
+    wire [3:0] zc_set = {sw_zeroize_wr, escalate_now, alarm_ev, 1'b0};
+    wire [3:0] zc_clr = (hit & wr & d_zcause) ? dat_i[3:0] : 4'd0;
+`ifdef TOP_NEG_IRQ_STICKY
+    // negative control: a ZCAUSE write swallows same-cycle causes again
+    wire [3:0] zc_shadow = (hit & wr & d_zcause) ? 4'hF : 4'h0;
+`else
+    wire [3:0] zc_shadow = 4'h0;
+`endif
+    // Set-dominant W1C (0009: ZCAUSE is sticky, the observation point of each
+    // section 5 zeroize event): a cause landing on the same cycle as a write
+    // is still recorded, not excluded by the clear branch.
     always @(posedge clk or negedge rst_n)
         if (!rst_n) zcause_q <= 4'b0001;
-        else if (hit & wr & d_zcause) zcause_q <= zcause_q & ~dat_i[3:0];
-        else zcause_q <= zcause_q | {sw_zeroize_wr, escalate_now, alarm_ev, 1'b0};
+        else        zcause_q <= (zcause_q & ~zc_clr) | (zc_set & ~zc_shadow);
 
     // ------------------------------------------------------------------
     // AES engine (public aes_core)
@@ -488,7 +505,7 @@ module crypto_rot_top (
     // ------------------------------------------------------------------
     // DRBG (drbg_top embeds trng_if and its own private AES engine)
     // ------------------------------------------------------------------
-    reg        drbg_done_s, drbg_rej_q;
+    reg        drbg_done_s;
     reg [1:0]  drbg_err_s;
 
     wire drbg_ctrl_wr = hit & wr & d_drbg_ctrl;
@@ -498,13 +515,12 @@ module crypto_rot_top (
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            drbg_done_s <= 1'b0; drbg_err_s <= 2'd0; drbg_rej_q <= 1'b0;
+            drbg_done_s <= 1'b0; drbg_err_s <= 2'd0;
         end else if (zr) begin
-            drbg_done_s <= 1'b0; drbg_err_s <= 2'd0; drbg_rej_q <= 1'b0;
+            drbg_done_s <= 1'b0; drbg_err_s <= 2'd0;
         end else if (drbg_ctrl_wr) begin
             drbg_done_s <= drbg_reject;
             drbg_err_s  <= drbg_reject ? 2'd3 : 2'd0;
-            drbg_rej_q  <= drbg_reject;
         end else if (drbg_done) begin
             drbg_done_s <= 1'b1;
             drbg_err_s  <= drbg_err;
@@ -567,20 +583,26 @@ module crypto_rot_top (
     // IRQ (0009): sticky DONE / ERROR / ALARM, single mask, level irq_o
     // ------------------------------------------------------------------
     reg irq_mask_q, irq_done_q, irq_err_q, irq_alarm_q;
+    wire pend_clr = hit & wr & d_irq_pend;
+`ifdef TOP_NEG_IRQ_STICKY
+    // negative control: a register write on an event cycle swallows it again
+    wire irq_wr_shadow = hit & wr & (d_irq_mask | d_irq_pend);
+`else
+    wire irq_wr_shadow = 1'b0;
+`endif
+    // Set-dominant W1C (0009: IRQ_PEND is sticky and irq_o is this block's
+    // only interrupt): an event landing on the same cycle as a write -- to
+    // any register, e.g. the IRQ_MASK write that enables the interrupt --
+    // is still captured. The mask write is independent of the pending bits.
     always @(posedge clk or negedge rst_n)
         if (!rst_n) begin
             irq_mask_q <= 1'b0; irq_done_q <= 1'b0;
             irq_err_q <= 1'b0; irq_alarm_q <= 1'b0;
-        end else if (hit & wr & d_irq_mask) begin
-            irq_mask_q <= dat_i[0];
-        end else if (hit & wr & d_irq_pend) begin
-            if (dat_i[0]) irq_done_q  <= 1'b0;
-            if (dat_i[1]) irq_err_q   <= 1'b0;
-            if (dat_i[2]) irq_alarm_q <= 1'b0;
         end else begin
-            if (done_ev)  irq_done_q  <= 1'b1;
-            if (err_ev)   irq_err_q   <= 1'b1;
-            if (alarm_ev) irq_alarm_q <= 1'b1;
+            if (hit & wr & d_irq_mask) irq_mask_q <= dat_i[0];
+            irq_done_q  <= (irq_done_q  & ~(pend_clr & dat_i[0])) | (done_ev  & ~irq_wr_shadow);
+            irq_err_q   <= (irq_err_q   & ~(pend_clr & dat_i[1])) | (err_ev   & ~irq_wr_shadow);
+            irq_alarm_q <= (irq_alarm_q & ~(pend_clr & dat_i[2])) | (alarm_ev & ~irq_wr_shadow);
         end
     assign irq_o = irq_mask_q & (irq_done_q | irq_err_q | irq_alarm_q);
 
@@ -603,10 +625,10 @@ module crypto_rot_top (
             7'h05: rdata = {28'd0, zcause_q};
             7'h10: rdata = 32'd0;                    // WO
             7'h11: rdata = {29'd0, aes_deny_s, aes_done_s, aes_busy};
-            7'h12: rdata = aes_din_q[127:96];        // WO: reads are class 4
-            7'h13: rdata = aes_din_q[95:64];
-            7'h14: rdata = aes_din_q[63:32];
-            7'h15: rdata = aes_din_q[31:0];
+            7'h12: rdata = 32'd0;                    // WO: reads are class 4
+            7'h13: rdata = 32'd0;
+            7'h14: rdata = 32'd0;
+            7'h15: rdata = 32'd0;
             7'h16: rdata = aes_blk[127:96];
             7'h17: rdata = aes_blk[95:64];
             7'h18: rdata = aes_blk[63:32];

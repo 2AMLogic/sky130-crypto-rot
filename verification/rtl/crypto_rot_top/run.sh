@@ -11,9 +11,10 @@
 #   ./verification/rtl/crypto_rot_top/run.sh --sim-only # simulation only: stop before synthesis
 #                                                       # (what scripts/ci-verify.sh runs)
 #   ./verification/rtl/crypto_rot_top/run.sh --negative-control
-#                                                       # three controls (top zeroize disconnected,
+#                                                       # four controls (top zeroize disconnected,
 #                                                       # class-1 fault unrecorded, ladder slot omitted
-#                                                       # from zeroize): each MUST fail
+#                                                       # from zeroize, event swallowed by a same-cycle
+#                                                       # register write): each MUST fail
 #
 # Exit 0 only if the simulation passed and the synthesis is ok with no latches.
 # Synthesis is a single corner (tt_025C_1v80), pre-P&R, cell area only; no STA,
@@ -40,7 +41,7 @@ core_flow_setup
 
 if [ "${NEG}" = 1 ]; then
   echo "== negative controls: each must make the bench fail =="
-  for pair in "topzero:TOP_NEG_ZEROIZE" "topfault:TOP_NEG_FAULT" "klzero:KL_NEG_ZEROIZE"; do
+  for pair in "topzero:TOP_NEG_ZEROIZE" "topfault:TOP_NEG_FAULT" "klzero:KL_NEG_ZEROIZE" "topirqsticky:TOP_NEG_IRQ_STICKY"; do
     c="${pair%%:*}"
     core_flow_negctl_one sim-request.json "${pair#*:}" "negctl-${c}.json" "negative control ${c} :" \
       'first failing check: [^&]*' "negative control '${c}'"

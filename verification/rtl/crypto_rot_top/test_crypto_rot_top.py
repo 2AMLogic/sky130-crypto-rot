@@ -4,12 +4,18 @@ The bus is the only access the host has, and the bench uses nothing else
 (no hierarchical DUT pokes; the sibling pins are driven by the port-protocol
 stub in verification/rtl/trng_if/trngmodel.py, as the drbg_top bench does).
 One cocotb module with shared bus helpers; the negative controls
-(TOP_NEG_ZEROIZE, TOP_NEG_FAULT, KL_NEG_ZEROIZE) must make it fail.
+(TOP_NEG_ZEROIZE, TOP_NEG_FAULT, KL_NEG_ZEROIZE, TOP_NEG_IRQ_STICKY) must
+make it fail.
 
     test_status_regs   reset state of STATUS/ZCAUSE/IRQ_*, W1C and RW
                        behaviour, and the class 1/2/4 fault responses
                        (undefined address, write to STATUS, read of a
                        write-only register, high address bits).
+    test_irq_sticky    directed: an event landing on the same cycle as a bus
+                       write is still captured (IRQ_PEND.ALARM and the
+                       ZCAUSE alarm cause survive a same-cycle IRQ_MASK
+                       write; alarm_ev is placed deterministically from the
+                       trng_alarm port).
     test_kats          end-to-end published-vector KATs through the bus:
                        FIPS 197 vectors with the vector key loaded into a
                        slot (encrypt and decrypt), RFC 4231 cases 1-3 via
@@ -513,6 +519,72 @@ async def test_status_regs(dut):
     t.check(err == 0, "CTRL write with no bits refused")
     st, _ = await t.bus.read(STATUS)
     t.check(st & 0x7 == ST_UNSEEDED, "no-op CTRL write disturbed state")
+
+    assert not t.fails, "first failing check: " + t.fails[0]
+
+
+@cocotb.test()
+async def test_irq_sticky(dut):
+    """Directed: an event landing on a bus-write cycle is still captured.
+
+    0009 requires IRQ_PEND and ZCAUSE sticky. The pre-fix exclusive
+    clear/set branches swallowed an event whose cycle coincided with a
+    write -- the TRNG alarm lost to the IRQ_MASK write that enables the
+    interrupt (IRQ_PEND.ALARM never sets, irq_o stays low), or to the
+    ZCAUSE W1C clear itself (the alarm cause record lost). trng_alarm is a
+    top-level port and alarm_ev is high exactly two clk cycles after the
+    first edge that samples it, so the coincidence is placed without any
+    hierarchical access. The TOP_NEG_IRQ_STICKY control restores the
+    swallowing and must make this test fail.
+    """
+    t = Top(dut)
+    await t.reset()
+    await t.wait_ready()
+
+    async def align_alarm_write():
+        """Raise the alarm and leave the coroutine one cycle before the bus
+        write that must land on its alarm_ev pulse. next_edge() resumes right
+        after the stub drives the port (edge_event is set just after
+        _outputs), so the next clk rising edge A is the first one that
+        samples it (a1 <- 1); alarm_ev is high during the (A+1, A+2) cycle
+        and a write issued now is sampled by the DUT at A+2, its last cycle."""
+        t.stub.raise_alarm()
+        await t.stub.next_edge()
+        await RisingEdge(dut.clk)              # A: a1 samples the alarm
+        await RisingEdge(dut.clk)              # A+1: alarm_ev high now
+
+    # -- phase 1: the IRQ_MASK write that enables interrupts, on the event --
+    await align_alarm_write()
+    err = await t.bus.write(IRQ_MASK, 1)      # hit lands on the alarm_ev cycle
+    t.check(err == 0, f"IRQ_MASK write on the alarm_ev cycle faulted (err={err})")
+    irq, _ = await t.bus.read(IRQ_PEND)
+    t.check(irq & 4 == 4, f"ALARM pending swallowed by a same-cycle IRQ_MASK write ({irq:#x})")
+    t.check(bit(dut.irq_o) == 1, "irq_o low with ALARM pending and mask on")
+    zc, _ = await t.bus.read(ZCAUSE)
+    t.check(zc & 2 == 2, f"ZCAUSE alarm cause not recorded ({zc:#x})")
+
+    # -- recovery: the sibling's sequencer clears the alarm at the source --
+    for _ in range(500_000):
+        await t.cycles(1)
+        st, _ = await t.bus.read(STATUS)
+        if not (st >> 7) & 1:
+            break
+    else:
+        t.check(False, "TRNG_ALARM mirror never cleared after recovery")
+        assert not t.fails, "first failing check: " + t.fails[0]
+        return
+
+    # -- phase 2: a ZCAUSE W1C clear on the event cycle (all four bits) --
+    await align_alarm_write()
+    err = await t.bus.write(ZCAUSE, 0xF)      # hit lands on the alarm_ev cycle
+    t.check(err == 0, f"ZCAUSE write on the alarm_ev cycle faulted (err={err})")
+    zc, _ = await t.bus.read(ZCAUSE)
+    t.check(zc & 2 == 2, f"alarm cause swallowed by a same-cycle ZCAUSE W1C write ({zc:#x})")
+    irq, _ = await t.bus.read(IRQ_PEND)
+    t.check(irq & 4 == 4, f"ALARM pending not set on the second alarm ({irq:#x})")
+
+    await t.bus.write(ZCAUSE, 0xF)
+    await t.bus.write(IRQ_PEND, 0x7)
 
     assert not t.fails, "first failing check: " + t.fails[0]
 
