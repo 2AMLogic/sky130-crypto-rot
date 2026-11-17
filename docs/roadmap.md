@@ -92,11 +92,11 @@ gate-level simulation) that the top level will need anyway.
 - **Top-level RTL and bus-level bench** (#87 (closed)) after #89 (closed). Done when `rtl/crypto_rot_top.v` passes
   end-to-end KATs through the bus, one test per zeroize event, a protocol checker and negative
   controls, with a record.
-- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (open)) after #87 (closed). Done
-  when `klt signoff` grades item 1 `met`; closes #46 (open).
+- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (closed)) after #87 (closed). Done
+  when `klt signoff` grades item 1 `met`; closes #46 (closed).
 - **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87 (closed). No issue yet; file them once the
   top-level port and register names exist, since each property is stated over them.
-- **Routed GDS** (#47 (open)) after #88 (open); then **DRC** (#48 (open)), **LVS** (#49 (open)),
+- **Routed GDS** (#47 (open)) after #88 (closed); then **DRC** (#48 (open)), **LVS** (#49 (open)),
   **power delivery** (#53 (open)) and **corner verification** (#50 (open)) on that layout.
 - **Post-layout verification** (#82 (open)) and the **characterization report** (#83 (open)) after
   #47 (open) and #50 (open).

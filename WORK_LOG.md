@@ -5,12 +5,15 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-17
 
+- **PR #267**: netlist: commit the crypto_rot_top netlist with freshness check and P-12 structural re-proof
 - **PR #265**: chore(loom): resync installed Loom to v0.19.1306
 - **PR #264**: test: pin the mode reader and steps scrape to the shared record_lib readers
 - **PR #261**: fix: consolidate sby_mode and the steps scrape into record_lib's shared readers
 - **PR #258**: docs: correct sby_depth's docstring after the mode-aware depth rule
 - **PR #257**: fix: name the two sby_mode None cases in the formal record refusal
 - **PR #196**: top: crypto_rot_top behind the 0005 bus, 0009 register map and the section 5 lifecycle FSM
+- **Issue #88** (closed): T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
+- **Issue #46** (closed): T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
 - **Issue #262** (closed): Extend the one-parser identity guard to sby_mode and sby_steps_checked
 - **Issue #259** (closed): Consolidate sby_mode and the steps_checked scrape into record_lib: a second config.sby reader re-grew after #211
 - **Issue #255** (closed): flow/common/record_lib.py sby_depth docstring is stale after #224's mode-aware Depth rule
