@@ -34,11 +34,11 @@ rung partly recorded and nothing beyond it claimed.
 - **TRNG interface**: `drbg_top` passes against a port-protocol stub and against the sibling's RTL
   at the pinned commit, with the sibling's start-up length and conditioner block shortened by
   parameter (`verification/records/trng-if-sim/`).
-- **T1 checklist** (`klt signoff`, klayout-tools 0.8.0): **2 of 11 met, 1 not applicable.**
+- **T1 checklist** (`klt signoff`, klayout-tools 0.8.0): **3 of 11 met, 1 not applicable** (`manifests/sky130-crypto-rot.signoff.json`, `t1_met_count`).
 
 | Item | Status | Issue |
 |---|---|---|
-| 1 Design sources | unmet: no top level, no committed netlist | #46 (#87, #88) |
+| 1 Design sources | met (`manifests/inventories/item-1.envelope.json`, 11/11 attestation checks) | #46 (#87, #88) |
 | 2 Layout | unmet | #47 |
 | 3 DRC clean | unmet | #48 |
 | 4 LVS clean | unmet | #49 |
@@ -121,7 +121,7 @@ gate-level simulation) that the top level will need anyway.
 
 ## Blocked and waiting
 
-- The register map (#89) landed, so nothing down the T1 chain waits on it; #87 is in progress.
+- The register map (#89) landed, so nothing down the T1 chain waits on it; #87 and #88 are closed.
 - Three scope-reduction proposals wait on a maintainer decision: #121 (drop the vendored tiers doc),
   #129 (unify the two formal harnesses), #134 (drop the three vendored `sky130-modexp` workaround
   files). #129 and #134 touch the formal and gate-level paths that Now items 5 and 7 use; whichever
