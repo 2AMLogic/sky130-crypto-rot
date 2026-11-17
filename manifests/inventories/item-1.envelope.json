@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "kind": "generic",
+  "status": "pass",
+  "t1_item": 1,
+  "summary": "T1 item 1 (Design sources): 11/11 attestation checks passed (klt signoff --attest)",
+  "source": "manifests/inventories/item-1.json",
+  "attestation": {
+    "producer": "klt signoff --attest",
+    "inventory_schema_version": 1,
+    "hash_algorithm": "sha256-raw-bytes",
+    "check_count": 11,
+    "passed_count": 11,
+    "checks": [
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/aes/aes_core.v",
+        "passed": true,
+        "content_hash": "sha256:22f0e2fecde15a53c689ad88616c4d943c357ce31f76a9fcf91f085642ef7471"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/crypto_rot_top.v",
+        "passed": true,
+        "content_hash": "sha256:65a68b36f2b0483cd59845c020cbc64b975b2964a4c452fcdd36615eba67e956"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/drbg/ctr_drbg.v",
+        "passed": true,
+        "content_hash": "sha256:90d5046e948be6965c5f58b996b4ecad8495c325751ff6951165bbf5d741e321"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/drbg/drbg_top.v",
+        "passed": true,
+        "content_hash": "sha256:6ddcaee88ee40a68081568e168d8329a0901809efefb6f8d37f7db41a1f2e595"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/hmac/hmac_sha256.v",
+        "passed": true,
+        "content_hash": "sha256:d1ff3c5117fe617af13453484ee084701fad63f50fbb7d821c827a929f971702"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/keyladder/keyladder.v",
+        "passed": true,
+        "content_hash": "sha256:955e7634d8e6fce5eaf7861fc18df6149972d8671cea808d1826fbce598120a7"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/sha256/sha256_core.v",
+        "passed": true,
+        "content_hash": "sha256:33d341a467c548b6c52f757d1fd1503a6aa84b92f71ba7f5017dc905cb56f29c"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "rtl/trng_if/trng_if.v",
+        "passed": true,
+        "content_hash": "sha256:dd167dd3c18295d8804dd209110acc316c71ee0371b34f5b58ec5caef99553b6"
+      },
+      {
+        "check": "present",
+        "role": "source",
+        "path": "verification/rtl/crypto_rot_top/synth-request.json",
+        "passed": true,
+        "content_hash": "sha256:e088c631ca99d1d0de59961f3c70772af8402ac26697054b0dbb7772b5ec2e48"
+      },
+      {
+        "check": "present",
+        "role": "derived",
+        "path": "verification/rtl/crypto_rot_top/netlist/crypto_rot_top_synth.v",
+        "passed": true,
+        "content_hash": "sha256:e16717679e42669873cfb773d03294ce664785809a0d94fd495a079603214048"
+      },
+      {
+        "check": "command",
+        "role": "freshness",
+        "target": "verification/rtl/crypto_rot_top/netlist/crypto_rot_top_synth.v",
+        "generator": "klt synthesize",
+        "argv": [
+          "bash",
+          "verification/rtl/crypto_rot_top/netlist/check-fresh.sh"
+        ],
+        "cwd": ".",
+        "exit_status": 0,
+        "passed": true,
+        "local_only": true
+      }
+    ]
+  },
+  "provenance": {
+    "klt_version": "0.8.0",
+    "klayout_version": null,
+    "pdk": null,
+    "deck": null,
+    "input": {
+      "path": {
+        "path": "manifests/inventories/item-1.json",
+        "scope": "repo"
+      },
+      "content_hash": "sha256:78001b4be5958b239396d0bb6dbd9992bfdfbd73023d7612a3aea3d9d798af8a"
+    }
+  }
+}

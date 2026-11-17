@@ -8,9 +8,9 @@ name: klt signoff
 #
 # That grade binds each attested T1 item only by the hash of its inventory
 # file, so it cannot see an attested file being edited. The step before it
-# closes that gap: it re-checks the item 9 and item 10 attestation envelopes
-# with the tool's own drift mode, so a PR that edits a file one of them lists
-# fails until it re-attests.
+# closes that gap: it re-checks the item 1, item 9 and item 10 attestation
+# envelopes with the tool's own drift mode, so a PR that edits a file one of
+# them lists fails until it re-attests.
 
 on:
   push:
@@ -37,26 +37,30 @@ jobs:
           pip install klayout-tools==0.8.0
           klt --version
 
-      - name: Re-check the item 9 and item 10 attestation envelopes
+      - name: Re-check the item 1, item 9 and item 10 attestation envelopes
         run: |
           set -uo pipefail
           # Each committed envelope under manifests/inventories/ pins the raw
           # bytes of every file its inventory lists. The grader step below
           # binds an item only by the hash of its *inventory*, so an edit to
-          # an attested file (README.md, a workflow, a bench) leaves the
-          # record byte-identical and the drift invisible. The tool's own
-          # drift mode is what sees it: --attest ITEM --check ENVELOPE
-          # re-attests and exits 0 only if the committed envelope still
-          # reproduces AND still passes, 3 otherwise, writing nothing.
+          # an attested file (README.md, a workflow, a bench, an RTL source or
+          # the committed netlist) leaves the record byte-identical and the
+          # drift invisible. The tool's own drift mode is what sees it:
+          # --attest ITEM --check ENVELOPE re-attests and exits 0 only if the
+          # committed envelope still reproduces AND still passes, 3 otherwise,
+          # writing nothing.
           #
           # The inventories mark their long or toolchain-dependent commands
-          # local_only (item 9's cold start, item 10's three npm commands), so
-          # --check skips them and carries their committed outcome rather than
-          # re-running them here: this step needs no bench toolchain, and a
-          # committed failure still fails the gate. ci.yml runs those
-          # commands itself. Re-attesting (without --check) always runs them.
+          # local_only (item 9's cold start, item 10's three npm commands,
+          # item 1's netlist freshness check, which re-synthesizes under the
+          # PDK), so --check skips them and carries their committed outcome
+          # rather than re-running them here: this step needs no bench
+          # toolchain or PDK, and a committed failure still fails the gate.
+          # ci.yml runs those commands itself (item 1's check as its own
+          # netlist-freshness job). Re-attesting (without --check) always
+          # runs them.
           fail=0
-          for item in 9 10; do
+          for item in 1 9 10; do
             inventory="manifests/inventories/item-${item}.json"
             envelope="manifests/inventories/item-${item}.envelope.json"
             rc=0

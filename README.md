@@ -115,10 +115,13 @@ npm run check:ci      # everything above
 ```
 
 On PRs that touch `rtl/` or `verification/`, the `verify` job also provisions
-`.venv` and runs the benches, negative controls and SymbiYosys tasks; locally:
+`.venv` and runs the benches, negative controls and SymbiYosys tasks, and the
+`netlist-freshness` job re-synthesizes the committed crypto_rot_top netlist
+from the RTL and byte-compares it (issue #88); locally:
 
 ```
 ./scripts/setup-env.sh && ./scripts/ci-verify.sh
+./verification/rtl/crypto_rot_top/netlist/check-fresh.sh   # exit 0 fresh, 3 stale
 ```
 
 The PDK-heavy legs stay local (`./scripts/setup-env.sh` provisions `.venv`,
