@@ -381,10 +381,17 @@ with open(out, "w") as fh:
     '"gate negctl synthesis:", d["status"], d["instance_count"], "instances"'
   core_flow_gate_render "${HERE}/sim-gate-request.json.in" \
     "${OUT}/gate-negctl-synth.json" "${OUT}/gate-negctl/request.json" "${2}"
-  core_flow_negctl_one "${OUT}/gate-negctl/request.json" "" gate-negctl.json \
+  # klt anchors a stdin request's artifacts to the working directory (the
+  # post-#175 helper shape -- see core_flow_negctl_one's header), so the control
+  # runs from ${OUT}/gate-negctl: what klt writes and the helper's CWD-default
+  # evidence path then name the same place, and the RTL run's log under
+  # verification/rtl/<core>/ -- which record_lib reads the SUMMARY line out of
+  # -- stays untouched. The rendered request's sources are absolute, so the cd
+  # cannot re-anchor them.
+  cd "${OUT}/gate-negctl"
+  core_flow_negctl_one request.json "" gate-negctl.json \
     "gate-level negative control:" 'first failing vector: [^&]*' \
-    "a corrupted ${4} in the netlist" \
-    "${OUT}/gate-negctl/.klt/functional-verification/results_icarus.xml"
+    "a corrupted ${4} in the netlist"
   exit 0
 }
 

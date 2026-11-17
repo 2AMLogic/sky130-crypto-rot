@@ -197,6 +197,23 @@ def test_gate_level_is_not_on_ci_s_path():
     assert "--sim-only" in ci and "--negative-control" in ci
 
 
+def test_gate_negctl_judges_where_klt_anchors_its_artifacts():
+    """A stdin request makes klt anchor its artifacts to the working directory
+    (pinned 0.8.0), so the gate-level control must run from ${OUT}/gate-negctl
+    and judge the helper's CWD-default evidence path. A carried-over absolute
+    path greps a file klt never wrote, the control fails closed, and AC3 cannot
+    pass -- which is exactly what carrying the pre-#175 evidence argument across
+    the #175 merge did."""
+    body = re.search(r"^core_flow_gate_negctl\(\) \{.*?^\}", TEXT, re.S | re.M).group(0)
+    cd = re.search(r'^\s*cd "\$\{OUT\}/gate-negctl"$', body, re.M)
+    call = re.search(r"core_flow_negctl_one (.*?)(?=\n\s*exit 0)", body, re.S)
+    assert cd and call, "the control must judge via core_flow_negctl_one from ${OUT}/gate-negctl"
+    assert cd.start() < call.start(), "the cd comes before the helper call"
+    assert "results_icarus.xml" not in call.group(1), \
+        "no evidence argument: the helper's CWD default names where klt writes"
+    assert "request.json" in call.group(1), "a relative base request, resolved by the cd"
+
+
 @pytest.mark.parametrize("template", TEMPLATES, ids=lambda p: p.parent.name)
 def test_gate_template_runs_the_same_bench_and_toplevel_as_the_rtl_request(template):
     """AC1 is "the SAME cocotb testbench against the netlist", so the gate request
