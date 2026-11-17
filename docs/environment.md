@@ -58,7 +58,7 @@ stops with a pointer.
 | Yosys + its embedded ABC | PyPI `yowasp-yosys==0.68.0.0.post1208`, verified by content: `yowasp_yosys/yosys.wasm` = `sha256:e37a7e65e3fa4efbbd64a9c1b0e906be16cdc6c4d5273109d17537f78449f38c` | `pip install "yowasp-yosys==0.68.0.0.post1208"` into `.venv`, then `.venv/bin/yosys -> yowasp-yosys`; the provision **fails** if the digest does not match |
 | SymbiYosys (`sby`), `yosys-smtbmc`, `yosys-witness` | shipped inside the same `yowasp-yosys==0.68.0.0.post1208` wheel (entry points `yowasp-sby`, `yowasp-yosys-smtbmc`, `yowasp-yosys-witness`); pinned by the same `yosys.wasm` digest; there is no standalone `sby` on PyPI | linked as `.venv/bin/sby`, `.venv/bin/yosys-smtbmc`, `.venv/bin/yosys-witness` by `scripts/setup-env.sh` |
 | `z3` (SMT solver for `sby`) | PyPI `z3-solver==5.3.2.0`, verified by content: `.venv/bin/z3` = `sha256:c45e787b5d1a3d94079d1e83b98e23bbc884ccaf542ea38c3814f31ac2f79197` | `pip install "z3-solver==5.3.2.0"` into `.venv` (the wheel ships a native `z3` binary); the provision **fails** if the digest does not match |
-| `sky130A` PDK | `open_pdks` commit `f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7`, library `sky130_fd_sc_hd` | `pip install ciel==2.6.1`, then `ciel enable --pdk-root ~/.ciel --pdk-family sky130 -l sky130_fd_pr f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7`; fails if the tree's `SOURCES` names another revision |
+| `sky130A` PDK | `open_pdks` commit `f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7`, library `sky130_fd_sc_hd` | `pip install ciel==2.6.1`, then `ciel enable --pdk-root ~/.ciel --pdk-family sky130 -l sky130_fd_pr -l sky130_fd_sc_hd f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7`; fails if the tree's `SOURCES` names another revision |
 | `ciel` | 2.6.1 | `pip install ciel==2.6.1` into `.venv` |
 | `cocotb` | 2.1.0 | `pip install cocotb==2.1.0` into `.venv` |
 | Python | <= 3.13 (cocotb 2.x refuses to build on 3.14+) | `scripts/setup-env.sh` picks the newest of `python3.13` ... `python3.10`, `python3` on `$PATH` |
@@ -81,12 +81,19 @@ install `scripts/setup-env.sh` only probes for (see "Tools not pinned by
 | Tool | Status |
 |---|---|
 | Icarus Verilog | host install (`iverilog`); the version is recorded in each record. Observed: 13.0 |
-| OpenROAD | host install; only checked, not provisioned. Not used by the cocotb + Icarus benches or `klt synthesize`. Observed: `26Q3-1510-g6cb3f2b704` |
+| OpenROAD | host install; only checked, not provisioned. Consumed by `klt sta`, which shells out to it: the pre-layout setup-timing mode (`verification/rtl/aes/run.sh --timing`, `verification/rtl/sha256/run.sh --timing`, issue #178) is this repo's first committed flow that depends on it, and each timing record names the build from the response's own `engine`/`engine_version` fields. Observed: `26Q3-1510-g6cb3f2b704` |
 
-These are not content-pinned. A re-pin to a container digest or a built
-revision belongs with the first issue that depends on OpenROAD (place and
-route, STA). `klt sta` is likewise not run: it consumes a routed DEF, so it
-needs place-and-route, which is out of scope for this bring-up.
+These are not content-pinned. The deferred OpenROAD re-pin's trigger -- "the
+first issue that depends on OpenROAD (place and route, STA)" -- has now
+fired with the timing mode above; pinning it to a container digest or a
+built revision remains its own future decision, not part of that issue.
+
+`klt sta` does **not** need place-and-route on the pinned `klayout-tools`
+0.8.0: its DEF-free `verilog` mode times a structural netlist against
+liberty plus a clock constraint alone and labels the result
+`geometry_source: "netlist_estimate"`. Pre-layout setup timing (issue #178)
+uses that mode; routed-DEF timing still needs place-and-route and remains
+out of scope (#50).
 
 ## klt re-pin (2026-10-27)
 

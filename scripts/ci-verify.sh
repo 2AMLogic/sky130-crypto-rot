@@ -6,7 +6,7 @@
 #   ./scripts/setup-env.sh                  # once: .venv, pinned yosys, PDK
 #   ./scripts/ci-verify.sh
 #
-# Covers sha256, aes, drbg, hmac, keyladder and trng_if. Per core, both halves
+# Covers sha256, aes, drbg, hmac, keyladder, crypto_rot_top and trng_if. Per core, both halves
 # come from that core's own run.sh: `--sim-only` runs its positive
 # simulation(s) and stops before synthesis, `--negative-control` runs every
 # control, which must FAIL (the run.sh exits non-zero if one passes). Which
@@ -34,7 +34,7 @@ if [ ! -x "${REPO_ROOT}/.venv/bin/klt" ]; then
 fi
 export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
 
-for core in sha256 aes drbg hmac keyladder; do
+for core in sha256 aes drbg hmac keyladder crypto_rot_top; do
   echo "== simulations: $core =="
   "${REPO_ROOT}/verification/rtl/${core}/run.sh" --sim-only
   echo "== negative controls: $core =="

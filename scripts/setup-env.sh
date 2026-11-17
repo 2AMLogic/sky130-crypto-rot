@@ -312,7 +312,7 @@ echo "== 4/4 sky130A PDK (ciel ${CIEL_VERSION}, open_pdks ${CIEL_SKY130_VERSION:
 mkdir -p "${PDK_ROOT}"
 if "${VENV_DIR}/bin/ciel" enable \
     --pdk-root "${PDK_ROOT}" --pdk-family "${CIEL_PDK_FAMILY}" \
-    -l sky130_fd_pr "${CIEL_SKY130_VERSION}"; then
+    -l sky130_fd_pr -l sky130_fd_sc_hd "${CIEL_SKY130_VERSION}"; then
   # Verify the tree we will actually use IS the pinned open_pdks revision: its
   # SOURCES file names the revision it was built from. A missing or different
   # revision is a hard failure, never a silent pass -- a stray tree (e.g. a
@@ -327,14 +327,28 @@ if "${VENV_DIR}/bin/ciel" enable \
     sed 's/^/    /' "${SOURCES_FILE}"
     status=1
   else
-    echo "sky130A ready under ${PDK_ROOT} (open_pdks ${CIEL_SKY130_VERSION:0:12} verified via SOURCES)"
+    libs_ok=1
+    for lib in sky130_fd_pr sky130_fd_sc_hd; do
+      if [ ! -d "${PDK_ROOT}/sky130A/libs.ref/${lib}" ]; then
+        echo "FATAL: ${PDK_ROOT}/sky130A/libs.ref/${lib} not found after 'ciel enable'."
+        echo "  -> the requested library set did not install; 'sky130A ready' must"
+        echo "     not be reported on a partial tree (the netlist-freshness gate"
+        echo "     needs sky130_fd_sc_hd's liberty, not just sky130_fd_pr)."
+        libs_ok=0
+      fi
+    done
+    if [ "${libs_ok}" -eq 1 ]; then
+      echo "sky130A ready under ${PDK_ROOT} (open_pdks ${CIEL_SKY130_VERSION:0:12} verified via SOURCES)"
+    else
+      status=1
+    fi
   fi
 else
   echo "FATAL: 'ciel enable' failed to fetch sky130 ${CIEL_SKY130_VERSION:0:12}."
   echo "  -> common causes: no network access to GitHub releases, or a rate"
   echo "     limit on unauthenticated GitHub API requests -- set GITHUB_TOKEN"
   echo "     and re-run, or run manually:"
-  echo "       ${VENV_DIR}/bin/ciel enable --pdk-root ${PDK_ROOT} --pdk-family ${CIEL_PDK_FAMILY} -l sky130_fd_pr ${CIEL_SKY130_VERSION}"
+  echo "       ${VENV_DIR}/bin/ciel enable --pdk-root ${PDK_ROOT} --pdk-family ${CIEL_PDK_FAMILY} -l sky130_fd_pr -l sky130_fd_sc_hd ${CIEL_SKY130_VERSION}"
   status=1
 fi
 

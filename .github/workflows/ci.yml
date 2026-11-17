@@ -1,20 +1,28 @@
-# CI for sky130-crypto-rot. Tool-light: no PDK, no Docker.
+# CI for sky130-crypto-rot. Tool-light: no Docker. One job needs the PDK:
+# netlist-freshness re-synthesizes the committed crypto_rot_top netlist from
+# the RTL (issue #88).
 #
 # What runs here: format and known-answer correctness -- Python/shell
-# syntax, the golden models against the committed published vectors, and the
-# reuse.lock.json hashes -- plus, on PRs touching rtl/ or verification/, the
+# syntax, the pin and register-map table lints, the golden models against
+# the committed published vectors, and the reuse.lock.json hashes -- plus,
+# on PRs touching rtl/ or verification/, the
 # `verify` job: the sha256, aes, drbg, hmac, keyladder and trng_if benches with
-# their negative controls and the SymbiYosys tasks (scripts/ci-verify.sh). It
+# their negative controls and the SymbiYosys tasks (scripts/ci-verify.sh), and
+# `netlist-freshness`: the committed crypto_rot_top netlist re-synthesized and
+# byte-compared (verification/rtl/crypto_rot_top/netlist/check-fresh.sh). It
 # makes no security claim.
-# What stays local: synthesis, place-and-route, DRC, LVS, signoff (PDK-heavy),
-# sha256 --million-a, and verification/formal/keyladder.
+# What stays local: place-and-route, DRC, LVS, signoff (PDK-heavy beyond the
+# freshness synthesis), sha256 --million-a, verification/formal/keyladder and
+# verification/formal/crypto_rot_top.
 # See README.md "Reproduce" and verification/README.md "What CI runs vs. what
 # stays local"; change those documents together with this file if a heavy leg
 # moves into CI.
 #
 # Every job runs one command a developer can run unchanged: `npm run lint`,
-# `npm run test` and `npm run check:reuse` for the three tool-light jobs, and
-# ./scripts/ci-verify.sh for `verify` (there is no `npm run verify`).
+# `npm run test` and `npm run check:reuse` for the three tool-light jobs,
+# ./scripts/ci-verify.sh for `verify` (there is no `npm run verify`), and
+# verification/rtl/crypto_rot_top/netlist/check-fresh.sh for
+# `netlist-freshness`.
 name: CI
 
 on:
@@ -102,3 +110,44 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/ci-verify.sh
+
+  # Freshness of the committed crypto_rot_top gate-level netlist (issue #88):
+  # re-synthesizes from the RTL and byte-compares against the committed
+  # artifact. This is the one CI leg that needs the PDK and synthesis (the
+  # item-1 attestation's `derived` check, marked local_only there), so it is
+  # its own job rather than a step of `verify` -- which stays the tool-light
+  # bench subset and never synthesizes. The committed signoff gate
+  # (.github/workflows/signoff.yml) carries this check's committed outcome,
+  # so an RTL edit that skips regeneration fails HERE first.
+  netlist-freshness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changed
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+              | grep -Eq '^(rtl/|verification/|flow/|scripts/setup-env\.sh$|\.github/workflows/ci\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "no rtl/ or verification/ change; netlist-freshness skipped"
+          fi
+      - if: steps.changed.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - if: steps.changed.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.ciel
+          key: ciel-${{ hashFiles('scripts/setup-env.sh') }}
+      - if: steps.changed.outputs.run == 'true'
+        run: ./scripts/setup-env.sh
+      - if: steps.changed.outputs.run == 'true'
+        run: ./verification/rtl/crypto_rot_top/netlist/check-fresh.sh

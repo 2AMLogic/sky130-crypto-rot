@@ -15,7 +15,8 @@ ratified. [`rtl/README.md`](rtl/README.md) is the maintained list of which RTL
 blocks exist and which script verifies each; what has a recorded result is
 [`verification/records/`](verification/records/), and
 [`scripts/cold-start-benches.sh`](scripts/cold-start-benches.sh) is the one
-command that runs the benches behind those records. The top-level integration,
+command that runs the benches behind those records, and
+[`docs/roadmap.md`](docs/roadmap.md) is the plan and its reasons. The top-level integration,
 the register interface, layout, DRC and LVS have no committed result yet.
 
 **Built agent-native.** Every specification, decision record, testbench, and
@@ -104,19 +105,23 @@ a developer can run unchanged -- the three `npm run` scripts below, and `./scrip
 (there is no `npm run verify`). Python 3.13 and `pytest` for the model job:
 
 ```
-npm run lint          # compileall on verification/ and flow/, bash -n on every tracked shell script, pin check
+npm run lint          # compileall on verification/ and flow/, bash -n on every
+                      # tracked shell script, and the doc-consistency checkers
+                      # (verification/README.md's CI table names each one)
 npm run test          # pytest: verification/model against the committed vectors,
-                      #         plus the self-tests of the pin, reuse and record checkers
-                      #         and of the key-ladder formal record's depth reader
+                      # plus the checkers' self-tests (named in the same table)
 npm run check:reuse   # re-hash reuse.lock.json files
-npm run check:ci      # all three
+npm run check:ci      # everything above
 ```
 
 On PRs that touch `rtl/` or `verification/`, the `verify` job also provisions
-`.venv` and runs the benches, negative controls and SymbiYosys tasks; locally:
+`.venv` and runs the benches, negative controls and SymbiYosys tasks, and the
+`netlist-freshness` job re-synthesizes the committed crypto_rot_top netlist
+from the RTL and byte-compares it (issue #88); locally:
 
 ```
 ./scripts/setup-env.sh && ./scripts/ci-verify.sh
+./verification/rtl/crypto_rot_top/netlist/check-fresh.sh   # exit 0 fresh, 3 stale
 ```
 
 The PDK-heavy legs stay local (`./scripts/setup-env.sh` provisions `.venv`,

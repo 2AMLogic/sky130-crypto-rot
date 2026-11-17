@@ -4,7 +4,8 @@ Checks, over the rows of the `| Offset | Name | Access | Gate | Ports |` table:
 offsets are within the 7-bit word address space; no two registers overlap;
 names are unique; an array name `NAME[a..b]` matches its offset range; the
 access type is RO, WO, RW or W1C; the gate is a known value; no readable
-register (RO, RW, W1C) is wired to a key, seed or key-load port; and the list
+register (RO, RW, W1C) is wired to a key, seed or key-load port (under any
+bit-range, whitespace or case spelling, e.g. ``AES_KEY[127:0]``); and the list
 of undefined ranges stated in the record equals the one computed from the
 table.
 
@@ -21,9 +22,26 @@ DEFAULT_DOC = REPO_ROOT / "spec/decision-records/0009-register-map.md"
 ADDR_SPACE = 0x80
 ACCESS = {"RO", "WO", "RW", "W1C"}
 GATES = {"-", "AES", "HMAC", "HMAC-FEED", "KDF", "KDF-LOAD", "DRBG"}
-KEY_PORTS = {"aes_key", "hmac_key", "root_key", "ld_data", "seed"}
+KEY_PORTS = {
+    "aes_key", "hmac_key", "root_key", "ld_data", "seed",
+    "key_in", "key", "lk_data",
+}
 ROW = re.compile(r"^\|\s*(0x[0-9A-Fa-f]+)(?:-(0x[0-9A-Fa-f]+))?\s*\|(.*)\|\s*$")
 ARRAY = re.compile(r"^([A-Z0-9_]+)\[(\d+)\.\.(\d+)\]$")
+BIT_RANGE = re.compile(r"\s*\[[^\]]*\]$")
+
+
+def bare_port(token):
+    """Strip surrounding whitespace and case-fold, then strip one optional
+    run of whitespace and a trailing ``[...]`` group.
+
+    ``aes_key``, ``aes_key[127:0]``, ``aes_key [127:0]``, ``aes_key `` and
+    ``AES_KEY[127:0]`` all reduce to ``aes_key``, so bit-range, whitespace
+    and case spellings cannot evade the key-port check; anything else
+    (e.g. ``root_key_valid[3:0]``) is likewise only stripped, case-folded
+    and one trailing range removed.
+    """
+    return BIT_RANGE.sub("", token.strip()).lower()
 
 
 def parse_rows(text):
@@ -91,8 +109,9 @@ def check(doc_path):
             errors.append(f"{where}: unknown gate {gate!r}")
         if gate != "-" and access == "RO":
             errors.append(f"{where}: an RO register has no write to gate")
-        if access != "WO" and ports & KEY_PORTS:
-            errors.append(f"{where}: readable register wired to {sorted(ports & KEY_PORTS)}")
+        hits = sorted(p for p in ports if bare_port(p) in KEY_PORTS)
+        if access != "WO" and hits:
+            errors.append(f"{where}: readable register wired to {hits}")
         for a in range(lo, hi + 1):
             if a in owner:
                 errors.append(f"{where}: overlaps {owner[a]} at 0x{a:02X}")

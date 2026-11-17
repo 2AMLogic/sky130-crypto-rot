@@ -17,8 +17,15 @@ import record_lib  # noqa: E402
 MAKERS = sorted(p.relative_to(REPO).as_posix()
                 for p in (REPO / "verification").rglob("make_record.py"))
 
-PINS = ("KLT_VERSION", "YOWASP_YOSYS_VERSION", "COCOTB_VERSION", "CIEL_VERSION",
-        "CIEL_SKY130_VERSION", "Z3_SOLVER_VERSION")
+# Every name the pin block assigns, derived rather than hand-copied (issue
+# #189): a new pin, a rename or a dropped one moves this test with it, so
+# nothing pin() can resolve goes untested. The hand-copied tuple this replaces
+# had already lost Z3_BIN_SHA256, which make_record.py resolves only at
+# key-ladder record time -- the first signal a rename broke it was the end of
+# a full formal run, not this suite.
+_BLOCK = record_lib.parse_pins((REPO / record_lib.SETUP_ENV).read_text())
+assert _BLOCK is not None, "no pin block in scripts/setup-env.sh"
+PINS = tuple(sorted(_BLOCK))
 
 
 @pytest.mark.parametrize("name", PINS)
@@ -29,6 +36,35 @@ def test_pin_resolves_against_setup_env(name):
 def test_missing_pin_refuses():
     with pytest.raises(SystemExit):
         record_lib.pin("KLT_REV")
+
+
+def test_pin_does_not_resolve_outside_the_block(tmp_path, monkeypatch):
+    """The delimiters are the only definition of a pin (issue #189).
+
+    A later assignment of a pin name -- a fallback, a re-export, a --force
+    branch -- is not a pin and must not change what pin() resolves, and a
+    name assigned only outside the block is a hard error rather than a silent
+    match: the value lands in the tool_versions block of append-only records.
+    Before this, pin() scanned the whole script and took the first NAME="
+    match in file order.
+    """
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / record_lib.SETUP_ENV).write_text(
+        "# --- pinned versions -- keep in sync with docs/environment.md ----\n"
+        'KLT_VERSION="1.0"\n'
+        "# ------------------------------------------------------------------\n"
+        "\n"
+        'PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"\n'
+        'KLT_VERSION="2.0"\n'
+    )
+    monkeypatch.setattr(record_lib, "REPO", tmp_path)
+    assert record_lib.pin("KLT_VERSION") == "1.0"
+    with pytest.raises(SystemExit):
+        record_lib.pin("PDK_ROOT")
+
+
+def test_parse_pins_returns_none_when_the_block_is_absent():
+    assert record_lib.parse_pins('KLT_VERSION="1.0"\n') is None
 
 
 def test_pdk_pin_guard_refuses_mismatch(tmp_path):
@@ -476,3 +512,46 @@ def test_gate_core_generator_does_not_hand_write_the_gate_level_text(core):
     assert "{ctx.gate_level}" in text
     assert "No gate-level simulation was run" not in text
     assert "- **Gate-level simulation**" not in text
+
+
+# --- sby_depth: the one shared config.sby depth reader (issues #165, #194, #221) ---
+#
+# The reader contract is pinned against every handle -- record_lib and both
+# generators -- by test_keyladder_formal_record.py; these are the cases that
+# suite does not state, run against record_lib directly.
+
+def _sby_workdir(tmp_path, config):
+    d = tmp_path / "task"
+    d.mkdir()
+    if config is not None:
+        (d / "config.sby").write_text(config)
+    return d
+
+
+@pytest.mark.parametrize("config,expected", [
+    # a header whose comment contains a `]`
+    ("[options]\ndepth 4\n\n[script]  # a ] b\ndepth 99\n", 4),
+    # [options] re-entered after [script]: last assignment wins
+    ("[options]\ndepth 4\n\n[script]\nx\n\n[options]\ndepth 6\n", 6),
+    # a depth that is not all digits is no depth, never a crash: the last
+    # assignment in [options] wins whatever it holds, so a trailing non-digit
+    # erases an earlier valid depth (sby's [options] reader is a dict
+    # assignment) and an earlier non-digit is simply overwritten by a valid one
+    ("[options]\ndepth abc\n", None),
+    ("[options]\ndepth 7\ndepth 4x\n", None),
+    ("[options]\ndepth 4x\ndepth 7\n", 7),
+])
+def test_sby_depth(tmp_path, config, expected):
+    assert record_lib.sby_depth(_sby_workdir(tmp_path, config)) == expected
+
+
+def test_sby_steps_checked_takes_the_max_over_both_checking_lines():
+    """The one scrape behind both record families' steps_checked (issue #259):
+    the assertion lines a bounded run emits and the cover-reachability line a
+    `mode cover` run emits, maximum over all of them; a log with no checking
+    line says nothing."""
+    text = ("##   Checking assumptions and assertions in step 0..\n"
+            "##   Checking cover reachability in step 9..\n"
+            "##   Checking assertions in step 14..\n")
+    assert record_lib.sby_steps_checked(text) == 14
+    assert record_lib.sby_steps_checked("engine killed before any step\n") is None

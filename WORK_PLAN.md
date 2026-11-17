@@ -8,13 +8,13 @@ The region between the markers is machine-generated and overwritten wholesale.
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
 
-_None._
+- **#254**: chore(loom): resync installed Loom to v0.19.1305
 
 ## Very Important
 
 `loom:very-important` (one counts per workspace); every stage takes these first.
 
-- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
+_None._
 
 ## Important
 
@@ -23,47 +23,51 @@ _None._
 - **#46**: T1 item 1 (design sources): top-level integration, Wishbone registers, lifecycle FSM, sky130 netlist, --attest 1
 - **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
 - **#88**: T1 item 1 (b): crypto_rot_top netlist, freshness check, netlist re-proof of P-12 and --attest 1
+- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 
 ## Ready
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-_None._
+- **#243**: sby_mode() collapses "no config.sby" and "config.sby with no mode line", and the refusal names only the first
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
-- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top
-- **#164**: Bring the item-9 inventory's hand-copied tool pins under check_pins.py: its klayout-tools pin is still the git revision setup-env.sh dropped on 2026-10-27
-- **#165**: Read the key-ladder formal record's Depth column from sby's config.sby: it is hand-copied five ways, and PROVE_DEPTH mislabels three P-6 rows
+- **#87**: T1 item 1 (a): crypto_rot_top RTL, register interface, lifecycle/zeroize FSM and bus-level bench
+- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
+- **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
+- **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-- **#90**: spec: add register map decision record 0009 with table lint
+- **#242**: fix: share one sby_depth reader so the formal generator honors commented section headers
 
 ## Approved (Awaiting Merge)
 
 PRs that passed review and are queued for Champion auto-merge (`loom:pr`).
 
-- **#171**: feat(verification): check the item-9 inventory's pins against setup-env.sh and re-attest
+- **#254**: chore(loom): resync installed Loom to v0.19.1305
 
 ## Proposed
 
 Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
-- **#89**: Spec: register map decision record (offsets, access types, STATUS layout, key-load window) for crypto_rot_top *(curated)*
-- **#163**: manifests: item-9 inventory does not cover flow/common/core_flow.sh, the shared bench driver all six run.sh scripts source *(curated)*
+- **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
+- **#221**: verification/formal/make_record.py has the same raw-line sby header match #194 fixed in the keyladder reader *(curated)*
+- **#243**: sby_mode() collapses "no config.sby" and "config.sby with no mode line", and the refusal names only the first *(curated)*
+- **#255**: flow/common/record_lib.py sby_depth docstring is stale after #224's mode-aware Depth rule *(curated)*
 
 ## Proposed (Architect / Hermit)
 
 - **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)*
 - **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)*
 - **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
-- **#161**: Remove the 12 hand-copied negative-control request files: each is its positive request plus one define, so derive them at run time *(hermit)*
+- **#185**: Remove 15 derived klt request JSONs: each is sim-request.json plus one defines key *(hermit)*
 
 ## Epics
 
@@ -73,14 +77,14 @@ _None._
 
 | Bucket | Count |
 |------|-------|
-| Operator merge-risk holds | 0 |
-| Very important | 1 |
-| Important | 3 |
-| Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 3 |
+| Operator merge-risk holds | 1 |
+| Very important | 0 |
+| Important | 4 |
+| Ready (`loom:issue`) | 1 |
+| In Progress (`loom:building`) | 4 |
 | PRs awaiting review | 1 |
 | Approved PRs awaiting merge | 1 |
-| Curated | 3 |
+| Curated | 5 |
 | Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->

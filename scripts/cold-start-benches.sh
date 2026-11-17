@@ -13,13 +13,21 @@
 # expectation, which for its reach_*/neg_* tasks means FAILING.
 #
 # Records this covers: sha256-core-sim-synth, aes-core-sim-synth, drbg-sim-synth,
-# hmac-sha256-sim-synth, keyladder-sim-synth, trng-if-sim, drbg-trng-formal.
+# hmac-sha256-sim-synth, keyladder-sim-synth, crypto-rot-top-sim, trng-if-sim, and the RTL half of
+# drbg-trng-formal.
 #
 # Records this does NOT cover, and why:
 #   * keyladder-formal -- verification/formal/keyladder/run.sh. Its bounded
 #     module-boundary P-1 runs are allowed 1500 s each (P1_TIMEOUT_S), which
 #     exceeds the 1800 s `klt signoff --attest` allows one command. Run that
 #     bench by hand; its header gives the command.
+#   * drbg-trng-formal's netlist half -- `./verification/formal/run.sh
+#     --netlist` (issue #177). The netlist tasks synthesize six klt netlists
+#     (clean + four mutants + trng_if, needing the sky130A liberty at
+#     tt_025C_1v80) and then prove P-7/P-8/P-9 on the mapped design; their
+#     per-task solver cap is 1500 s, sized for a manual run, so the sum does
+#     not fit the 1800 s single-command limit beside the rest of this script.
+#     Run it by hand; run.sh's header gives the command.
 #   * smoke-synthesis-sim -- retired. Its bench (flow/smoke/) is no longer in
 #     the tree, so the record is history, not a reproducible claim.
 #   * independent-rerun -- not a bench of its own: re-runs of the flows above.
@@ -41,6 +49,17 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
 
+# klayout-tools#5780: yosys's abc pass deadlocks when the temp path is long
+# (yosys-abc's readline wraps the echoed `source' line and the protocol never
+# completes, and klt kills yosys at its 300 s watchdog). The ambient TMPDIR can
+# be long enough to trip that, and every synth step below goes through klt, so
+# run the whole cold start with a short temp directory.
+COLD_TMP="$(mktemp -d /tmp/coldstartXXXXXX)"
+export TMPDIR="${COLD_TMP}"
+# Remove the pinned short temp dir on the way out, error paths included
+# (issue #207; set -euo pipefail makes the EXIT trap cover them).
+trap 'rm -rf "${COLD_TMP}"' EXIT
+
 ./scripts/setup-env.sh
 # pytest for the model and reuse checks; the same package CI installs.
 .venv/bin/python -m pip install --quiet pytest
@@ -49,7 +68,7 @@ cd "${REPO_ROOT}"
 .venv/bin/python verification/check_reuse.py
 .venv/bin/python -m pytest verification/test_check_reuse.py
 
-for core in sha256 aes drbg hmac keyladder trng_if; do
+for core in sha256 aes drbg hmac keyladder crypto_rot_top trng_if; do
   if [ "${core}" = sha256 ]; then
     ./verification/rtl/sha256/run.sh --million-a
   else

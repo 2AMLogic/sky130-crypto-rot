@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "kind": "t1-attestation-inventory",
+  "t1_item": 1,
+  "description": "T1 item 1 (design sources shipped): the eight RTL sources of the committed crypto_rot_top synthesis request (the AES, HMAC/SHA-256, key-ladder, DRBG, TRNG-interface and top-level modules) and the committed gate-level netlist derived from them, whose freshness check (verification/rtl/crypto_rot_top/netlist/check-fresh.sh) re-runs the committed klt synthesize request and byte-compares against the committed netlist -- issue #88. The check is local_only: it needs the PDK and the pinned synthesis toolchain (about 80 s of yosys), beyond what klt signoff --check should run; ci.yml runs it on every PR touching rtl/ or verification/. Correctness of the derivation only; no security or side-channel claim.",
+  "sources": [
+    "rtl/sha256/sha256_core.v",
+    "rtl/hmac/hmac_sha256.v",
+    "rtl/keyladder/keyladder.v",
+    "rtl/aes/aes_core.v",
+    "rtl/drbg/ctr_drbg.v",
+    "rtl/trng_if/trng_if.v",
+    "rtl/drbg/drbg_top.v",
+    "rtl/crypto_rot_top.v",
+    "verification/rtl/crypto_rot_top/synth-request.json"
+  ],
+  "derived": [
+    {
+      "path": "verification/rtl/crypto_rot_top/netlist/crypto_rot_top_synth.v",
+      "generator": "klt synthesize",
+      "check": {"argv": ["bash", "verification/rtl/crypto_rot_top/netlist/check-fresh.sh"], "local_only": true}
+    }
+  ]
+}
