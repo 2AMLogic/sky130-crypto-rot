@@ -386,11 +386,36 @@ def test_generator_does_not_hand_write_the_klt_provenance_bullet(maker):
     assert "- **klt provenance**: klt `{prov[" not in text
 
 
-# --- sby_depth: the one shared config.sby depth reader (issues #165, #194, #221) ---
+# --- the config.sby readers: one contract, pinned here (issues #165, #194, ----
+# --- #221, #259; consolidated by operator ruling 2026-11-17, issue #263) ------
 #
-# The reader contract is pinned against every handle -- record_lib and both
-# generators -- by test_keyladder_formal_record.py; these are the cases that
-# suite does not state, run against record_lib directly.
+# The whole depth/mode reader contract lives in this file, run against
+# record_lib directly. It used to be re-asserted through every generator's
+# import of these readers in test_keyladder_formal_record.py; that 3-handle
+# parametrization was reversed by the operator ruling (round 20261116-r15,
+# slate s3) and the guard against a re-introduced generator-local copy is now
+# that file's identity assertions (test_both_generators_use_the_shared_readers).
+
+# A real config.sby, byte-for-byte as the pinned yowasp-yosys wheel
+# (YOWASP_YOSYS_VERSION in scripts/setup-env.sh) wrote it for a two-task file whose
+# `[options]` read `mode bmc` / `a: depth 5` / `b: depth 7`. Captured from the tool
+# rather than hand-written, so a format change in a re-pinned sby breaks these rows
+# instead of silently changing a record's Depth column.
+REAL_CONFIG_SBY = """[options]
+mode bmc
+depth 5
+
+[engines]
+smtbmc z3
+
+[script]
+read_verilog -formal tiny.v
+prep -flatten -top tiny
+
+[files]
+tiny.v
+"""
+
 
 def _sby_workdir(tmp_path, config):
     d = tmp_path / "task"
@@ -401,10 +426,43 @@ def _sby_workdir(tmp_path, config):
 
 
 @pytest.mark.parametrize("config,expected", [
-    # a header whose comment contains a `]`
+    # the reader parses the resolved config exactly as sby wrote it (and the
+    # drbg-trng file's plain multi-section read: options, engines, script, files)
+    (REAL_CONFIG_SBY, 5),
+    # sby writes the depth of THIS task, `[tasks]` prefixes already resolved;
+    # the reader never resolves `net:` itself
+    ("[options]\nmode prove\ndepth 2\n", 2),
+    # sby strips a trailing ` #...` from an [options] line; so does the reader
+    ("[options]\nmode bmc\ndepth 24  # bounded\n", 24),
+    # comment and blank lines inside [options] are skipped
+    ("[options]\n# the knob below is p6.sby's own\n\nmode prove\ndepth 16\n", 16),
+    # only [options] configures the run: a `depth` word in [script] (e.g. a
+    # define) is not the run's depth, even over a depth that is stated
+    ("[options]\nmode bmc\ndepth 32\n\n[script]\n"
+     "read_verilog -formal -Ddepth 99 dut.v\nprep -top keyladder\n", 32),
+    # ...and with no depth in [options] at all, a script `depth` word still
+    # reads None -- never the script's 99
+    ("[options]\nmode bmc\n\n[script]\nread_verilog -Ddepth 99 dut.v\n", None),
+    # sby tests for a header on the comment-stripped line inside its strip
+    # sections, so `[script]  # a ] b` still ends [options] mode and a later
+    # bare `depth` is not read (issue #194) -- the case the pre-#259
+    # raw-line header match got wrong
     ("[options]\ndepth 4\n\n[script]  # a ] b\ndepth 99\n", 4),
+    # sby does NOT strip comments inside [script], so `[options]  # trick` there
+    # is not a header to sby and must not re-open options mode here either
+    ("[options]\nmode bmc\ndepth 4\n\n[script]\nread_verilog tiny.v\n"
+     "[options]  # trick\ndepth 99\n", 4),
+    # sby does not strip before the first section either, so a commented
+    # `[options]` at the very top opens no section and reads no depth
+    ("[options]  # not really\nmode bmc\ndepth 4\n", None),
+    # sby's [options] reader is a dict assignment: a later line overrides
+    ("[options]\ndepth 8\ndepth 16\n", 16),
     # [options] re-entered after [script]: last assignment wins
     ("[options]\ndepth 4\n\n[script]\nx\n\n[options]\ndepth 6\n", 6),
+    # no config.sby: sby never wrote one, so no depth
+    (None, None),
+    # sby defaults depth to 20. A record must state what ran, so None, never 20
+    ("[options]\nmode bmc\ntimeout 1500\n", None),
     # a depth that is not all digits is no depth, never a crash: the last
     # assignment in [options] wins whatever it holds, so a trailing non-digit
     # erases an earlier valid depth (sby's [options] reader is a dict
@@ -414,7 +472,43 @@ def _sby_workdir(tmp_path, config):
     ("[options]\ndepth 4x\ndepth 7\n", 7),
 ])
 def test_sby_depth(tmp_path, config, expected):
+    """The one shared config.sby depth reader, pinned once against record_lib."""
     assert record_lib.sby_depth(_sby_workdir(tmp_path, config)) == expected
+
+
+@pytest.mark.parametrize("config,expected", [
+    (REAL_CONFIG_SBY, "bmc"),
+    # no config.sby means sby never wrote one: None, and the caller must
+    # refuse -- this is the one None that is a broken run, not an unbounded
+    # one (issue #224)
+    (None, None),
+    # only `[options]` configures the run; a `mode` word elsewhere is not one.
+    # The `[script]` body carries a literal `mode prove` line, so this fails if
+    # `[options]` tracking is removed and every line is scanned (issue #243)
+    ("[options]\nmode bmc\n\n[script]\n"
+     "mode prove\nread_verilog -formal dut.v\nprep -top top\n", "bmc"),
+    # sby strips a trailing ` #...` from an [options] line; so does the reader
+    ("[options]\nmode prove  # unbounded\n", "prove"),
+    # sby's [options] reader is a dict assignment: a later line overrides
+    ("[options]\nmode bmc\nmode prove\n", "prove"),
+    # sby does NOT strip comments inside [script], so a commented `[options]`
+    # there opens no options block and a later bare `mode` line is not one
+    # either. This pins correct behaviour, not a regression fix: the DRBG/TRNG
+    # generator-local copy the #259 consolidation replaced matched the header
+    # on the raw line before any strip
+    ("[options]\nmode bmc\n\n[script]\n# [options]\nmode prove\nprep -top top\n",
+     "bmc"),
+    # the case the pre-#259 generator-local copy actually got wrong: `[script]`
+    # carries a trailing comment, inside a section sby itself comment-strips,
+    # so sby -- and the shared reader -- see the header on the stripped line.
+    # The old copy matched the header on the raw line, the commented header
+    # never matched, `[options]` never closed, and it misread the script's
+    # `mode prove` as this task's mode. Fails against the pre-consolidation copy
+    ("[options]\nmode bmc\n\n[script]  # a ] b\nmode prove\nprep -top top\n", "bmc"),
+])
+def test_sby_mode(tmp_path, config, expected):
+    """The one shared config.sby mode reader, pinned once against record_lib."""
+    assert record_lib.sby_mode(_sby_workdir(tmp_path, config)) == expected
 
 
 def test_sby_steps_checked_takes_the_max_over_both_checking_lines():

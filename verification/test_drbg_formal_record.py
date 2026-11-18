@@ -21,9 +21,10 @@ budget -- see verification/README.md), so this is the only automated check the
 generator's verdict rule gets. It exercises the verdict and the Depth-cell
 rendering, not the solver: the record-path plumbing (clean-tree check,
 tool-version probes) is stubbed, and --check-only pins that a refused run
-stops before any of it. The sby_mode reader contract itself lives with the
-other shared readers in verification/test_keyladder_formal_record.py,
-parametrized over this generator's import and record_lib (issues #259, #262).
+stops before any of it. The sby_mode reader contract itself lives in
+verification/test_record_lib.py, run against record_lib directly (issues
+#259, #262, #263); the identity assertions in
+test_keyladder_formal_record.py pin this generator's import of it.
 """
 
 from __future__ import annotations
@@ -110,9 +111,10 @@ def _run_gen(gen, out_dir, monkeypatch, check_only=True):
     return gen.main()
 
 
-# --- the sby_mode reader contract: pinned in test_keyladder_formal_record.py --
-# --- against this generator's import and record_lib itself (issue #262). The --
-# --- premise test below stays: it is the verdict rule's, not a reader contract.
+# --- the sby_mode reader contract: pinned in test_record_lib.py (issue #263), -
+# --- with the identity of this generator's import pinned by the keyladder -----
+# --- file's test_both_generators_use_the_shared_readers. The premise test ----
+# --- below stays: it is the verdict rule's, not a reader contract. -----------
 
 
 def test_depthless_prove_run_is_distinguishable_from_a_broken_one(gen, tmp_path):
