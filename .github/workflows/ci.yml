@@ -5,7 +5,8 @@
 # What runs here: format and known-answer correctness -- Python/shell
 # syntax, the pin and register-map table lints, the golden models against
 # the committed published vectors, and the reuse.lock.json hashes -- plus,
-# on PRs touching rtl/ or verification/, the
+# on PRs and merge-group entries (the merge queue's trial merges, issue
+# #283) touching rtl/ or verification/, the
 # `verify` job: the sha256, aes, drbg, hmac, keyladder and trng_if benches with
 # their negative controls and the SymbiYosys tasks (scripts/ci-verify.sh), and
 # `netlist-freshness`: the committed crypto_rot_top netlist re-synthesized and
@@ -28,6 +29,8 @@ name: CI
 on:
   pull_request:
   push:
+    branches: [main]
+  merge_group:
     branches: [main]
   workflow_dispatch:
 
@@ -70,8 +73,9 @@ jobs:
           python-version: "3.13"
       - run: npm run check:reuse
 
-  # Runs on every PR (so a required check is never left pending) but skips its
-  # steps unless rtl/, verification/, flow/ or the environment pins changed.
+  # Runs on every PR and every merge-group entry (so a required check is
+  # never left pending) but skips its steps unless rtl/, verification/,
+  # flow/ or the environment pins changed.
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -80,17 +84,19 @@ jobs:
         with:
           fetch-depth: 0
       - id: changed
+        # Shared gate (issue #283): PR = head vs merge-base with the target
+        # branch, as before; merge_group = the trial merge vs the event's
+        # merge_group.base_sha (github.base_ref is empty there); every other
+        # event runs all steps. An empty or unresolvable base fails the job
+        # -- it never reads as "no watched path changed".
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.merge_group.head_sha }}
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
-              | grep -Eq '^(rtl/|verification/|flow/|scripts/(setup-env|ci-verify)\.sh$|\.github/workflows/ci\.yml$)'; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "no rtl/ or verification/ change; verify skipped"
-          fi
+          out="$(./scripts/ci-changed.sh '^(rtl/|verification/|flow/|scripts/(setup-env|ci-verify)\.sh$|\.github/workflows/ci\.yml$)')"
+          echo "$out" >> "$GITHUB_OUTPUT"
       - if: steps.changed.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
@@ -127,17 +133,15 @@ jobs:
         with:
           fetch-depth: 0
       - id: changed
+        # Same shared gate as `verify` (issue #283), with this job's filter.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.merge_group.head_sha }}
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
-              | grep -Eq '^(rtl/|verification/|flow/|scripts/setup-env\.sh$|\.github/workflows/ci\.yml$)'; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "no rtl/ or verification/ change; netlist-freshness skipped"
-          fi
+          out="$(./scripts/ci-changed.sh '^(rtl/|verification/|flow/|scripts/setup-env\.sh$|\.github/workflows/ci\.yml$)')"
+          echo "$out" >> "$GITHUB_OUTPUT"
       - if: steps.changed.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
