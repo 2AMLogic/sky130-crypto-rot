@@ -20,6 +20,17 @@
 #   ./verification/rtl/sha256/run.sh --negative-control # K[17] flipped by one bit: MUST fail
 #                                                       # (exit 0 only if the bench catches it); also
 #                                                       # omits hh from the scrub list: test_scrub MUST fail
+#   ./verification/rtl/sha256/run.sh --gate-level       # also run the SAME bench (test_scrub and
+#                                                       # test_sha256_core) against the klt synthesize
+#                                                       # netlist of this run (sky130_fd_sc_hd cells;
+#                                                       # the two gate-level runs measured ~9 s and
+#                                                       # ~27 min -- slow, hence not on CI's path)
+#   ./verification/rtl/sha256/run.sh --gate-level --record
+#                                                       # same, and the record then carries the
+#                                                       # netlist hash, cell models and delay model
+#   ./verification/rtl/sha256/run.sh --gate-level --negative-control
+#                                                       # synthesize the K-corrupted build and run the
+#                                                       # bench on THAT netlist: MUST fail
 #
 # Exit 0 only if the simulation passed and the synthesis is ok with no latches.
 # Without --million-a that KAT is NOT run and a record says so. Synthesis is a
@@ -28,6 +39,12 @@
 # (ss_100C_1v60), pre-layout, worst setup slack reported as data -- a negative
 # slack does not fail the run, and the mode needs `openroad` on $PATH (klt sta
 # shells out to it). It never runs in CI: no PDK, no openroad.
+#
+# --gate-level is pre-layout and carries no SDF, so it is a functional check of
+# the mapped gates, not a timing one; the SDF-annotated post-route run is issue
+# #82. The million-`a` KAT is NOT run at gate level even with --million-a -- it
+# is ~2M cycles against behavioural cell models -- and the record says so. The
+# mode is deliberately NOT on CI's path (scripts/ci-verify.sh).
 
 set -euo pipefail
 
@@ -35,10 +52,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME=sha256
 source "${HERE}/../../../flow/common/core_flow.sh"
 
-MILLION=0; TIMING=0; CORE_FLOW_EXTRA_OPTS="--million-a:MILLION --timing:TIMING"
+MILLION=0; GATE_LEVEL=0; TIMING=0
+CORE_FLOW_EXTRA_OPTS="--million-a:MILLION --gate-level:GATE_LEVEL --timing:TIMING"
 core_flow_parse_opts "$@"
 if [ "${TIMING}" = 1 ]; then
-  if [ "${SIM_ONLY}" = 1 ] || [ "${NEG}" = 1 ] || [ "${MILLION}" = 1 ]; then
+  if [ "${SIM_ONLY}" = 1 ] || [ "${NEG}" = 1 ] || [ "${MILLION}" = 1 ] || [ "${GATE_LEVEL}" = 1 ]; then
     echo "error: --timing runs neither the simulations nor the million-a KAT;" >&2
     echo "  combine it with nothing (or with --record alone)." >&2
     exit 2
@@ -51,7 +69,19 @@ if [ "${TIMING}" = 1 ]; then
   exit 0
 fi
 
+# The committed vector set runs at gate level, plus test_scrub -- which is the
+# testcase that reads all thirteen scrubbed registers hierarchically, so running
+# it is what shows those names survive synthesis as readable netlist wires. Not
+# test_million_a: ~2M cycles against behavioural cell models is impractical, and
+# the record names it as not run at gate level, with that reason.
+GATE_TESTCASES="test_scrub test_sha256_core"
+GATE_EXCLUDED="test_million_a=about 2M cycles against behavioural cell models, hours rather than minutes; the RTL run still covers it under --million-a"
+
 core_flow_setup
+if [ "${NEG}" = 1 ] && [ "${GATE_LEVEL}" = 1 ]; then
+  core_flow_gate_negctl SHA256_NEG_CTRL test_sha256_core \
+    "SHA256_NEG_CTRL flips one K constant" "constant"
+fi
 if [ "${NEG}" = 1 ]; then
   echo "== negative control: SHA256_NEG_SCRUB omits hh from the scrub list; test_scrub must fail =="
   core_flow_negctl_one sim-scrub-request.json SHA256_NEG_SCRUB scrub-negctl.json \

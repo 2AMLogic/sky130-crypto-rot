@@ -1,0 +1,45 @@
+{
+  "_comment": [
+    "Template for the gate-level klt functional-verification request, rendered",
+    "by core_flow_gate_render() into flow/build/aes/gate-<testcase>/request.json.",
+    "Not a request itself: @NETLIST@ is the per-run netlist `klt synthesize`",
+    "wrote (read from that run's own report, hash-verified), so it cannot be a",
+    "committed constant. @PRIMITIVES@/@CELL_LIB@ are the PDK's behavioural cell",
+    "models, @BENCH_DIR@ this directory, @TESTCASE@ the cocotb testcase.",
+    "",
+    "The cell models come first and the netlist last: the netlist instantiates",
+    "them. FUNCTIONAL selects the PDK's zero-delay behavioural models over its",
+    "`specify` timing models, which Icarus cannot simulate (it implements",
+    "neither $setuphold nor $recrem's delayed-signal outputs, so those models",
+    "simulate as all-x); UNIT_DELAY keeps each flop's output off the clock edge",
+    "that produced it. Both are passed through options.defines, which the",
+    "pinned klt forwards to cocotb natively -- this flow is NOT a caller of",
+    "verification/gate-level/common/sky130_fd_sc_hd_sim_defines.v.",
+    "",
+    "No options.sdf: this is a pre-layout netlist with no delays to annotate,",
+    "and klt rejects options.sdf together with FUNCTIONAL outright. The",
+    "SDF-annotated post-route run is issue #82."
+  ],
+  "schema": "klt.functional_verification.request/1",
+  "engine": "icarus",
+  "sources": [
+    "@PRIMITIVES@",
+    "@CELL_LIB@",
+    "@NETLIST@"
+  ],
+  "hdl_toplevel": "aes_core",
+  "testbench": {
+    "module": "test_aes_core",
+    "testcase": "@TESTCASE@",
+    "search_path": "@BENCH_DIR@"
+  },
+  "options": {
+    "coverage": false,
+    "timescale": ["1ns", "1ps"],
+    "random_seed": 1,
+    "defines": {
+      "FUNCTIONAL": null,
+      "UNIT_DELAY": "#1"
+    }
+  }
+}
