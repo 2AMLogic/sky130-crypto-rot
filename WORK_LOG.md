@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-18
 
+- **PR #188**: feat(verification): run the AES and SHA-256 known-answer benches on their synthesized netlists
+- **Issue #179** (closed): Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 - **PR #288**: test: unshadow bit-range readable-flag test in test_check_regmap.py
 - **PR #286**: ci: report the required checks on merge_group commits via a fail-closed shared changed-path gate
 - **PR #284**: fix: restore the strict exact-name top-module selection for the P-12 cone check
