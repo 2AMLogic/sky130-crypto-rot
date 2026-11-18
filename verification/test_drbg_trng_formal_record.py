@@ -21,9 +21,9 @@ verdict fixtures drive the generator as a subprocess over synthetic out-dirs
 fields, `base` keeping its .sby suffix) plus per-task work directories named
 {base-without-.sby}_{task}. Assertions are on the generator's own exit code
 and stderr, never on a re-implementation of the rule. The module is imported
-(importlib, as in the sibling test) only for the sby_depth() /
-steps_checked() readers and its real EXPECT table, which the fixtures anchor
-to and never re-declare.
+(importlib, as in the sibling test) only for the steps_checked() reader and
+its real EXPECT table, which the fixtures anchor to and never re-declare; the
+config.sby reader contract lives in test_record_lib.py (issue #263).
 
 The formal flow itself is local-only (PDK, pinned sby, bounded runs past the
 CI budget -- see verification/README.md), so this is the only automated check
@@ -237,34 +237,7 @@ def test_check_only_never_reaches_require_clean_inputs(gen, tmp_path):
         stray.unlink(missing_ok=True)
 
 
-# ---- the readers the verdict (and the Depth column) lean on ----------------
-
-
-def test_sby_depth_reads_the_options_section(gen, tmp_path):
-    d = tmp_path / "net_p9_net_prove"
-    d.mkdir()
-    (d / "config.sby").write_text(
-        "[options]\nmode prove\ndepth 20\n\n[engines]\nabc pdr\n\n[script]\nprep -top top\n")
-    assert gen.sby_depth(d) == 20
-
-
-def test_sby_depth_ignores_depth_outside_options(gen, tmp_path):
-    """A `depth` word in [script] (e.g. a define) is not the run's depth."""
-    d = tmp_path / "t"
-    d.mkdir()
-    (d / "config.sby").write_text(
-        "[options]\nmode bmc\n\n[script]\nread_verilog -Ddepth 99 dut.v\n")
-    assert gen.sby_depth(d) is None
-
-
-def test_sby_depth_missing_config_or_depth_is_never_a_guess(gen, tmp_path):
-    """sby defaults depth to 20; a record must state what ran, so an absent
-    config or an [options] without a depth line reads None, never 20."""
-    d = tmp_path / "t"
-    d.mkdir()
-    assert gen.sby_depth(d) is None
-    (d / "config.sby").write_text("[options]\nmode bmc\ntimeout 1500\n")
-    assert gen.sby_depth(d) is None
+# ---- the logfile reader the verdict (and the reached-depth column) lean on --
 
 
 def test_steps_checked_takes_the_last_checked_step(gen, tmp_path):
