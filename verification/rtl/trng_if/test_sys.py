@@ -31,13 +31,14 @@ from pathlib import Path
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import FallingEdge, RisingEdge
+from cocotb.triggers import RisingEdge
 from cocotb.utils import get_sim_time
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from verification.model.ctr_drbg import CtrDrbg  # noqa: E402
+from benchlib import Checks, cycles  # noqa: E402
 from trngmodel import TrngStub, bit  # noqa: E402
 
 INTERVAL = 3
@@ -48,12 +49,7 @@ def words_to_bytes(ws):
     return b"".join(w.to_bytes(4, "big") for w in ws)
 
 
-async def cycles(d, n):
-    for _ in range(n):
-        await FallingEdge(d.clk)
-
-
-class Sys:
+class Sys(Checks):
     def __init__(self, dut, ratio=40, real=False):
         self.d = dut
         self.fails = []
@@ -67,10 +63,6 @@ class Sys:
         self.done_seen = 0
         self.interval = 65536 if real else INTERVAL
         self.model = CtrDrbg(use_df=True, key_bits=128, reseed_interval=self.interval)
-
-    def check(self, cond, msg):
-        if not cond:
-            self.fails.append(msg)
 
     def secrets(self):
         u = self.d.u.u_drbg

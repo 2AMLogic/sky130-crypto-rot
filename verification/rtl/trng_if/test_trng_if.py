@@ -15,9 +15,10 @@ from pathlib import Path
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import FallingEdge, RisingEdge
+from cocotb.triggers import RisingEdge
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from benchlib import Checks, cycles  # noqa: E402
 from trngmodel import TrngStub  # noqa: E402
 
 RATIO = 40
@@ -29,24 +30,15 @@ def seed_words(dut, n):
     return [(v >> (32 * i)) & 0xFFFFFFFF for i in range(n)]
 
 
-async def cycles(d, n):
-    for _ in range(n):
-        await FallingEdge(d.clk)
-
-
 def last_pops(stub, n):
     return [w for _, _, w in stub.pops[-n:]]
 
 
-class Env:
+class Env(Checks):
     def __init__(self, dut, ratio=RATIO):
         self.d = dut
         self.fails = []
         self.stub = TrngStub(dut, ratio)
-
-    def check(self, cond, msg):
-        if not cond:
-            self.fails.append(msg)
 
     async def boot(self):
         d = self.d
@@ -89,7 +81,7 @@ class Env:
         await cycles(d, 2)
 
 
-async def collection(env, full):
+async def collection(env):
     stub, d = env.stub, env.d
     await env.boot()
     env.check([w[2:] for w in stub.writes] == [(CTRL_ADDR, 3)], f"bring-up writes: {stub.writes}")
@@ -117,7 +109,7 @@ async def test_trng_if_1000(dut):
     """Collection at the real 1000:1 clock ratio."""
     cocotb.start_soon(Clock(dut.clk, 20, unit="ns").start())
     env = Env(dut, 1000)
-    await collection(env, False)
+    await collection(env)
     report(dut, env, "trng_if ratio=1000:1 stub (collection only)")
 
 
@@ -126,7 +118,7 @@ async def test_trng_if(dut):
     cocotb.start_soon(Clock(dut.clk, 20, unit="ns").start())
     env = Env(dut, RATIO)
     stub, d = env.stub, dut
-    await collection(env, True)
+    await collection(env)
 
     # -- gated / startup_done = 0 mid-seed: partial seed discarded, restart at word 0 --
     for label, setter in (("gated", "gated_force"), ("startup_done=0", "startup_force_low")):
