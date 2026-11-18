@@ -3,6 +3,13 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-18
+
+- **PR #275**: refactor(verification): drop the dead collection() full param and share cycles/check in trng_if benches
+- **PR #195**: test: consolidate the config.sby reader contract into test_record_lib.py
+- **Issue #263** (closed): Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
+- **Issue #182** (closed): Consolidate the config.sby reader tests: one contract in test_record_lib.py instead of three generator suites (one run 3x)
+
 ### 2026-11-17
 
 - **PR #272**: docs: correct T1 item-10 envelope count to three (items 1, 9, 10)
