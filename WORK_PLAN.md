@@ -33,14 +33,15 @@ _None._
 
 Issues currently being built (`loom:building`).
 
-- **#277**: Consolidate duplicated cone-of-influence and netlist-splice helpers in formal tooling
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
+- **#281**: Restore the strict exact-name top-module lookup for the P-12 cone check
+- **#283**: Merge queue: add the merge_group trigger and adapt the PR-metadata gates
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
-_None._
+- **#284**: fix: restore the strict exact-name top-module selection for the P-12 cone check
 
 ## Approved (Awaiting Merge)
 
@@ -55,6 +56,8 @@ Issues carrying `loom:curated`.
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(curated)* *(held)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
+- **#281**: Restore the strict exact-name top-module lookup for the P-12 cone check *(curated)*
+- **#283**: Merge queue: add the merge_group trigger and adapt the PR-metadata gates *(curated)*
 
 ## Proposed (Architect / Hermit)
 
@@ -75,10 +78,10 @@ _None._
 | Very important | 0 |
 | Important | 2 |
 | Ready (`loom:issue`, net of holds/building/merge-pending) | 0 |
-| In Progress (`loom:building`) | 2 |
-| PRs awaiting review | 0 |
+| In Progress (`loom:building`) | 3 |
+| PRs awaiting review | 1 |
 | Approved PRs awaiting merge | 0 |
-| Curated | 3 |
+| Curated | 5 |
 | Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
