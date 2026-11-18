@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-18
 
+- **PR #280**: refactor(formal): consolidate cone-of-influence and netlist-splice helpers into one shared module
+- **Issue #277** (closed): Consolidate duplicated cone-of-influence and netlist-splice helpers in formal tooling
 - **PR #275**: test: consolidate the config.sby reader contract into test_record_lib.py
 - **PR #195**: refactor(verification): drop the dead collection() full param and share cycles/check in trng_if benches
 - **Issue #263** (closed): Consolidate the config.sby reader tests: one contract in test_record_lib.py instead of three generator suites (one run 3x)
