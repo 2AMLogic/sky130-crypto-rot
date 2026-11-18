@@ -82,7 +82,7 @@ def test_write_only_may_use_bit_ranged_key_port(tmp_path):
     assert errs == []
 
 
-def test_readable_status_flag_names_are_not_key_ports(tmp_path):
+def test_readable_status_flag_names_with_bit_ranges_are_not_key_ports(tmp_path):
     flags = ("`root_key_valid`", "`seeded`", "`slot_valid`", "`slot_locked`",
              "`root_key_valid[3:0]`")
     rows = "".join(f"| 0x{i:02X} | FLAG{i} | RO | - | {f} |\n"
