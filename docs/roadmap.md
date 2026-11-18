@@ -34,11 +34,11 @@ rung partly recorded and nothing beyond it claimed.
 - **TRNG interface**: `drbg_top` passes against a port-protocol stub and against the sibling's RTL
   at the pinned commit, with the sibling's start-up length and conditioner block shortened by
   parameter (`verification/records/trng-if-sim/`).
-- **T1 checklist** (`klt signoff`, klayout-tools 0.8.0): **2 of 11 met, 1 not applicable.**
+- **T1 checklist** (`klt signoff`, klayout-tools 0.8.0): **3 of 11 met, 1 not applicable** (`manifests/sky130-crypto-rot.signoff.json`, `t1_met_count`).
 
 | Item | Status | Issue |
 |---|---|---|
-| 1 Design sources | unmet: no top level, no committed netlist | #46 (#87, #88) |
+| 1 Design sources | met (`manifests/inventories/item-1.envelope.json`, 11/11 attestation checks) | #46 (#87, #88) |
 | 2 Layout | unmet | #47 |
 | 3 DRC clean | unmet | #48 |
 | 4 LVS clean | unmet | #49 |
@@ -47,7 +47,7 @@ rung partly recorded and nothing beyond it claimed.
 | 7 Post-layout verification | unmet | #82 |
 | 8 Characterization report | unmet | #83 |
 | 9 Testbenches shipped | met (`scripts/cold-start-benches.sh`, attested) | - |
-| 10 Repo hygiene | met (attested; CI re-hashes both envelopes) | - |
+| 10 Repo hygiene | met (attested; CI re-hashes all three envelopes: items 1, 9, 10) | - |
 | 11 Power delivery | unmet | #53 |
 
 Since the last core was added (2026-10-27), most merged work has been on the evidence
@@ -92,11 +92,11 @@ gate-level simulation) that the top level will need anyway.
 - **Top-level RTL and bus-level bench** (#87 (closed)) after #89 (closed). Done when `rtl/crypto_rot_top.v` passes
   end-to-end KATs through the bus, one test per zeroize event, a protocol checker and negative
   controls, with a record.
-- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (open)) after #87 (closed). Done
-  when `klt signoff` grades item 1 `met`; closes #46 (open).
+- **Top-level netlist, freshness check, P-12 on the netlist, `--attest 1`** (#88 (closed)) after #87 (closed). Done
+  when `klt signoff` grades item 1 `met`; closes #46 (closed).
 - **Bus-level P-1, P-3, P-4, P-10, P-11, P-14** after #87 (closed). No issue yet; file them once the
   top-level port and register names exist, since each property is stated over them.
-- **Routed GDS** (#47 (open)) after #88 (open); then **DRC** (#48 (open)), **LVS** (#49 (open)),
+- **Routed GDS** (#47 (open)) after #88 (closed); then **DRC** (#48 (open)), **LVS** (#49 (open)),
   **power delivery** (#53 (open)) and **corner verification** (#50 (open)) on that layout.
 - **Post-layout verification** (#82 (open)) and the **characterization report** (#83 (open)) after
   #47 (open) and #50 (open).
@@ -121,7 +121,7 @@ gate-level simulation) that the top level will need anyway.
 
 ## Blocked and waiting
 
-- The register map (#89) landed, so nothing down the T1 chain waits on it; #87 is in progress.
+- The register map (#89) landed, so nothing down the T1 chain waits on it; #87 and #88 are closed.
 - Three scope-reduction proposals wait on a maintainer decision: #121 (drop the vendored tiers doc),
   #129 (unify the two formal harnesses), #134 (drop the three vendored `sky130-modexp` workaround
   files). #129 and #134 touch the formal and gate-level paths that Now items 5 and 7 use; whichever

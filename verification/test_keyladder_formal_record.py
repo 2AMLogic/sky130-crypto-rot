@@ -12,11 +12,18 @@ CI budget -- see verification/README.md), so this is the only automated check th
 depth handling gets. It exercises the reader and the verdict rule, not the solver.
 
 Issue #211 hoisted the depth reader into flow/common/record_lib.py, and issues
-#259/#262 did the same for the mode reader and the steps-checked scrape, so the
-reader-contract tests run against the shared definitions and against both
-generators' import of them (keyladder and DRBG/TRNG): a local copy re-introduced
-into either generator, or a one-sided import, fails them rather than silently
-splitting a record column again.
+#259/#262 did the same for the mode reader and the steps-checked scrape. The
+depth/mode reader-contract cases used to run here against every handle --
+record_lib and both generators' imports -- so a local copy re-introduced into
+either generator failed them; that 3-handle parametrization was reversed by
+the operator ruling of 2026-11-17 (attended `/fleet:decide` round
+20261116-r15, slate s3, issue #263): the contract now lives once in
+verification/test_record_lib.py, run against record_lib directly. What guards
+against a re-introduced generator-local copy here is
+test_both_generators_use_the_shared_readers: its identity assertions fail a
+local `def sby_depth`/`sby_mode` even before its contract can drift. This file
+keeps the generator's own behaviour (the verdict rule, the depth column, the
+no-depth-knob pins) and the steps-checked scrape contract.
 """
 
 from __future__ import annotations
@@ -32,26 +39,6 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 GENERATOR = "verification/formal/keyladder/make_record.py"
 DRBG_GENERATOR = "verification/formal/make_record.py"
-
-# A real config.sby, byte-for-byte as the pinned yowasp-yosys wheel
-# (YOWASP_YOSYS_VERSION in scripts/setup-env.sh) wrote it for a two-task file whose
-# `[options]` read `mode bmc` / `a: depth 5` / `b: depth 7`. Captured from the tool
-# rather than hand-written, so a format change in a re-pinned sby breaks this test
-# instead of silently changing a record's Depth column.
-REAL_CONFIG_SBY = """[options]
-mode bmc
-depth 5
-
-[engines]
-smtbmc z3
-
-[script]
-read_verilog -formal tiny.v
-prep -flatten -top tiny
-
-[files]
-tiny.v
-"""
 
 
 def _load(name: str, rel: str):
@@ -73,28 +60,6 @@ def drbg():
 
 
 @pytest.fixture(scope="module", params=["keyladder", "drbg", "record_lib"])
-def sby_depth(request, gen, drbg):
-    """The depth reader as the keyladder generator, the DRBG/TRNG generator and
-    record_lib itself expose it (all one function since #211; `import record_lib`
-    resolves through the sys.path entry each generator installs, so the identity
-    is with the module they actually use). The reader-contract tests below run
-    against all three, so a local copy re-introduced into either generator fails
-    them instead of drifting the Depth column again."""
-    mods = {"keyladder": gen, "drbg": drbg, "record_lib": sys.modules["record_lib"]}
-    return mods[request.param].sby_depth
-
-
-@pytest.fixture(scope="module", params=["drbg", "record_lib"])
-def sby_mode(request, drbg):
-    """The mode reader as the DRBG/TRNG generator and record_lib itself expose
-    it. The keyladder generator binds no sby_mode -- its judge refuses any run
-    that names no depth whatever the mode (issue #224), so it never states one
-    -- and the mode contract runs against every module that does (issue #262)."""
-    mods = {"drbg": drbg, "record_lib": sys.modules["record_lib"]}
-    return mods[request.param].sby_mode
-
-
-@pytest.fixture(scope="module", params=["keyladder", "drbg", "record_lib"])
 def sby_steps_checked(request, gen, drbg):
     """The steps-checked scrape as the keyladder generator (bound by name), the
     DRBG/TRNG generator (bound only as `rc.sby_steps_checked`, its logfile
@@ -105,134 +70,6 @@ def sby_steps_checked(request, gen, drbg):
     mods = {"keyladder": gen, "drbg": drbg, "record_lib": sys.modules["record_lib"]}
     return getattr(getattr(mods[request.param], "rc", mods[request.param]),
                    "sby_steps_checked")
-
-
-def _workdir(tmp_path: Path, config: str | None) -> Path:
-    d = tmp_path / "p6_rtl"
-    d.mkdir()
-    if config is not None:
-        (d / "config.sby").write_text(config)
-    return d
-
-
-def test_reads_the_depth_from_a_real_config_sby(sby_depth, tmp_path):
-    assert sby_depth(_workdir(tmp_path, REAL_CONFIG_SBY)) == 5
-
-
-def test_task_prefixes_are_already_resolved_by_sby(sby_depth, tmp_path):
-    """sby writes the depth of THIS task, so the reader never resolves `net:` itself."""
-    assert sby_depth(_workdir(tmp_path, "[options]\nmode prove\ndepth 2\n")) == 2
-
-
-def test_trailing_comment_on_the_depth_line(sby_depth, tmp_path):
-    """sby strips a trailing ` #...` from an [options] line; so does the reader."""
-    assert sby_depth(_workdir(tmp_path, "[options]\nmode bmc\ndepth 24  # bounded\n")) == 24
-
-
-def test_comment_and_blank_lines_inside_options(sby_depth, tmp_path):
-    cfg = "[options]\n# the knob below is p6.sby's own\n\nmode prove\ndepth 16\n"
-    assert sby_depth(_workdir(tmp_path, cfg)) == 16
-
-
-def test_depth_outside_the_options_section_is_ignored(sby_depth, tmp_path):
-    """Only `[options]` configures the run; a `depth` word elsewhere is not a depth."""
-    cfg = ("[options]\nmode bmc\ndepth 32\n\n[script]\n"
-           "read_verilog -formal -Ddepth 99 dut.v\nprep -top keyladder\n")
-    assert sby_depth(_workdir(tmp_path, cfg)) == 32
-
-
-def test_commented_section_header_ends_options_mode(sby_depth, tmp_path):
-    """sby tests for a header on the comment-stripped line, so `[script]  # note`
-    still ends [options] mode; a later bare `depth` must not be read (issue #194)."""
-    cfg = "[options]\nmode bmc\ndepth 4\n\n[script]  # note\ndepth 99\n"
-    assert sby_depth(_workdir(tmp_path, cfg)) == 4
-
-
-def test_commented_options_lookalike_inside_script_is_not_a_header(sby_depth, tmp_path):
-    """sby does NOT strip comments inside [script], so `[options]  # trick` there
-    is not a header to sby and must not re-open options mode here either."""
-    cfg = ("[options]\nmode bmc\ndepth 4\n\n[script]\nread_verilog tiny.v\n"
-           "[options]  # trick\ndepth 99\n")
-    assert sby_depth(_workdir(tmp_path, cfg)) == 4
-
-
-def test_commented_options_header_before_any_section_is_not_a_header(sby_depth, tmp_path):
-    """sby does not strip before the first section either (mode is None), so a
-    commented `[options]` at the very top opens no section and reads no depth."""
-    cfg = "[options]  # not really\nmode bmc\ndepth 4\n"
-    assert sby_depth(_workdir(tmp_path, cfg)) is None
-
-
-def test_last_assignment_wins(sby_depth, tmp_path):
-    """sby's [options] reader is a dict assignment, so a later line overrides."""
-    assert sby_depth(_workdir(tmp_path, "[options]\ndepth 8\ndepth 16\n")) == 16
-
-
-def test_missing_config_sby_is_not_a_depth(sby_depth, tmp_path):
-    assert sby_depth(_workdir(tmp_path, None)) is None
-
-
-def test_options_without_a_depth_does_not_assume_sbys_default(sby_depth, tmp_path):
-    """sby defaults depth to 20. A record must state what ran, so None, never 20."""
-    assert sby_depth(_workdir(tmp_path, "[options]\nmode bmc\ntimeout 1500\n")) is None
-
-
-# --- the mode reader: same resolved-config contract, run against the ----------
-# --- DRBG/TRNG generator's own import and record_lib itself (issue #262) ------
-
-
-def test_reads_the_mode_from_a_real_config_sby(sby_mode, tmp_path):
-    assert sby_mode(_workdir(tmp_path, REAL_CONFIG_SBY)) == "bmc"
-
-
-def test_missing_config_sby_is_not_a_mode(sby_mode, tmp_path):
-    """No config.sby means sby never wrote one: None, and the caller must
-    refuse -- this is the one None that is a broken run, not an unbounded
-    one (issue #224)."""
-    assert sby_mode(_workdir(tmp_path, None)) is None
-
-
-def test_mode_outside_the_options_section_is_ignored(sby_mode, tmp_path):
-    """Only `[options]` configures the run; a `mode` word elsewhere is not one.
-    The `[script]` body carries a literal `mode prove` line, so this fails if
-    `[options]` tracking is removed and every line is scanned (issue #243)."""
-    cfg = ("[options]\nmode bmc\n\n[script]\n"
-           "mode prove\nread_verilog -formal dut.v\nprep -top top\n")
-    assert sby_mode(_workdir(tmp_path, cfg)) == "bmc"
-
-
-def test_mode_trailing_comment(sby_mode, tmp_path):
-    """sby strips a trailing ` #...` from an [options] line; so does the reader."""
-    assert sby_mode(_workdir(tmp_path, "[options]\nmode prove  # unbounded\n")) == "prove"
-
-
-def test_mode_last_assignment_wins(sby_mode, tmp_path):
-    """sby's [options] reader is a dict assignment, so a later line overrides."""
-    assert sby_mode(_workdir(tmp_path, "[options]\nmode bmc\nmode prove\n")) == "prove"
-
-
-def test_commented_mode_header_inside_script_is_not_a_header(sby_mode, tmp_path):
-    """sby does NOT strip comments inside [script], so a commented `[options]`
-    there opens no options block and a later bare `mode` line is not one either.
-    This pins correct behaviour, not a regression fix: the DRBG/TRNG
-    generator-local copy the #259 consolidation replaced matched the header on
-    the raw line before any strip, so it read this config as `bmc` too."""
-    cfg = ("[options]\nmode bmc\n\n[script]\n"
-           "# [options]\nmode prove\nprep -top top\n")
-    assert sby_mode(_workdir(tmp_path, cfg)) == "bmc"
-
-
-def test_mode_header_with_trailing_comment_inside_strip_section(sby_mode, tmp_path):
-    """The case the DRBG/TRNG generator-local copy the #259 consolidation
-    replaced actually got wrong: `[script]` carries a trailing comment, inside
-    a section sby itself comment-strips, so sby -- and the shared reader -- see
-    the header on the stripped line. The old copy matched the header on the raw
-    line, the commented header never matched, `[options]` never closed, and it
-    misread the script's `mode prove` as this task's mode. Fails against the
-    pre-consolidation copy."""
-    cfg = ("[options]\nmode bmc\n\n[script]  # a ] b\n"
-           "mode prove\nprep -top top\n")
-    assert sby_mode(_workdir(tmp_path, cfg)) == "bmc"
 
 
 # --- the steps-checked scrape: both generators' reached-depth column ----------
@@ -264,13 +101,21 @@ def test_both_generators_use_the_shared_readers(gen, drbg):
     """One parser per reader, not three: a generator-local `def sby_depth`
     would let the keyladder and DRBG/TRNG record families state different
     depths again (#211), and the same holds for the mode reader and the
-    steps-checked scrape (#262). The identity assertions fail a re-introduced
-    local copy even before its contract drifts; the contract tests above fail
-    a drifting one."""
+    steps-checked scrape (#262). These identity assertions are the guard the
+    operator ruling settled on (2026-11-17, round 20261116-r15, slate s3,
+    issue #263), after this file's reader-contract cases moved to
+    verification/test_record_lib.py: they fail a re-introduced local copy
+    even before its contract drifts -- the contract itself is pinned once,
+    against record_lib, in test_record_lib.py."""
     shared = sys.modules["record_lib"]
     assert gen.sby_depth is shared.sby_depth
     assert drbg.sby_depth is shared.sby_depth
     assert drbg.sby_mode is shared.sby_mode
+    # The keyladder generator binds no sby_mode by design -- its judge refuses
+    # any run that names no depth whatever the mode (issue #224), so it never
+    # states one; a module-level def beside the shared sby_depth would be a
+    # shadow of a reader this generator must not state.
+    assert not hasattr(gen, "sby_mode")
     assert gen.sby_steps_checked is shared.sby_steps_checked
     assert drbg.rc.sby_steps_checked is shared.sby_steps_checked
     # The DRBG/TRNG generator binds the scrape only through its `rc` import

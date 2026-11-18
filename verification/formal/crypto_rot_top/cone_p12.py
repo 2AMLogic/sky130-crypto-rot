@@ -59,7 +59,12 @@ import argparse
 import json
 import re
 import sys
-from collections import deque
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import netlist_graph  # noqa: E402
+from netlist_graph import build, cone  # noqa: E402
 
 TOP = "crypto_rot_top"
 
@@ -167,53 +172,6 @@ def liberty_scan_cells(path: str) -> dict:
             "families": sorted(set(scan.values()))}
 
 
-def load(path: str):
-    data = json.load(open(path))
-    mods = data["modules"]
-    if TOP not in mods:
-        raise SystemExit(f"top module {TOP} not found in {path}")
-    return mods[TOP]
-
-
-def build(top):
-    drivers: dict[int, list[int]] = {}
-    ins: list[list[int]] = []
-    for idx, cell in enumerate(top["cells"].values()):
-        dirs = cell.get("port_directions", {})
-        cin: list[int] = []
-        for port, bits in cell["connections"].items():
-            d = dirs.get(port)
-            if d is None:
-                raise SystemExit(f"cell type {cell['type']} port {port} has no direction; "
-                                 "design is not fully flattened/modelled")
-            for b in bits:
-                if not isinstance(b, int):
-                    continue
-                if d == "input":
-                    cin.append(b)
-                else:
-                    drivers.setdefault(b, []).append(idx)
-        ins.append(cin)
-    return drivers, ins
-
-
-def cone(bits, drivers, ins, cut=frozenset()):
-    seen = set()
-    cells = set()
-    q = deque(b for b in bits if isinstance(b, int) and b not in cut)
-    while q:
-        b = q.popleft()
-        if b in seen:
-            continue
-        seen.add(b)
-        for c in drivers.get(b, ()):
-            if c in cells:
-                continue
-            cells.add(c)
-            q.extend(x for x in ins[c] if x not in cut)
-    return seen
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("design")
@@ -231,7 +189,7 @@ def main() -> int:
     ap.add_argument("--out")
     args = ap.parse_args()
 
-    top = load(args.design)
+    top = netlist_graph.load(args.design, TOP, strict=True)
     if args.splice_scope:
         top["cells"]["_splice_scope_control"] = {
             "type": "$scopeinfo", "hide_name": 0, "parameters": {"TYPE": "module"},

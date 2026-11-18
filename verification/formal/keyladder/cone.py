@@ -26,62 +26,16 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import deque
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import netlist_graph  # noqa: E402
+from netlist_graph import build, cone  # noqa: E402
 
 ENGINE_KEY_OUTPUTS = ("hmac_key", "aes_key")
 SLOT_NETS = ("s0", "s1", "s2", "s3")
 KEY_INPUT_PORTS = ("root_key", "ld_data")
-
-
-def load(path: str):
-    top = None
-    data = json.load(open(path))
-    for name, mod in data["modules"].items():
-        if mod.get("attributes", {}).get("top") or name == "keyladder":
-            top = mod
-    if top is None:
-        raise SystemExit("top module keyladder not found")
-    return top
-
-
-def build(top):
-    # bit -> list of cell indices that drive it; cell index -> list of input bits
-    drivers: dict[int, list[int]] = {}
-    ins: list[list[int]] = []
-    for idx, cell in enumerate(top["cells"].values()):
-        dirs = cell.get("port_directions", {})
-        cin: list[int] = []
-        for port, bits in cell["connections"].items():
-            d = dirs.get(port)
-            if d is None:
-                raise SystemExit(f"cell type {cell['type']} port {port} has no direction; "
-                                 "design is not fully flattened/modelled")
-            for b in bits:
-                if not isinstance(b, int):
-                    continue
-                if d == "input":
-                    cin.append(b)
-                else:
-                    drivers.setdefault(b, []).append(idx)
-        ins.append(cin)
-    return drivers, ins
-
-
-def cone(bits, drivers, ins):
-    seen = set()
-    cells = set()
-    q = deque(b for b in bits if isinstance(b, int))
-    while q:
-        b = q.popleft()
-        if b in seen:
-            continue
-        seen.add(b)
-        for c in drivers.get(b, ()):
-            if c in cells:
-                continue
-            cells.add(c)
-            q.extend(ins[c])
-    return seen
 
 
 def main() -> int:
@@ -91,7 +45,7 @@ def main() -> int:
     ap.add_argument("--out")
     args = ap.parse_args()
 
-    top = load(args.design)
+    top = netlist_graph.load(args.design, "keyladder")
     drivers, ins = build(top)
     nets = top["netnames"]
 

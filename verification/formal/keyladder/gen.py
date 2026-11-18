@@ -18,7 +18,6 @@ from the tracked RTL and the tracked property text. Nothing under rtl/ is edited
 from __future__ import annotations
 
 import argparse
-import re
 import shutil
 import subprocess
 import sys
@@ -28,29 +27,14 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 RTL = REPO / "rtl/keyladder/keyladder.v"
 
+sys.path.insert(0, str(HERE.parent))
+
+import netlist_graph  # noqa: E402
+
+
 # The one textual mutation of RTL that is not an existing `ifdef KL_NEG_*`.
 SLOTPATH_FROM = "assign busy        = (state != S_IDLE);"
 SLOTPATH_TO = "assign busy        = (state != S_IDLE) | s0[0];"
-
-
-def splice(module_text: str, block: str, module: str) -> str:
-    """Insert block before the `endmodule` that closes `module`."""
-    m = re.search(rf"^module {re.escape(module)}\b", module_text, re.M)
-    if not m:
-        raise SystemExit(f"module {module} not found")
-    end = module_text.index("\nendmodule", m.end())
-    out = module_text[: end + 1] + block + "\n" + module_text[end + 1 :]
-    # the splice must be a pure insertion
-    assert out.replace(block + "\n", "", 1) == module_text, "splice altered the source"
-    return out
-
-
-def module_text(netlist: str, module: str) -> str:
-    m = re.search(rf"^module {re.escape(module)}\b", netlist, re.M)
-    if not m:
-        raise SystemExit(f"module {module} not in netlist")
-    end = netlist.index("\nendmodule", m.end()) + len("\nendmodule\n")
-    return netlist[m.start() : end]
 
 
 def main() -> int:
@@ -66,7 +50,7 @@ def main() -> int:
 
     props = (HERE / "props_slots.vh").read_text()
     rtl = RTL.read_text()
-    (st / "dut_rtl.v").write_text(splice(rtl, props, "keyladder"))
+    (st / "dut_rtl.v").write_text(netlist_graph.splice(rtl, props, "keyladder"))
 
     if rtl.count(SLOTPATH_FROM) != 1:
         raise SystemExit("slot-path mutation site not found exactly once; rtl changed?")
@@ -82,8 +66,8 @@ def main() -> int:
     for item in args.netlist:
         name, path = item.split("=", 1)
         net = Path(path).read_text()
-        kl = module_text(net, "keyladder")
-        (st / f"dut_net_{name}.v").write_text(splice(kl, props, "keyladder"))
+        kl = netlist_graph.module_text(net, "keyladder")
+        (st / f"dut_net_{name}.v").write_text(netlist_graph.splice(kl, props, "keyladder"))
         if Path(path).resolve() != (st / f"net_{name}.v").resolve():
             shutil.copyfile(path, st / f"net_{name}.v")
 
