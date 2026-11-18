@@ -189,7 +189,7 @@ def main() -> int:
     ap.add_argument("--out")
     args = ap.parse_args()
 
-    top = netlist_graph.load(args.design, TOP)
+    top = netlist_graph.load(args.design, TOP, strict=True)
     if args.splice_scope:
         top["cells"]["_splice_scope_control"] = {
             "type": "$scopeinfo", "hide_name": 0, "parameters": {"TYPE": "module"},
