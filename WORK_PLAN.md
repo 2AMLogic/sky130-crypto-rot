@@ -25,14 +25,15 @@ _None._
 
 ## Ready
 
-Human-approved issues ready for implementation (`loom:issue`).
+Human-approved issues (`loom:issue`) ready for implementation — excluding held (`loom:blocked`/`loom:operator`/`loom:frozen`), `loom:building`, and issues closed by an open `loom:pr` PR (listed under Approved).
 
-- **#277**: Consolidate duplicated cone-of-influence and netlist-splice helpers in formal tooling
+_None._
 
 ## In Progress
 
 Issues currently being built (`loom:building`).
 
+- **#277**: Consolidate duplicated cone-of-influence and netlist-splice helpers in formal tooling
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 
 ## PRs Awaiting Review
@@ -73,8 +74,8 @@ _None._
 | Operator merge-risk holds | 0 |
 | Very important | 0 |
 | Important | 2 |
-| Ready (`loom:issue`) | 1 |
-| In Progress (`loom:building`) | 1 |
+| Ready (`loom:issue`, net of holds/building/merge-pending) | 0 |
+| In Progress (`loom:building`) | 2 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 3 |
