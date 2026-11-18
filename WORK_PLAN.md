@@ -27,7 +27,7 @@ _None._
 
 Human-approved issues ready for implementation (`loom:issue`).
 
-_None._
+- **#277**: Consolidate duplicated cone-of-influence and netlist-splice helpers in formal tooling
 
 ## In Progress
 
