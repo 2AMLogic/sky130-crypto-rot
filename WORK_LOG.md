@@ -5,6 +5,11 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-18
 
+- **PR #288**: test: unshadow bit-range readable-flag test in test_check_regmap.py
+- **PR #286**: ci: report the required checks on merge_group commits via a fail-closed shared changed-path gate
+- **PR #284**: fix: restore the strict exact-name top-module selection for the P-12 cone check
+- **Issue #287** (closed): Fix shadowed duplicate test in test_check_regmap.py (bit-range flag coverage never runs)
+- **Issue #281** (closed): Restore the strict exact-name top-module lookup for the P-12 cone check
 - **PR #280**: refactor(formal): consolidate cone-of-influence and netlist-splice helpers into one shared module
 - **Issue #277** (closed): Consolidate duplicated cone-of-influence and netlist-splice helpers in formal tooling
 - **PR #275**: test: consolidate the config.sby reader contract into test_record_lib.py
