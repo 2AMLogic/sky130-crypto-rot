@@ -20,7 +20,7 @@ _None._
 
 `loom:important`; taken before unlabelled work.
 
-- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow
+- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(held)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 
 ## Ready
@@ -33,7 +33,6 @@ _None._
 
 Issues currently being built (`loom:building`).
 
-- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
 - **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
 
@@ -54,7 +53,7 @@ _None._
 Issues carrying `loom:curated`.
 
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
-- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(curated)*
+- **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(curated)* *(held)*
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core *(curated)*
 
 ## Proposed (Architect / Hermit)
@@ -77,7 +76,7 @@ _None._
 | Very important | 0 |
 | Important | 2 |
 | Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 3 |
+| In Progress (`loom:building`) | 2 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 3 |
