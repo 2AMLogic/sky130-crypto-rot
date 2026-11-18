@@ -23,18 +23,23 @@ import re
 from collections import deque
 
 
-def load(path: str, top: str):
+def load(path: str, top: str, strict: bool = False):
     """The top module of a Yosys `write_json' netlist, selected by name.
 
-    The `top' attribute (write_json sets it on the `hierarchy -top' module)
-    is accepted as an alternative marker, last match wins. Raises SystemExit
-    when no module matches -- a missing top must stop the run, not return a
-    wrong module.
+    By default the `top' attribute (write_json sets it on the `hierarchy
+    -top' module) is accepted as an alternative marker, last match wins.
+    With strict=True only the module whose NAME is `top' is accepted -- the
+    returned module is then provably the one we named, whatever attributes
+    the netlist carries, and a netlist without that name is a hard stop even
+    if another module claims the `top' attribute. The key-isolation proof
+    flows that check a named top (P-12) run strict; the keyladder flow keeps
+    the attribute fallback. Raises SystemExit when no module matches -- a
+    missing top must stop the run, not return a wrong module.
     """
     top_mod = None
     data = json.load(open(path))
     for name, mod in data["modules"].items():
-        if mod.get("attributes", {}).get("top") or name == top:
+        if name == top or (not strict and mod.get("attributes", {}).get("top")):
             top_mod = mod
     if top_mod is None:
         raise SystemExit(f"top module {top} not found in {path}")
