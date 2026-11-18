@@ -5,10 +5,10 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-18
 
-- **PR #275**: refactor(verification): drop the dead collection() full param and share cycles/check in trng_if benches
-- **PR #195**: test: consolidate the config.sby reader contract into test_record_lib.py
-- **Issue #263** (closed): Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
-- **Issue #182** (closed): Consolidate the config.sby reader tests: one contract in test_record_lib.py instead of three generator suites (one run 3x)
+- **PR #275**: test: consolidate the config.sby reader contract into test_record_lib.py
+- **PR #195**: refactor(verification): drop the dead collection() full param and share cycles/check in trng_if benches
+- **Issue #263** (closed): Consolidate the config.sby reader tests: one contract in test_record_lib.py instead of three generator suites (one run 3x)
+- **Issue #182** (closed): Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
 
 ### 2026-11-17
 
