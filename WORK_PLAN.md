@@ -34,7 +34,6 @@ _None._
 Issues currently being built (`loom:building`).
 
 - **#179**: Run the AES and SHA-256 known-answer benches on the synthesized netlists: no gate-level simulation has been recorded for any core
-- **#182**: Remove the dead `full` parameter from the trng_if bench's collection(): the two tests pass False/True to a parameter the body never reads
 
 ## PRs Awaiting Review
 
@@ -62,7 +61,6 @@ Issues carrying `loom:curated`.
 - **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)* *(held)*
 - **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)* *(held)*
 - **#185**: Remove 15 derived klt request JSONs: each is sim-request.json plus one defines key *(hermit)* *(held)*
-- **#263**: Consolidate the config.sby reader tests: one contract in test_record_lib.py instead of three generator suites (one run 3x) *(hermit)* *(held)*
 
 ## Epics
 
@@ -75,11 +73,11 @@ _None._
 | Operator merge-risk holds | 0 |
 | Very important | 0 |
 | Important | 2 |
-| Ready (`loom:issue`) | 0 |
-| In Progress (`loom:building`) | 2 |
+| Ready (`loom:issue`) | 1 |
+| In Progress (`loom:building`) | 1 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 3 |
-| Architect / Hermit proposals | 5 |
+| Architect / Hermit proposals | 4 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
