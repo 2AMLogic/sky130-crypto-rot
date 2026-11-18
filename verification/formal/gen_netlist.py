@@ -50,6 +50,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from netlist_graph import module_text, splice  # noqa: E402
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 DRBG_RTL = REPO / "rtl/drbg/ctr_drbg.v"
@@ -114,14 +118,6 @@ def param_default(rtl_text: str, name: str) -> int:
     return int(m.group(1))
 
 
-def module_text(netlist: str, module: str) -> str:
-    m = re.search(rf"^module {re.escape(module)}\b", netlist, re.M)
-    if not m:
-        die(f"module {module} not in netlist")
-    end = netlist.index("\nendmodule", m.end()) + len("\nendmodule\n")
-    return netlist[m.start():end]
-
-
 def add_port(mod: str, port: str) -> str:
     """Add an `output <port>; wire <port>;' port to a yosys-written netlist module.
 
@@ -142,14 +138,6 @@ def add_port(mod: str, port: str) -> str:
     reverted = out.replace(f", {port}", "", 1).replace(decls, "", 1)
     if reverted != mod:
         die(f"port insertion for {port} is not a pure insertion")
-    return out
-
-
-def splice(mod: str, block: str) -> str:
-    """Insert block before the module's final `endmodule'; pure insertion."""
-    end = mod.index("\nendmodule")
-    out = mod[:end + 1] + block + "\n" + mod[end + 1:]
-    assert out.replace(block + "\n", "", 1) == mod, "splice altered the netlist module"
     return out
 
 
