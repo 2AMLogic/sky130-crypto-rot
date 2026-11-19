@@ -10,14 +10,13 @@ toward DRC/LVS-clean GDS by AI agents driving
 open-source digital flow: cocotb + Icarus for verification, Yosys for
 synthesis, OpenROAD for place-and-route.
 
-**Status: spec ratified; block RTL in, not yet integrated.** The v1 spec is
-ratified. [`rtl/README.md`](rtl/README.md) is the maintained list of which RTL
-blocks exist and which script verifies each; what has a recorded result is
-[`verification/records/`](verification/records/), and
-[`scripts/cold-start-benches.sh`](scripts/cold-start-benches.sh) is the one
-command that runs the benches behind those records, and
-[`docs/roadmap.md`](docs/roadmap.md) is the plan and its reasons. The top-level integration,
-the register interface, layout, DRC and LVS have no committed result yet.
+**Status: top-level RTL integrated and synthesized.** The
+[`crypto_rot_top` simulation record](verification/records/crypto-rot-top-sim/records/20261117-053158-0968656.md)
+reports passing AES and HMAC known-answer tests through the 32-bit register bus,
+along with fault and zeroize checks. The
+[top-level netlist record](verification/records/crypto-rot-top-netlist-formal/records/20261117-111612-2e684e7.md)
+documents the P-12 structural check after synthesis. Routed layout, DRC and LVS
+are the next physical milestones in the [roadmap](docs/roadmap.md).
 
 **Built agent-native.** Every specification, decision record, testbench, and
 line of documentation here is produced by AI agents working from a ratified
@@ -100,7 +99,8 @@ measurements/  silicon characterization (empty until tape-out)
 
 ## Reproduce
 
-CI (`.github/workflows/ci.yml`) needs no Docker; only `verify` provisions the PDK. Every job runs one command
+CI (`.github/workflows/ci.yml`) needs no Docker. Both `verify` and
+`netlist-freshness` run the environment provisioner. Every job runs one command
 a developer can run unchanged -- the three `npm run` scripts below, and `./scripts/ci-verify.sh` for `verify`
 (there is no `npm run verify`). Python 3.13 and `pytest` for the model job:
 
