@@ -101,8 +101,11 @@ measurements/  silicon characterization (empty until tape-out)
 
 CI (`.github/workflows/ci.yml`) needs no Docker. Both `verify` and
 `netlist-freshness` run the environment provisioner. Every job runs one command
-a developer can run unchanged -- the three `npm run` scripts below, and `./scripts/ci-verify.sh` for `verify`
-(there is no `npm run verify`). Python 3.13 and `pytest` for the model job:
+a developer can run unchanged -- the three `npm run` scripts below,
+`./scripts/ci-verify.sh` for `verify` (there is no `npm run verify`), and
+`python3 verification/rtl/crypto_rot_top/fv_report.py check` for
+`fv-report-freshness`. Python 3.13 and
+`pytest` for the model job:
 
 ```
 npm run lint          # compileall on verification/ and flow/, bash -n on every
@@ -117,11 +120,14 @@ npm run check:ci      # everything above
 On PRs that touch `rtl/` or `verification/`, the `verify` job also provisions
 `.venv` and runs the benches, negative controls and SymbiYosys tasks, and the
 `netlist-freshness` job re-synthesizes the committed crypto_rot_top netlist
-from the RTL and byte-compares it (issue #88); locally:
+from the RTL and byte-compares it (issue #88); the `fv-report-freshness` job
+re-hashes the committed crypto_rot_top functional-verification report against
+its envelope (issue #296). Locally:
 
 ```
 ./scripts/setup-env.sh && ./scripts/ci-verify.sh
 ./verification/rtl/crypto_rot_top/netlist/check-fresh.sh   # exit 0 fresh, 3 stale
+python3 verification/rtl/crypto_rot_top/fv_report.py check # exit 0 fresh, 3 stale
 ```
 
 The PDK-heavy legs stay local (`./scripts/setup-env.sh` provisions `.venv`,
