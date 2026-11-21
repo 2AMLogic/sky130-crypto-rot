@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "engine": "icarus",
+  "hdl_toplevel": "tb_top",
+  "testbench": "test_crypto_rot_top",
+  "status": "pass",
+  "test_count": 7,
+  "passed_count": 7,
+  "failed_count": 0,
+  "skipped_count": 0,
+  "tests": [
+    {
+      "name": "test_status_regs",
+      "status": "passed",
+      "sim_time_ns": 2970.0,
+      "real_time_s": 0.048
+    },
+    {
+      "name": "test_irq_sticky",
+      "status": "passed",
+      "sim_time_ns": 9070.0,
+      "real_time_s": 0.06
+    },
+    {
+      "name": "test_kats",
+      "status": "passed",
+      "sim_time_ns": 169270.0,
+      "real_time_s": 2.449
+    },
+    {
+      "name": "test_drbg",
+      "status": "passed",
+      "sim_time_ns": 52850.0,
+      "real_time_s": 0.782
+    },
+    {
+      "name": "test_zeroize",
+      "status": "passed",
+      "sim_time_ns": 184810.00000000003,
+      "real_time_s": 2.918
+    },
+    {
+      "name": "test_escalation",
+      "status": "passed",
+      "sim_time_ns": 149710.0,
+      "real_time_s": 2.173
+    },
+    {
+      "name": "test_key_readback",
+      "status": "passed",
+      "sim_time_ns": 59290.0,
+      "real_time_s": 0.737
+    }
+  ],
+  "coverage": null,
+  "trace": null,
+  "environment": {
+    "engine": "icarus",
+    "engine_version": "13.0",
+    "cocotb_version": "2.1.0",
+    "results_xml": "verification/rtl/crypto_rot_top/.klt/functional-verification/results_icarus.xml",
+    "test_log": "verification/rtl/crypto_rot_top/.klt/functional-verification/test_icarus.log",
+    "build_log": "verification/rtl/crypto_rot_top/.klt/functional-verification/build_icarus.log",
+    "random_seed": 1,
+    "source_defines": {},
+    "initial_state": null,
+    "sdf": null
+  }
+}
