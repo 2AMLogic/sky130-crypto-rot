@@ -81,7 +81,7 @@ install `scripts/setup-env.sh` only probes for (see "Tools not pinned by
 | Tool | Status |
 |---|---|
 | Icarus Verilog | host install (`iverilog`); the version is recorded in each record. Observed: 13.0 |
-| OpenROAD | host install; only checked, not provisioned. Consumed by `klt sta`, which shells out to it: the pre-layout setup-timing mode (`verification/rtl/aes/run.sh --timing`, `verification/rtl/sha256/run.sh --timing`, issue #178) is this repo's first committed flow that depends on it, and each timing record names the build from the response's own `engine`/`engine_version` fields. Observed: `26Q3-1510-g6cb3f2b704` |
+| OpenROAD | host install; only checked, not provisioned. Consumed by `klt sta`, which shells out to it: the pre-layout setup-timing mode (`verification/rtl/aes/run.sh --timing`, `verification/rtl/sha256/run.sh --timing`, issue #178) was this repo's first committed flow that depends on it; the place-and-route flow (`flow/pnr/crypto_rot_top/run.sh`, issues #295/#47) is the second — every flow's records name the build from the response's own `engine`/`engine_version` fields. Observed: `26Q3-1510-g6cb3f2b704` (native binary on `$PATH`; no container needed — a container-wrapped `openroad` also works because the flow invokes klt from the repo root, the one tree such a wrapper mounts) |
 
 These are not content-pinned. The deferred OpenROAD re-pin's trigger -- "the
 first issue that depends on OpenROAD (place and route, STA)" -- has now
