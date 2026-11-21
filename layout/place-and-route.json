@@ -1,0 +1,31 @@
+{
+  "schema": "klt.place-and-route.request/1",
+  "engine": "openroad",
+  "netlist": "../verification/rtl/crypto_rot_top/netlist/crypto_rot_top_synth.v",
+  "hdl_toplevel": "crypto_rot_top",
+  "pdk": {
+    "cell_library": "sky130_fd_sc_hd",
+    "corner": "tt_025C_1v80"
+  },
+  "floorplan": {
+    "method": "utilization",
+    "utilization_pct": 40,
+    "site": "unithd",
+    "core_margin_um": 5
+  },
+  "power": {
+    "preset": "sky130hd"
+  },
+  "constraints": {
+    "clock_port": "clk",
+    "clock_period_ns": 20.0
+  },
+  "seed": 1,
+  "target_stage": "route",
+  "io": {
+    "layer_h": "met3",
+    "layer_v": "met2"
+  },
+  "post_route_spef": true,
+  "portable_paths": true
+}
