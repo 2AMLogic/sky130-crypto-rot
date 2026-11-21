@@ -370175,12 +370175,12 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
     .Y(_01102_)
   );
   sky130_fd_sc_hd__nor2_1 _08407_ (
-    .A(state[0]),
+    .A(in_ready),
     .B(_01102_),
     .Y(_01103_)
   );
   sky130_fd_sc_hd__nand2_1 _08408_ (
-    .A(state[0]),
+    .A(in_ready),
     .B(in_valid),
     .Y(_01104_)
   );
@@ -372652,7 +372652,7 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
     .Y(_01501_)
   );
   sky130_fd_sc_hd__a21oi_1 _08844_ (
-    .A1(state[0]),
+    .A1(in_ready),
     .A2(_01501_),
     .B1(_01116_),
     .Y(_01502_)
@@ -372761,7 +372761,7 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
   sky130_fd_sc_hd__o31a_1 _08867_ (
     .A1(_01521_),
     .A2(_01101_),
-    .A3(state[0]),
+    .A3(in_ready),
     .B1(_01502_),
     .X(_01522_)
   );
@@ -373150,11 +373150,11 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
   );
   sky130_fd_sc_hd__nand2b_1 _08943_ (
     .A_N(fresh),
-    .B(state[0]),
+    .B(in_ready),
     .Y(_01596_)
   );
   sky130_fd_sc_hd__nand2b_1 _08944_ (
-    .A_N(state[0]),
+    .A_N(in_ready),
     .B(_01521_),
     .Y(_01597_)
   );
@@ -373676,7 +373676,7 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
   sky130_fd_sc_hd__o31ai_1 _09046_ (
     .A1(_01521_),
     .A2(_01101_),
-    .A3(state[0]),
+    .A3(in_ready),
     .B1(_01502_),
     .Y(_01686_)
   );
@@ -394074,7 +394074,7 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
     .Y(_04769_)
   );
   sky130_fd_sc_hd__o21ai_0 _12693_ (
-    .A1(state[0]),
+    .A1(in_ready),
     .A2(_01102_),
     .B1(_01513_),
     .Y(_04770_)
@@ -417648,7 +417648,7 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
   sky130_fd_sc_hd__dfxtp_1 _16969_ (
     .CLK(clk),
     .D(_00002_),
-    .Q(state[0])
+    .Q(in_ready)
   );
   sky130_fd_sc_hd__dfxtp_1 _16970_ (
     .CLK(clk),
@@ -420718,6 +420718,7 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
   sky130_fd_sc_hd__conb_1 _17969_ (
     .LO(_08403_)
   );
+  assign state[0] = in_ready;
   assign \kconst$func$rtl/sha256/sha256_core.v:202$25.i  = { _07443_, _07442_, _07441_, _07440_, _07439_, _07438_ };
   assign \rotr$func$rtl/sha256/sha256_core.v:199$24.x  = { _07475_, _07474_, _07473_, _07472_, _07471_, _07470_, _07469_, _07468_, _07467_, _07466_, _07465_, _07464_, _07463_, _07462_, _07461_, _07460_, _07459_, _07458_, _07457_, _07456_, _07455_, _07454_, _07453_, _07452_, _07451_, _07450_, _07449_, _07448_, _07447_, _07446_, _07445_, _07444_ };
   assign \rotr$func$rtl/sha256/sha256_core.v:199$23.x  = { _07507_, _07506_, _07505_, _07504_, _07503_, _07502_, _07501_, _07500_, _07499_, _07498_, _07497_, _07496_, _07495_, _07494_, _07493_, _07492_, _07491_, _07490_, _07489_, _07488_, _07487_, _07486_, _07485_, _07484_, _07483_, _07482_, _07481_, _07480_, _07479_, _07478_, _07477_, _07476_ };
@@ -420744,5 +420745,4 @@ module sha256_core(clk, rst_n, scrub, in_valid, in_ready, in_data, in_last, in_e
   assign w0 = w[511:480];
   assign digest_valid = dvalid;
   assign digest = hh;
-  assign in_ready = state[0];
 endmodule

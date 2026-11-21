@@ -49,7 +49,7 @@ cd "${REPO_ROOT}" || exit 1
 # KLT_VERSION (.github/workflows/signoff.yml, manifests/README.md and
 # README.md -- see KLT_LITERAL_FILES in that checker).
 # Keep assignments in plain NAME="value" form so it can parse them.
-KLT_VERSION="0.8.0"
+KLT_VERSION="0.9.2"
 CIEL_VERSION="2.6.1"
 COCOTB_VERSION="2.1.0"
 CIEL_PDK_FAMILY="sky130"
