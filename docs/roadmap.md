@@ -34,7 +34,7 @@ rung partly recorded and nothing beyond it claimed.
 - **TRNG interface**: `drbg_top` passes against a port-protocol stub and against the sibling's RTL
   at the pinned commit, with the sibling's start-up length and conditioner block shortened by
   parameter (`verification/records/trng-if-sim/`).
-- **T1 checklist** (`klt signoff`, klayout-tools 0.8.0): **3 of 11 met, 1 not applicable** (`manifests/sky130-crypto-rot.signoff.json`, `t1_met_count`).
+- **T1 checklist** (`klt signoff`, klayout-tools 0.9.2): **3 of 11 met, 1 not applicable** (`manifests/sky130-crypto-rot.signoff.json`, `t1_met_count`).
 
 | Item | Status | Issue |
 |---|---|---|
