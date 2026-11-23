@@ -1,4 +1,4 @@
-# 0010 - Remove the vendored design-evidence tiers doc
+# 0011 - Remove the vendored design-evidence tiers doc
 
 Status: Accepted. Date: 2026-11-23.
 
