@@ -528,23 +528,67 @@ def test_count_def_components_reads_the_components_section(tmp_path):
         mod.count_def_components(d)
 
 
-def test_the_record_refuses_a_run_that_stopped_short_of_cts(tmp_path, monkeypatch, capsys):
+def test_the_record_refuses_a_run_that_stopped_short_of_cts(tmp_path, capsys):
     mod = _pnr_record_module()
-    monkeypatch.setattr(mod, "OUT_DIR", tmp_path)
     (tmp_path / "freshness.txt").write_text(
         "check-fresh: fresh (byte-identical to the committed netlist)\n")
     (tmp_path / "pnr.json").write_text(json.dumps(
         {"status": "ok", "stage_reached": "place",
          "power": {"placed": {"status": "complete"}}}))
     with pytest.raises(SystemExit):
-        mod._load_run()
+        mod._load_run(tmp_path)
     assert "through cts" in capsys.readouterr().err
     (tmp_path / "pnr.json").write_text(json.dumps(
         {"status": "ok", "stage_reached": "cts",
          "power": {"placed": {"status": "partial", "missing": ["tapcells"]}}}))
     with pytest.raises(SystemExit):
-        mod._load_run()
+        mod._load_run(tmp_path)
     assert "power delivery" in capsys.readouterr().err
+
+
+def test_the_record_reads_the_out_dir_the_flag_selects(tmp_path, monkeypatch):
+    """#308: the generator declared --out-dir and ignored it, silently
+    serving the default directory instead. OUT_DIR is left alone here, so
+    an implementation that ignores the flag reads the repo's build dir and
+    fails rather than passing by coincidence."""
+    mod = _pnr_record_module()
+    fixture = tmp_path / "selected"
+    fixture.mkdir()
+    (fixture / "freshness.txt").write_text(
+        "check-fresh: fresh (the selected directory's own verdict)\n")
+    response = {"status": "ok", "stage_reached": "cts", "seed": 20261123,
+                "power": {"placed": {"status": "complete"}}}
+    (fixture / "pnr.json").write_text(json.dumps(response))
+    captured = {}
+
+    def fake_write_record(args, pnr, freshness):
+        captured.update(pnr=pnr, freshness=freshness)
+        return 0
+
+    monkeypatch.setattr(mod, "write_record", fake_write_record)
+    monkeypatch.setattr(sys, "argv", [
+        "make_record.py", "--out-dir", str(fixture),
+        "--pdk-root", str(tmp_path / "pdk")])
+    assert mod.main() == 0
+    assert captured["pnr"] == response, \
+        "write_record receives the fixture's CTS response, not the default dir's"
+    assert "the selected directory's own verdict" in captured["freshness"]
+
+
+def test_the_record_names_the_selected_dir_when_an_input_is_missing(
+        tmp_path, monkeypatch, capsys):
+    mod = _pnr_record_module()
+    fixture = tmp_path / "selected"
+    fixture.mkdir()
+    (fixture / "freshness.txt").write_text("check-fresh: fresh\n")
+    monkeypatch.setattr(sys, "argv", [
+        "make_record.py", "--out-dir", str(fixture),
+        "--pdk-root", str(tmp_path / "pdk")])
+    with pytest.raises(SystemExit) as done:
+        mod.main()
+    assert done.value.code == 1
+    assert str(fixture / "pnr.json") in capsys.readouterr().err, \
+        "the refusal names the selected directory's file, not the default's"
 
 
 def test_timing_figures_are_labelled_pre_route_estimates():

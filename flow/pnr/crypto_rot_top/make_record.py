@@ -91,15 +91,17 @@ def count_def_components(path: Path) -> int:
     return count
 
 
-def _load_run() -> tuple[dict, str]:
-    """(cts response, freshness line), refusing unless the run is complete."""
+def _load_run(out_dir: Path) -> tuple[dict, str]:
+    """(cts response, freshness line) read from `out_dir` (the --out-dir
+    value, the module default when the flag is omitted), refusing unless
+    the run is complete."""
     for rel in ("freshness.txt", "pnr.json"):
-        if not (OUT_DIR / rel).exists():
-            print(f"pnr: not recording, {OUT_DIR / rel} is missing -- run "
+        if not (out_dir / rel).exists():
+            print(f"pnr: not recording, {out_dir / rel} is missing -- run "
                   "flow/pnr/crypto_rot_top/run.sh --through-cts --record first",
                   file=sys.stderr)
             raise SystemExit(1)
-    pnr = json.loads((OUT_DIR / "pnr.json").read_text())
+    pnr = json.loads((out_dir / "pnr.json").read_text())
     if pnr.get("status") != "ok" or pnr.get("stage_reached") != "cts":
         print(f"pnr: not recording, the flow did not complete through cts "
               f"(status {pnr.get('status')!r}, stage_reached "
@@ -111,7 +113,7 @@ def _load_run() -> tuple[dict, str]:
               f"{placed.get('status')!r} (missing: {placed.get('missing')})",
               file=sys.stderr)
         raise SystemExit(1)
-    freshness = (OUT_DIR / "freshness.txt").read_text().strip().splitlines()
+    freshness = (out_dir / "freshness.txt").read_text().strip().splitlines()
     line = freshness[-1] if freshness else ""
     if "fresh" not in line:
         print(f"pnr: not recording, the freshness guard did not pass this run "
@@ -258,7 +260,7 @@ def main() -> int:
     ap.add_argument("--out-dir", type=Path, default=OUT_DIR)
     ap.add_argument("--pdk-root", type=Path, required=True)
     args = ap.parse_args()
-    pnr, freshness = _load_run()
+    pnr, freshness = _load_run(args.out_dir)
     return write_record(args, pnr, freshness)
 
 
