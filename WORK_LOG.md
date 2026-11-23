@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-23
 
+- **PR #312**: docs(verification): measure abc/z3 engine and trace behavior for P-7/P-8/P-9
+- **Issue #309** (closed): Measure trace generation and solver coverage for the P-7/P-8/P-9 formal tasks
 - **PR #310**: fix(verification): run the P-7/P-8/P-9 harness on the venv's sby and drop the closed tool-gap wording
 - **Issue #129** (closed): Use the pinned SBY tools for P-7/P-8/P-9 and correct the formal record wording
 - **PR #311**: fix: honor --out-dir in the crypto_rot_top P&R record generator
