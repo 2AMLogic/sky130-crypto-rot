@@ -1,6 +1,6 @@
 # 0001 — Which sky130-modexp flow and verification tooling is adopted
 
-- **Status:** accepted
+- **Status:** accepted; the "Adopted (3)" section is superseded by [0010](0010-remove-vendored-modexp-files.md)
 - **Rule:** `2am/REUSE.md` (cross-cutting rule 9)
 - **Pin:** `2AMLogic/sky130-modexp@18f4d8fd5e104f64550817a5468f262c159f734f`, `mode: vendored`
 - **Upstream request:** 2AMLogic/sky130-modexp#211

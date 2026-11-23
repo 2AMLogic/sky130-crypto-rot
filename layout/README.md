@@ -1,9 +1,5 @@
 # layout
 
-`lvs/common/` holds files vendored byte-identical from `2AMLogic/sky130-modexp`
-at the commit pinned in [`reuse.lock.json`](../reuse.lock.json); do not edit
-them here. Adoption decisions: [`spec/decision-records/0001-modexp-tooling-adoption.md`](../spec/decision-records/0001-modexp-tooling-adoption.md).
-
 `place-and-route.json` is the committed `klt place-and-route` request for
 the crypto_rot_top gate-level netlist (issue #295): PDN preset `sky130hd` +
 tap cells, no scan insertion per `spec/target-spec.md` section 5, target
