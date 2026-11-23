@@ -210,6 +210,26 @@ def test_inconclusive_net_prove_at_its_depth_still_records(gen, monkeypatch, tmp
     assert "| `net_p9.sby` | `net_prove` | TIMEOUT -- reached depth 14, not proven | engine_0 (abc pdr) returned PASS | 20 |" in body
 
 
+def test_record_wording_keeps_the_notes_drops_the_closed_gap(gen, monkeypatch, tmp_path):
+    """Issue #129: a newly rendered record states the configured engines and
+    `aigsmt none`, keeps the still-active short-TMPDIR synthesis note, and no
+    longer claims the venv's sby ships no SMT solver or needs a helper shim
+    (setup-env.sh links sby and both helper names from the pinned wheel).
+    Records are append-only: this pins the template's wording, not any
+    published record, and mints no evidence from synthetic results."""
+    out = _out_dir(tmp_path, [_row("p7_p8.sby", "prove", "PASS")],
+                   {("p7_p8.sby", "prove"): CONFIG["prove_unbounded"]})
+    calls = _stub_record_path(monkeypatch, gen)
+    assert _run_gen(gen, out, monkeypatch, check_only=False) == 0
+    body = calls["write_record"][0][2]
+    assert "`abc pdr`" in body and "`abc bmc3`" in body
+    assert "`aigsmt none`" in body
+    assert "short `TMPDIR`" in body        # the netlist synthesis note stays
+    assert "klayout-tools#5780" in body    # with its upstream reference
+    assert "no SMT solver" not in body     # the closed gap is not re-asserted
+    assert "formal-bin" not in body        # neither is the removed shim
+
+
 def test_run_with_no_config_sby_refuses_to_record(gen, monkeypatch, tmp_path):
     """sby never wrote a config.sby: neither the mode nor the depth of what ran
     can be stated, so the run is broken and refuses (issue #224)."""
