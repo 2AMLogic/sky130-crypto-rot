@@ -36,14 +36,14 @@ Issues currently being built (`loom:building`).
 
 - **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc
 - **#296**: T1 item 5, functional half: commit the klt functional-verification JSON report for the top-level suite (needs no layout)
-- **#309**: Measure trace generation and solver coverage for the P-7/P-8/P-9 formal tasks
+- **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively
 
 ## PRs Awaiting Review
 
 PRs waiting on Judge (`loom:review-requested`).
 
 - **#306**: manifests: remove the vendored design-evidence tiers doc and --tiers-doc
-- **#312**: docs(verification): measure abc/z3 engine and trace behavior for P-7/P-8/P-9
+- **#315**: chore: remove unused vendored sky130-modexp workaround files
 
 ## Approved (Awaiting Merge)
 
@@ -58,14 +58,13 @@ Issues carrying `loom:curated`.
 - **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(curated)* *(held)*
 - **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(curated)*
+- **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(curated)*
 - **#283**: Merge queue: add the merge_group trigger and adapt the PR-metadata gates *(curated)* *(held)*
 - **#296**: T1 item 5, functional half: commit the klt functional-verification JSON report for the top-level suite (needs no layout) *(curated)*
 - **#303**: core_flow.sh comments still name klayout-tools 0.8.0 as the pin after the 0.9.2 re-pin *(curated)* *(held)*
-- **#309**: Measure trace generation and solver coverage for the P-7/P-8/P-9 formal tasks *(curated)*
 
 ## Proposed (Architect / Hermit)
 
-- **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)*
 - **#307**: Run the SymbiYosys log-parser cases once per input *(hermit)*
 
 ## Epics
@@ -84,6 +83,6 @@ _None._
 | PRs awaiting review | 2 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 7 |
-| Architect / Hermit proposals | 2 |
+| Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
