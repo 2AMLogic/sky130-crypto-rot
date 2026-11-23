@@ -3,6 +3,20 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-23
+
+- **PR #310**: fix(verification): run the P-7/P-8/P-9 harness on the venv's sby and drop the closed tool-gap wording
+- **Issue #129** (closed): Use the pinned SBY tools for P-7/P-8/P-9 and correct the formal record wording
+- **PR #311**: fix: honor --out-dir in the crypto_rot_top P&R record generator
+- **Issue #308** (closed): make_record.py accepts --out-dir and ignores it (crypto_rot_top P&R record generator)
+- **PR #301**: feat: land the stage-bounded through-CTS P&R flow for crypto_rot_top
+- **Issue #295** (closed): Land the crypto_rot_top place-and-route flow on main with a through-CTS record, so the route in #47 is a single off-host submit
+- **PR #305**: docs: attribute the `--attest 2 --input` mint path to klayout-tools 0.9.0
+- **Issue #304** (closed): manifests/README.md misattributes the `--attest 2 --input` mint path to the 0.9.2 release
+- **Issue #185** (closed): Remove 15 derived klt request JSONs: each is sim-request.json plus one defines key
+- **PR #299**: manifests: re-pin klayout-tools to 0.9.2 and regenerate the T1 evidence under it
+- **Issue #294** (closed): Bump the klayout-tools pin from 0.8.0 to the newest PyPI release and regenerate the signoff record and envelopes
+
 ### 2026-11-18
 
 - **PR #188**: feat(verification): run the AES and SHA-256 known-answer benches on their synthesized netlists
