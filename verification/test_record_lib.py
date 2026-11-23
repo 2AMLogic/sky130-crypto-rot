@@ -462,11 +462,11 @@ def test_gate_bullet_states_netlist_models_delay_model_and_no_sdf(tmp_path):
     assert bullet.endswith("\n")
 
 
-def test_gate_bullet_does_not_use_the_vendored_defines_file(tmp_path):
-    """#134's premise: options.defines is native at the pin, so it has no caller."""
+def test_gate_bullet_names_native_options_defines_not_a_defines_file(tmp_path):
+    """#134: options.defines is native at the pin; no defines source file exists."""
     _, bullet = record_lib.gate_level_bullets(_gate(tmp_path), tmp_path, "aes")
-    assert "is **not** used" in bullet
-    assert "sky130_fd_sc_hd_sim_defines.v" in bullet
+    assert "forwards `options.defines` itself" in bullet
+    assert "no `+define+` source file is used" in bullet
 
 
 def test_gate_bullet_names_every_excluded_testcase_with_its_reason(tmp_path):
