@@ -1,13 +1,5 @@
 # verification
 
-`gate-level/common/` holds a file vendored byte-identical from
-`2AMLogic/sky130-modexp` at the commit pinned in
-[`reuse.lock.json`](../reuse.lock.json); do not edit it here. Adoption
-decisions: [`spec/decision-records/0001-modexp-tooling-adoption.md`](../spec/decision-records/0001-modexp-tooling-adoption.md).
-It still has **no caller**: the aes and sha256 `--gate-level` mode selects the
-same cell models through `options.defines`, which the pinned `klt` forwards
-natively, so its removal (#134) remains a decision about an uncalled file.
-
 `model/` holds the Python golden reference models and `vectors/` the published
 known-answer vectors with provenance sidecars;
 [`model/README.md`](model/README.md) is the maintained list of which model is
