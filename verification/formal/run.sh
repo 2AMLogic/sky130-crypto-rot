@@ -4,7 +4,7 @@
 # (spec/key-isolation-properties.md) on the RTL, and -- with --netlist -- on
 # the klt-synthesized sky130_fd_sc_hd netlist of the same modules (issue #177).
 #
-#   ./scripts/setup-env.sh                    # once: .venv (provides yowasp-sby)
+#   ./scripts/setup-env.sh                    # once: .venv (links sby + its helpers)
 #   ./verification/formal/run.sh              # RTL tasks, summary table
 #   ./verification/formal/run.sh --record     # same, then write a record under
 #                                             # verification/records/drbg-trng-formal/records/
@@ -27,10 +27,9 @@
 # only if every task met its expectation.
 #
 # Engines: RTL tasks use only the Yosys-internal ones (`abc pdr` for unbounded
-# proofs, `abc bmc3` for bounded checks). The venv's sby has no SMT solver, so
-# smtbmc engines and counterexample trace conversion (`aigsmt`) are not used on
-# the RTL tasks; failing RTL tasks therefore produce no waveform. Tool gap
-# filed generically on 2AMLogic/klayout-tools (see the record).
+# proofs, `abc bmc3` for bounded checks), configured `aigsmt none`: no SMT
+# solver runs, and failing RTL tasks therefore produce no waveform. (Engine and
+# trace changes need a measured run; tracked in issue #309.)
 #
 # Netlist tasks (net_*.sby) use the RTL tasks' own Yosys-internal engines:
 # `abc pdr` for the unbounded netlist proofs (verified to close on the
@@ -44,9 +43,9 @@
 # `abc` engines run a separate `yosys-abc`, which the YoWASP wheel does not ship:
 # a native Yosys install must provide it (CI: apt `yosys`); checked up front.
 #
-# yowasp-sby looks for `yosys-witness` / `yosys-smtbmc` by those names; the
-# venv ships them as yowasp-yosys-*, so a shim directory under flow/build/
-# links them (no host tool is touched).
+# SymbiYosys is the venv's `.venv/bin/sby`: setup-env.sh links it, with the
+# `yosys-smtbmc`/`yosys-witness` helper names sby looks for, from the pinned
+# wheel; a host SymbiYosys is not used.
 #
 # Synthesis (netlist mode) goes through `klt synthesize` with the venv's pinned
 # yowasp-yosys first on PATH. klt 0.8.0 kills yosys at a hard-coded 300 s, and
@@ -60,7 +59,6 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${HERE}/../.." && pwd)"
 OUT="${REPO_ROOT}/flow/build/formal"
-SHIM="${REPO_ROOT}/flow/build/formal-bin"
 
 RECORD=0
 NETLIST=0
@@ -72,12 +70,9 @@ for arg in "$@"; do
   esac
 done
 
-SBY="${REPO_ROOT}/.venv/bin/yowasp-sby"
+SBY="${REPO_ROOT}/.venv/bin/sby"
 if [ ! -x "${SBY}" ]; then
-  SBY="$(command -v sby || true)"
-fi
-if [ -z "${SBY}" ] || [ ! -x "${SBY}" ]; then
-  echo "error: no SymbiYosys found (looked for ${REPO_ROOT}/.venv/bin/yowasp-sby and sby on PATH)." >&2
+  echo "error: ${SBY} not found; a host SymbiYosys, if present, is not used." >&2
   echo "  -> run ./scripts/setup-env.sh first. The properties are NOT deferred; this run proved nothing." >&2
   exit 2
 fi
@@ -88,11 +83,11 @@ if ! command -v yosys-abc > /dev/null 2>&1; then
   echo "  Without it every task exits 16 and the reach_*/neg_* controls cannot be told from a missing tool." >&2
   exit 2
 fi
-mkdir -p "${OUT}" "${SHIM}"
-for t in witness smtbmc; do
-  ln -sf "${REPO_ROOT}/.venv/bin/yowasp-yosys-${t}" "${SHIM}/yosys-${t}"
-done
-export PATH="${SHIM}:${REPO_ROOT}/.venv/bin:${PATH}"
+# The venv's bin/ must lead $PATH so the pinned sby and the helper names
+# setup-env.sh links beside it resolve to the wheel's, not a host's (the same
+# rule as verification/formal/keyladder/run.sh).
+export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
+mkdir -p "${OUT}"
 
 : > "${OUT}/results.tsv"
 cd "${HERE}"
@@ -143,9 +138,6 @@ if [ "${NETLIST}" = 1 ]; then
   PDK_ROOT="${PDK_ROOT:-${HOME}/.ciel}"
   LIB="${PDK_ROOT}/sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
   [ -f "${LIB}" ] || { echo "error: liberty ${LIB} not found (PDK_ROOT); the netlist tasks need the sky130A PDK" >&2; exit 1; }
-  # The venv's bin/ must lead $PATH so the pinned yosys, sby, z3 and klt run,
-  # not host ones (the same rule as verification/formal/keyladder/run.sh).
-  export PATH="${REPO_ROOT}/.venv/bin:${PATH}"
   # klayout-tools#5780: yosys's abc pass deadlocks when the temp path is long
   # (yosys-abc's readline wraps the echoed `source' line). The ambient TMPDIR
   # can be long enough to trip it, so every synthesis below runs with a short one.
