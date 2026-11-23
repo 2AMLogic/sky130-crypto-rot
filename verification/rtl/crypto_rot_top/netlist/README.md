@@ -18,7 +18,9 @@ Byte-compare is sound because the flow is deterministic: two clean
 `klt synthesize` runs of this request at different scratch paths produced
 byte-identical netlists (pinned `klayout-tools==0.8.0`,
 yowasp-yosys 0.68.0.0.post1208, sky130A `f6eeac7d`; verified 2026-11-17,
-recorded in `verification/records/crypto-rot-top-netlist-formal/`).
+recorded in `verification/records/crypto-rot-top-netlist-formal/`; re-verified
+the same way at the 0.9.2 re-pin, 2026-11-20, issue #294 — the regenerated
+netlist below is byte-identical to a second clean run under that pin).
 
 Regenerate after an RTL edit (check-fresh prints the exact recipe on drift):
 

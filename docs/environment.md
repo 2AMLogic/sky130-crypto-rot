@@ -54,7 +54,7 @@ stops with a pointer.
 
 | Component | Pinned to | Resolved via |
 |---|---|---|
-| `klayout-tools` (`klt`) | PyPI [`klayout-tools==0.8.0`](https://pypi.org/project/klayout-tools/0.8.0/) (tag [`v0.8.0`](https://github.com/2AMLogic/klayout-tools/releases/tag/v0.8.0), commit `c572046be644`) | `pip install "klayout-tools==0.8.0"` (what `scripts/setup-env.sh` runs) |
+| `klayout-tools` (`klt`) | PyPI [`klayout-tools==0.9.2`](https://pypi.org/project/klayout-tools/0.9.2/) (tag [`v0.9.2`](https://github.com/2AMLogic/klayout-tools/releases/tag/v0.9.2), commit `046ba74652fc`) | `pip install "klayout-tools==0.9.2"` (what `scripts/setup-env.sh` runs) |
 | Yosys + its embedded ABC | PyPI `yowasp-yosys==0.68.0.0.post1208`, verified by content: `yowasp_yosys/yosys.wasm` = `sha256:e37a7e65e3fa4efbbd64a9c1b0e906be16cdc6c4d5273109d17537f78449f38c` | `pip install "yowasp-yosys==0.68.0.0.post1208"` into `.venv`, then `.venv/bin/yosys -> yowasp-yosys`; the provision **fails** if the digest does not match |
 | SymbiYosys (`sby`), `yosys-smtbmc`, `yosys-witness` | shipped inside the same `yowasp-yosys==0.68.0.0.post1208` wheel (entry points `yowasp-sby`, `yowasp-yosys-smtbmc`, `yowasp-yosys-witness`); pinned by the same `yosys.wasm` digest; there is no standalone `sby` on PyPI | linked as `.venv/bin/sby`, `.venv/bin/yosys-smtbmc`, `.venv/bin/yosys-witness` by `scripts/setup-env.sh` |
 | `z3` (SMT solver for `sby`) | PyPI `z3-solver==5.3.2.0`, verified by content: `.venv/bin/z3` = `sha256:c45e787b5d1a3d94079d1e83b98e23bbc884ccaf542ea38c3814f31ac2f79197` | `pip install "z3-solver==5.3.2.0"` into `.venv` (the wheel ships a native `z3` binary); the provision **fails** if the digest does not match |
@@ -89,11 +89,22 @@ fired with the timing mode above; pinning it to a container digest or a
 built revision remains its own future decision, not part of that issue.
 
 `klt sta` does **not** need place-and-route on the pinned `klayout-tools`
-0.8.0: its DEF-free `verilog` mode times a structural netlist against
+0.9.2: its DEF-free `verilog` mode times a structural netlist against
 liberty plus a clock constraint alone and labels the result
 `geometry_source: "netlist_estimate"`. Pre-layout setup timing (issue #178)
 uses that mode; routed-DEF timing still needs place-and-route and remains
 out of scope (#50).
+
+## klt re-pin (2026-11-20)
+
+- `klt` moved from PyPI `klayout-tools==0.8.0` to PyPI `klayout-tools==0.9.2`
+  (issue #294): the newer release carries `klt signoff --skip-local-only`,
+  the `--attest 2 --input` mint path the T1 item-2 envelope needs
+  (klayout-tools#6038) and place-and-route `--resume`. Single-unit
+  `place-and-route --backend batch` is still refused by 0.9.2 (it needs at
+  least two corners); publication of that capability is tracked by
+  klayout-tools#6897. The records committed before this date ran on 0.8.0;
+  they are append-only evidence and are not regenerated.
 
 ## klt re-pin (2026-10-27)
 

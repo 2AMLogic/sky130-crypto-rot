@@ -32,9 +32,9 @@ rather than from prose.
   has no statistical row; it is not an entropy or side-channel claim.
 - **`design-evidence-tiers.md`** — the T1-T4 checklist the grader parses.
   Vendored **byte-identical** from
-  [`2AMLogic/klayout-tools@c572046`](https://github.com/2AMLogic/klayout-tools/blob/c572046be644e0407f693f2410f3abb799d68a3a/docs/design-evidence-tiers.md)
-  `docs/design-evidence-tiers.md` (the commit tag `v0.8.0` points to,
-  2026-10-27; upstream is MIT-licensed, and this repo's license does not
+  [`2AMLogic/klayout-tools@046ba746`](https://github.com/2AMLogic/klayout-tools/blob/046ba74652fc096bd97071fc3237f7159dd40183/docs/design-evidence-tiers.md)
+  `docs/design-evidence-tiers.md` (the commit tag `v0.9.2` points to,
+  2026-11-14; upstream is MIT-licensed, and this repo's license does not
   relicense the vendored copy). When upstream moves, re-vendor the doc and
   regenerate the record in the same PR.
 - **`sky130-crypto-rot.signoff.json`** — the **verdict of record**:
@@ -42,14 +42,15 @@ rather than from prose.
 
 ## Pinned tool
 
-`klayout-tools==0.8.0` (the first release with `klt signoff --attest`).
-CI, the committed record and the `KLT_VERSION` flow pin in
+`klayout-tools==0.9.2` (the first release with `--skip-local-only` and the
+`--attest 2 --input` mint path; the attestation subcommand itself arrived in
+0.8.0). CI, the committed record and the `KLT_VERSION` flow pin in
 `scripts/setup-env.sh` all use the same release.
 
 ## Regenerate
 
 ```console
-uvx --from "klayout-tools==0.8.0" klt signoff \
+uvx --from "klayout-tools==0.9.2" klt signoff \
     --manifest manifests/sky130-crypto-rot.json \
     --tiers-doc manifests/design-evidence-tiers.md \
     --format json > manifests/sky130-crypto-rot.signoff.json
@@ -63,7 +64,7 @@ regenerates and commits the record in the same PR.
 ## Attest item 1
 
 ```console
-uvx --from "klayout-tools==0.8.0" klt signoff --attest 1 \
+uvx --from "klayout-tools==0.9.2" klt signoff --attest 1 \
     --inventory manifests/inventories/item-1.json \
     -o manifests/inventories/item-1.envelope.json
 ```
@@ -80,13 +81,13 @@ runs it, the CI envelope gate below does not (it carries the committed
 outcome), and `.github/workflows/ci.yml` runs it as its own
 `netlist-freshness` job on every PR touching `rtl/` or `verification/`.
 Re-attest when an RTL source, the request or the committed netlist changes
-(the freshness job fails first), then put the inventory's
+(the freshness job fails first), then put the envelope's
 `provenance.input.content_hash` in the manifest and regenerate the record.
 
 ## Attest item 9
 
 ```console
-uvx --from "klayout-tools==0.8.0" klt signoff --attest 9 \
+uvx --from "klayout-tools==0.9.2" klt signoff --attest 9 \
     --inventory manifests/inventories/item-9.json \
     -o manifests/inventories/item-9.envelope.json
 ```
@@ -110,7 +111,7 @@ The TRNG-interface bench fetches the sibling's RTL at its pinned commit with
 login`, or `GH_TOKEN`); without one the cold-start command fails rather than
 silently skipping that bench.
 
-Re-attest when a listed bench changes, then put the inventory's
+Re-attest when a listed bench changes, then put the envelope's
 `provenance.input.content_hash` in the manifest and regenerate the record.
 The `cold_start` command is marked `local_only`, so this re-attest runs it but
 the CI envelope gate below does not (see "Freshness is CI-enforced").
@@ -121,40 +122,39 @@ The full attestation above needs the bench toolchain and a GitHub credential.
 When only hashes drifted — an attested file changed (a `checks` entry), or the
 inventory was edited (its `provenance.input.content_hash`) — and no listed
 bench itself changed, refresh without the benches: run the command above with
-`--skip-local-only`, swapping its specifier for a klayout-tools build that has
-the flag. The pinned 0.8.0 predates the flag (its `signoff --help` has no such
-option): release 0.9.2 is the first with it, and the dispatch hosts'
-provisioned `klt` also has it — confirm with `klt signoff --help` before
-minting. The flag does not run the `local_only` (`cold_start`) bench: it
-carries that bench's committed outcome from the existing envelope forward
-unchanged and recomputes every other check, so the route is valid only when
-the change cannot affect the bench — a changed bench needs the full cold-start
-run above — and it cannot make a stale bench outcome look fresh. The refreshed
-envelope records no skip marker: the `cold_start` entry in `attestation.checks`
-is carried byte-for-byte from the existing one, so the route's only traces are
-that unchanged entry and `provenance.klt_version` naming the minting build.
-If the inventory changed, also put its new
-`provenance.input.content_hash` in the manifest and regenerate the record, as
-above.
+`--skip-local-only`. The pinned 0.9.2 is the first release carrying the flag
+(the 0.8.0 pin predates it, so a host whose provisioned `klt` is older must
+mint through a newer build — e.g. `uvx --from "klayout-tools==0.9.2"` — and
+confirm the option shows in `klt signoff --help` first). The flag does not
+run the `local_only` (`cold_start`) bench: it carries that bench's committed
+outcome from the existing envelope forward unchanged and recomputes every
+other check, so the route is valid only when the change cannot affect the
+bench — a changed bench needs the full cold-start run above — and it cannot
+make a stale bench outcome look fresh. The refreshed envelope records no skip
+marker: the `cold_start` entry in `attestation.checks` is carried
+byte-for-byte from the existing one, so the route's only traces are that
+unchanged entry and `provenance.klt_version` naming the minting build. If the
+inventory changed, also put its new `provenance.input.content_hash` in the
+manifest and regenerate the record, as above.
 
-Minting with a newer build is an expected, documented divergence: the refreshed
-envelope's `provenance.klt_version` then names a build newer than the
-`KLT_VERSION="0.8.0"` pin in `scripts/setup-env.sh` (item 9's envelope on
-`main` provenances 0.9.3.dev21+g008b4d7f7b01 from this route; item 10's still
-records 0.8.0 from before it existed). What makes that safe is verifying the
-result under the pin — mandatory, in the same PR as the refreshed envelope:
+Minting with a build other than the pin is an expected, documented divergence:
+the refreshed envelope's `provenance.klt_version` then names that build
+(item 9's envelope on `main` once provenanced 0.9.3.dev21+g008b4d7f7b01 from
+this route, against the 0.8.0 pin of the time). What makes it safe is
+verifying the result under the pin — mandatory, in the same PR as the
+refreshed envelope:
 
 ```console
-uvx --from "klayout-tools==0.8.0" klt signoff --attest 9 \
+uvx --from "klayout-tools==0.9.2" klt signoff --attest 9 \
     --inventory manifests/inventories/item-9.json \
     --check manifests/inventories/item-9.envelope.json
 ```
 
 Exit `0` means the refreshed envelope still reproduces and still passes under
 the tool CI grades with; anything else means stop and re-run the full
-attestation above. Once the `KLT_VERSION` pin moves to a release carrying
-`--skip-local-only` (0.9.2 already does), the two routes collapse back into
-one; moving the pin is a separate decision, not made here.
+attestation above. The `KLT_VERSION` pin now sits on a release carrying
+`--skip-local-only`, so mint and check both run under the pin and the two
+routes are one.
 
 ## Attest item 10
 
@@ -167,7 +167,7 @@ The inventory's audit commands call `npm run test` and `npm run check:reuse`,
 which need `pytest` on the `python3` that `klt` runs under; run `klt` from a
 venv that has both (not bare `uvx`, whose `python3` has no `pytest`). The
 envelope records the hashes of README.md, LICENSE and both workflows, so
-re-attest after editing any of them, then put the inventory's
+re-attest after editing any of them, then put the envelope's
 `provenance.input.content_hash` in the manifest and regenerate the record.
 All three commands are marked `local_only`, so this re-attest runs them but the
 CI envelope gate below does not (see "Freshness is CI-enforced").
@@ -181,13 +181,14 @@ every pull request.
 and fails when the fresh output differs byte-for-byte from the committed
 record.
 
-**The attestation envelopes.** The grade above binds items 1, 9 and 10 only
-by the hash of each inventory file, so on its own it cannot see an attested
-file being edited: a PR that changes `README.md`, a listed bench, an RTL
-source or the committed netlist without re-attesting leaves the record
-byte-identical, and the stale `content_hash` entries in the envelope go
-unnoticed. The step before it therefore re-checks all three envelopes with
-the tool's own drift mode:
+**The attestation envelopes.** The grade above binds item 1 by the hash of
+its whole attestation input — inventory, listed RTL sources and the derived
+netlist together — but items 9 and 10 by the hash of each inventory file
+alone, so on its own it cannot see an item-9 or item-10 attested file being
+edited: a PR that changes `README.md` or a listed bench without re-attesting
+leaves the record byte-identical, and the stale `content_hash` entries in the
+envelope go unnoticed. The step before it therefore re-checks all three
+envelopes with the tool's own drift mode:
 
 ```console
 klt signoff --attest 9 --inventory manifests/inventories/item-9.json \
