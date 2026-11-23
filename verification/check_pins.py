@@ -78,7 +78,8 @@ KLT_LITERAL_FILES = (
 )
 
 # `klayout-tools==X` as written in a pip/uvx command line or inline code, and
-# the backticked release tag `vX` the vendored tiers doc cites. The tag form
+# the backticked release tag `vX` naming the klayout-tools release whose
+# bundled tiers checklist manifests/README.md links. The tag form
 # requires two dotted components so that the `actions/checkout@v4` and
 # `actions/setup-python@v5` refs in signoff.yml cannot match it.
 KLT_LITERALS = (

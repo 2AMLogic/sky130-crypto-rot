@@ -30,13 +30,11 @@ rather than from prose.
   either, refresh the hash (`sha256sum`, prefixed `sha256:`) in
   `evidence."6".not_applicable` and regenerate the record. This says the spec
   has no statistical row; it is not an entropy or side-channel claim.
-- **`design-evidence-tiers.md`** — the T1-T4 checklist the grader parses.
-  Vendored **byte-identical** from
-  [`2AMLogic/klayout-tools@046ba746`](https://github.com/2AMLogic/klayout-tools/blob/046ba74652fc096bd97071fc3237f7159dd40183/docs/design-evidence-tiers.md)
-  `docs/design-evidence-tiers.md` (the commit tag `v0.9.2` points to,
-  2026-11-14; upstream is MIT-licensed, and this repo's license does not
-  relicense the vendored copy). When upstream moves, re-vendor the doc and
-  regenerate the record in the same PR.
+- The T1-T4 checklist the grader parses is the one bundled with the pinned
+  klayout-tools release alone — no copy of it lives in this repo. It is
+  [`docs/design-evidence-tiers.md` at tag `v0.9.2`](https://github.com/2AMLogic/klayout-tools/blob/v0.9.2/docs/design-evidence-tiers.md)
+  upstream; the checklist changes only through a pin bump, which regenerates
+  the record in the same PR.
 - **`sky130-crypto-rot.signoff.json`** — the **verdict of record**:
   committed output of the command below. Never hand-edit it.
 
@@ -52,14 +50,13 @@ subcommand itself in 0.8.0). CI, the committed record and the
 ```console
 uvx --from "klayout-tools==0.9.2" klt signoff \
     --manifest manifests/sky130-crypto-rot.json \
-    --tiers-doc manifests/design-evidence-tiers.md \
     --format json > manifests/sky130-crypto-rot.signoff.json
 ```
 
 The command exits `3` when at least one T1 item is `unmet` (a valid, clean
 run) and `0` when every item is `met`. Any change that affects the verdict
-— new evidence, a manifest edit, a vendored-doc bump, a version-pin bump —
-regenerates and commits the record in the same PR.
+— new evidence, a manifest edit, a version-pin bump — regenerates and
+commits the record in the same PR.
 
 ## Attest item 1
 
