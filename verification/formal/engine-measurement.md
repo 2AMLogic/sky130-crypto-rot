@@ -137,9 +137,10 @@ out of scope for a measurement.
   three of seven expected-FAIL tasks (`reach_valid`, `reach_over`,
   `neg_interval`, i.e. the deep ones: depths 90-200, failing frames 54-61)
   hit the 600 s cap without producing their FAIL, so it does **not** keep
-  every expected-FAIL task FAILing. Only the p9-family bounded tasks
-  (depth 30) meet their expectations under z3, at 184 s vs 6 s for the one
-  PASS row — correct but ~30x slower, with no capability gained (abc already
+  every expected-FAIL task FAILing. Of the bounded tasks, five of eight
+  meet their expectations under z3 — the four p9-family tasks (depth 30)
+  plus `p7_p8 neg_seeded` (depth 40) — the p9 `bmc` PASS row at 184 s vs
+  6 s, correct but ~30x slower, with no capability gained (abc already
   yields traces once `aigsmt` is not `none`).
 - `smtbmc z3` remains in use where it already works: the keyladder harness
   (`verification/formal/keyladder/*.sby`) is unmeasured here and untouched.
