@@ -160,7 +160,8 @@ def test_pin_block_without_counterpart_constant_fails(tmp_path):
 
 
 # The two literal forms as they really appear: `klayout-tools==X` in a pip or
-# uvx command line, and the backticked release tag the vendored tiers doc cites.
+# uvx command line, and the backticked release tag naming the klayout-tools
+# release whose bundled tiers checklist manifests/README.md links.
 WORKFLOW = """\
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

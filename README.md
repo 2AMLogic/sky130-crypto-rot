@@ -144,7 +144,6 @@ reproduce it (and the item-10 attestation) at the pinned `klayout-tools`:
 ```
 uvx --from "klayout-tools==0.9.2" klt signoff \
     --manifest manifests/sky130-crypto-rot.json \
-    --tiers-doc manifests/design-evidence-tiers.md \
     --format json > manifests/sky130-crypto-rot.signoff.json
 ```
 

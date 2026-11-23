@@ -38,6 +38,7 @@ Issues currently being built (`loom:building`).
 - **#294**: Bump the klayout-tools pin from 0.8.0 to the newest PyPI release and regenerate the signoff record and envelopes
 - **#295**: Land the crypto_rot_top place-and-route flow on main with a through-CTS record, so the route in #47 is a single off-host submit
 - **#296**: T1 item 5, functional half: commit the klt functional-verification JSON report for the top-level suite (needs no layout)
+- **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc
 
 ## PRs Awaiting Review
 
@@ -64,7 +65,6 @@ Issues carrying `loom:curated`.
 
 ## Proposed (Architect / Hermit)
 
-- **#121**: Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc *(hermit)* *(held)*
 - **#129**: Unify the two formal harnesses: drop the sby shim, stale no-SMT-solver claims and the unpinned host yosys-abc from verification/formal/run.sh *(hermit)* *(held)*
 - **#134**: Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively *(hermit)* *(held)*
 - **#185**: Remove 15 derived klt request JSONs: each is sim-request.json plus one defines key *(hermit)* *(held)*
@@ -81,10 +81,10 @@ _None._
 | Very important | 0 |
 | Important | 2 |
 | Ready (`loom:issue`, net of holds/building/merge-pending) | 2 |
-| In Progress (`loom:building`) | 3 |
+| In Progress (`loom:building`) | 4 |
 | PRs awaiting review | 1 |
 | Approved PRs awaiting merge | 0 |
 | Curated | 6 |
-| Architect / Hermit proposals | 4 |
+| Architect / Hermit proposals | 3 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
