@@ -47,10 +47,12 @@ jobs:
           set -uo pipefail
           # Each committed envelope under manifests/inventories/ pins the raw
           # bytes of every file its inventory lists. The grader step below
-          # binds an item only by the hash of its *inventory*, so an edit to
-          # an attested file (README.md, a workflow, a bench, an RTL source or
-          # the committed netlist) leaves the record byte-identical and the
-          # drift invisible. The tool's own drift mode is what sees it:
+          # binds item 1 by its inventory, RTL sources and netlist together,
+          # so an RTL or netlist edit moves the record; it binds items 9 and
+          # 10 by their *inventory* alone, so an edit to an attested file
+          # there (README.md, a workflow, a bench) leaves the record
+          # byte-identical and the drift invisible. The tool's own drift
+          # mode is what sees it:
           # --attest ITEM --check ENVELOPE re-attests and exits 0 only if the
           # committed envelope still reproduces AND still passes, 3 otherwise,
           # writing nothing.
