@@ -42,10 +42,10 @@ rather than from prose.
 
 ## Pinned tool
 
-`klayout-tools==0.9.2` (the first release with `--skip-local-only` and the
-`--attest 2 --input` mint path; the attestation subcommand itself arrived in
-0.8.0). CI, the committed record and the `KLT_VERSION` flow pin in
-`scripts/setup-env.sh` all use the same release.
+`klayout-tools==0.9.2` (the first release with `--skip-local-only`; the
+`--attest 2 --input` mint path arrived in 0.9.0 and the attestation
+subcommand itself in 0.8.0). CI, the committed record and the
+`KLT_VERSION` flow pin in `scripts/setup-env.sh` all use the same release.
 
 ## Regenerate
 
