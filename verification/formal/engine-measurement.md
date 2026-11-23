@@ -28,7 +28,8 @@ Three passes over the ten RTL tasks of `p7_p8.sby` + `p9.sby`:
   (`abc pdr` for the two unbounded proofs, `abc bmc3` for the eight bounded
   tasks, `aigsmt none`). A fresh same-machine, same-commit baseline; it
   reproduces the 2026-11-15 record (`verification/records/drbg-trng-formal/
-  records/20261115-084328-a801ec1.md`) row for row.
+  records/20261115-084328-a801ec1.md`) — same verdict and failing frame for
+  every row (elapsed differs).
 - **aig** (trace conversion) — copies with the single change
   `aigsmt none` -> `aigsmt z3`. Engines, depths, properties untouched.
 - **smt** (solver coverage) — copies with every engine line changed to
@@ -171,7 +172,8 @@ standalone binary (re-grepped on `2145d4a`; comment-only mentions excluded):
 Not callers: `verification/formal/crypto_rot_top/run.sh`,
 `verification/rtl/crypto_rot_top/netlist/check-fresh.sh` and
 `scripts/cold-start-benches.sh` mention yosys-abc only in the
-klayout-tools#5780 readline-deadlock comment — their abc activity is the
+klayout-tools#5780 readline-deadlock comment (`make_record.py:172`, the record
+tool-gap text, and `WORK_PLAN.md:68` mention it in prose only) — their abc activity is the
 mapping pass *inside* the pinned wasm yosys (`klt synthesize`), whose
 identity is the wasm sha256, not the host binary. Since (1) and (2) keep abc
 engines per the recommendation above, host `yosys-abc` stays, and the CI apt
@@ -179,7 +181,9 @@ engines per the recommendation above, host `yosys-abc` stays, and the CI apt
 
 **Recording the ABC binary identity:** recommended. Every `abc pdr`/`abc
 bmc3` verdict in this harness rests on an **unpinned** binary that varies
-with the host (this run: apt-built ABC 1.01, sha256 `e19cd995…`) — the exact
+with the host (this run: the host-provisioned binary, apt's in CI, ABC 1.01, sha256
+`e19cd995…`; a second worker measured a different build, compiled Nov 19,
+sha256 `c84f1007…`) — the exact
 identity gap the wasm pin exists to close for yosys proper, open for abc.
 One extra line in `make_record.py`'s run-configuration text — the resolved
 `yosys-abc` path, the version banner it prints, and the binary sha256 —
@@ -205,7 +209,9 @@ cd flow/build/formal/engine-measurement
 ../../../../.venv/bin/sby -f -d aig_p7_p8_reach_valid p7_p8.aig.sby reach_valid
 ```
 
-Status, exit code and frame match the table; elapsed may differ. A task
+Status, exit code and frame match the table (the `smt` FAIL rows' frame is
+the last `Checking assertions in step N` before `BMC failed!`, since smtbmc
+logs no "asserted in frame"); elapsed may differ. A task
 hitting the cap is TIMEOUT by construction (the smt copies' `timeout 600`),
 never PASS/FAIL; a missing z3 or yosys-witness surfaces as a tool-failure
 row (non-numeric status), not a solver result.

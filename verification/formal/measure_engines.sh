@@ -89,6 +89,11 @@ run_one() { # run_one <pass> <sby-dir-cd> <file.sby-to-run> <task> <file-label>
   status="$(grep -o 'DONE ([A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/DONE (//' || true)"
   engine="$(grep -o 'summary: engine_0 ([a-z0-9 ]*) returned [A-Z]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | sed 's/summary: //' || true)"
   frame="$(grep -o 'asserted in frame [0-9]*' "${dir}/logfile.txt" 2>/dev/null | head -1 | grep -o '[0-9]*$' || true)"
+  if [ -z "${frame}" ] && grep -q 'BMC failed!' "${dir}/logfile.txt" 2>/dev/null; then
+    # smtbmc never logs "asserted in frame"; its failing step is the last
+    # "Checking assertions in step N" before "BMC failed!".
+    frame="$(grep -o 'Checking assertions in step [0-9]*' "${dir}/logfile.txt" 2>/dev/null | tail -1 | grep -o '[0-9]*$' || true)"
+  fi
   secs="$(grep -o 'Elapsed clock time.*(\([0-9]*\))' "${dir}/logfile.txt" 2>/dev/null | tail -1 | grep -o '([0-9]*)' | tr -d '()' || true)"
   trace="n/a"
   if [ -d "${dir}/engine_0" ]; then
