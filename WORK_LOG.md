@@ -5,6 +5,8 @@ triage role. Entries are grouped by date, newest first.
 
 ### 2026-11-23
 
+- **PR #306**: manifests: remove the vendored design-evidence tiers doc and --tiers-doc
+- **Issue #121** (closed): Remove vendored design-evidence-tiers.md: pinned klt 0.8.0 ships the identical doc
 - **PR #315**: chore: remove unused vendored sky130-modexp workaround files
 - **Issue #134** (closed): Remove the three vendored modexp workaround files: no callers, and pinned klt 0.8.0 handles all three cases natively
 - **PR #312**: docs(verification): measure abc/z3 engine and trace behavior for P-7/P-8/P-9
