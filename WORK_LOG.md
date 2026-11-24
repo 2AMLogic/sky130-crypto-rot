@@ -3,6 +3,15 @@
 Chronological record of merged PRs and closed issues, maintained by the Guide
 triage role. Entries are grouped by date, newest first.
 
+### 2026-11-24
+
+- **PR #324**: test: merge test_drbg_formal_record.py into test_drbg_trng_formal_record.py
+- **Issue #322** (closed): Consolidate test_drbg_formal_record.py into test_drbg_trng_formal_record.py
+- **PR #323**: chore: refresh loom-managed .gitignore block to ignore account-ranking runtime file
+- **Issue #320** (closed): .loom/account-ranking.codex is untracked in the main checkout, so check-main-clean.sh exits 3 during dispatch
+- **PR #321**: test: run the sby steps-checked scrape cases once against record_lib
+- **Issue #307** (closed): Run the SymbiYosys log-parser cases once per input
+
 ### 2026-11-23
 
 - **PR #306**: manifests: remove the vendored design-evidence tiers doc and --tiers-doc
