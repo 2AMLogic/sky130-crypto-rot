@@ -21,9 +21,13 @@ the operator ruling of 2026-11-17 (attended `/fleet:decide` round
 verification/test_record_lib.py, run against record_lib directly. What guards
 against a re-introduced generator-local copy here is
 test_both_generators_use_the_shared_readers: its identity assertions fail a
-local `def sby_depth`/`sby_mode` even before its contract can drift. This file
-keeps the generator's own behaviour (the verdict rule, the depth column, the
-no-depth-knob pins) and the steps-checked scrape contract.
+local `def sby_depth`/`sby_mode` even before its contract can drift. The
+steps-checked scrape contract followed by the operator ruling of 2026-11-23
+(attended `/fleet:decide` round 20261121-r19, issue #307): its last 3-handle
+fixture is gone, each supported line format's winning case runs once against
+record_lib in test_record_lib.py, and the identity assertions are what still
+guard the generator wiring. This file keeps the generator's own behaviour
+(the verdict rule, the depth column, the no-depth-knob pins).
 """
 
 from __future__ import annotations
@@ -59,51 +63,14 @@ def drbg():
     return _load("drbg_make_record", DRBG_GENERATOR)
 
 
-@pytest.fixture(scope="module", params=["keyladder", "drbg", "record_lib"])
-def sby_steps_checked(request, gen, drbg):
-    """The steps-checked scrape as the keyladder generator (bound by name), the
-    DRBG/TRNG generator (bound only as `rc.sby_steps_checked`, its logfile
-    wrapper's own callee) and record_lib itself expose it. Resolving whatever
-    attribute the module actually uses -- `getattr(mod, "rc", mod)` -- keeps
-    the identity with the call site, so the contract tests below run against
-    the same object the reached-depth column comes from (issue #262)."""
-    mods = {"keyladder": gen, "drbg": drbg, "record_lib": sys.modules["record_lib"]}
-    return getattr(getattr(mods[request.param], "rc", mods[request.param]),
-                   "sby_steps_checked")
-
-
-# --- the steps-checked scrape: both generators' reached-depth column ----------
-
-
-def test_steps_checked_takes_the_max_over_both_checking_lines(sby_steps_checked):
-    """The one scrape behind both record families' reached-depth column: the
-    assertion-checking line a bounded run emits, its assumptions variant and
-    the cover-reachability line a `mode cover` run emits, maximum over all --
-    here the maximum sits on the assumptions line a one-line scrape misses."""
-    text = ("##   Checking assertions in step 14..\n"
-            "##   Checking assumptions and assertions in step 22..\n")
-    assert sby_steps_checked(text) == 22
-
-
-def test_steps_checked_reads_a_cover_runs_reachability_line(sby_steps_checked):
-    """A `mode cover` run emits only the cover-reachability line: a scrape
-    that knows just the assertion line reports nothing for it."""
-    assert sby_steps_checked("##   Checking cover reachability in step 12..\n") == 12
-
-
-def test_no_checking_line_is_no_steps(sby_steps_checked):
-    """A log with no checking line says nothing -- None, not zero (sby died
-    before any step). Whether the logfile exists is the caller's concern."""
-    assert sby_steps_checked("engine killed before any step\n") is None
-
-
 def test_both_generators_use_the_shared_readers(gen, drbg):
     """One parser per reader, not three: a generator-local `def sby_depth`
     would let the keyladder and DRBG/TRNG record families state different
     depths again (#211), and the same holds for the mode reader and the
     steps-checked scrape (#262). These identity assertions are the guard the
-    operator ruling settled on (2026-11-17, round 20261116-r15, slate s3,
-    issue #263), after this file's reader-contract cases moved to
+    operator rulings settled on (2026-11-17, round 20261116-r15, slate s3,
+    issue #263; 2026-11-23, round 20261121-r19, issue #307 for the
+    steps-checked scrape), after this file's reader-contract cases moved to
     verification/test_record_lib.py: they fail a re-introduced local copy
     even before its contract drifts -- the contract itself is pinned once,
     against record_lib, in test_record_lib.py."""

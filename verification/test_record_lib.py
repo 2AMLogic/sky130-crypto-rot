@@ -638,13 +638,27 @@ def test_sby_mode(tmp_path, config, expected):
     assert record_lib.sby_mode(_sby_workdir(tmp_path, config)) == expected
 
 
-def test_sby_steps_checked_takes_the_max_over_both_checking_lines():
+@pytest.mark.parametrize("log,expected", [
+    # all three lines, the maximum on the assertion line
+    ("##   Checking assumptions and assertions in step 0..\n"
+     "##   Checking cover reachability in step 9..\n"
+     "##   Checking assertions in step 14..\n", 14),
+    # the maximum on the assumptions-and-assertions line, which a scrape
+    # that knows only the plain assertion line misses
+    ("##   Checking assertions in step 14..\n"
+     "##   Checking assumptions and assertions in step 22..\n", 22),
+    # a `mode cover` run emits only the cover-reachability line; the mixed
+    # log above cannot catch its loss, its maximum being on an assertion line
+    ("##   Checking cover reachability in step 12..\n", 12),
+    # no checking line: sby died before any step -- None, not zero
+    ("engine killed before any step\n", None),
+])
+def test_sby_steps_checked(log, expected):
     """The one scrape behind both record families' steps_checked (issue #259):
-    the assertion lines a bounded run emits and the cover-reachability line a
-    `mode cover` run emits, maximum over all of them; a log with no checking
-    line says nothing."""
-    text = ("##   Checking assumptions and assertions in step 0..\n"
-            "##   Checking cover reachability in step 9..\n"
-            "##   Checking assertions in step 14..\n")
-    assert record_lib.sby_steps_checked(text) == 14
-    assert record_lib.sby_steps_checked("engine killed before any step\n") is None
+    the assertion-checking line a bounded run emits, its assumptions variant
+    and the cover-reachability line a `mode cover` run emits, the maximum over
+    all of them; a log with no checking line says nothing. Run once against
+    record_lib itself: the per-handle copies in test_keyladder_formal_record.py
+    were folded in here by the operator ruling of 2026-11-23 (issue #307), and
+    that file's identity assertions still guard the generators' wiring."""
+    assert record_lib.sby_steps_checked(log) == expected
