@@ -21,7 +21,6 @@ _None._
 
 `loom:important`; taken before unlabelled work.
 
-- **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(held)*
 
 ## Ready
@@ -53,6 +52,7 @@ _None._
 
 Issues carrying `loom:curated`.
 
+- **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(curated)* *(held)*
 - **#283**: Merge queue: add the merge_group trigger and adapt the PR-metadata gates *(curated)* *(held)*
 - **#296**: T1 item 5, functional half: commit the klt functional-verification JSON report for the top-level suite (needs no layout) *(curated)*
