@@ -21,6 +21,7 @@ _None._
 
 `loom:important`; taken before unlabelled work.
 
+- **#3**: Track the gap to T1 (klayout-tools design-evidence-tiers.md) *(curated)*
 - **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(held)*
 
 ## Ready
@@ -54,6 +55,7 @@ Issues carrying `loom:curated`.
 
 - **#47**: T1 item 2 (layout): routed crypto_rot_top GDS from a committed klt place-and-route flow *(curated)* *(held)*
 - **#283**: Merge queue: add the merge_group trigger and adapt the PR-metadata gates *(curated)* *(held)*
+- **#296**: T1 item 5, functional half: commit the klt functional-verification JSON report for the top-level suite (needs no layout) *(curated)*
 - **#303**: core_flow.sh comments still name klayout-tools 0.8.0 as the pin after the 0.9.2 re-pin *(curated)* *(held)*
 
 ## Proposed (Architect / Hermit)
@@ -75,7 +77,7 @@ _None._
 | In Progress (`loom:building`) | 1 |
 | PRs awaiting review | 0 |
 | Approved PRs awaiting merge | 0 |
-| Curated | 3 |
+| Curated | 5 |
 | Architect / Hermit proposals | 1 |
 | Active epics | 0 |
 <!-- guide:plan-body:end -->
