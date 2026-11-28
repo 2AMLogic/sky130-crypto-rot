@@ -6,10 +6,15 @@
 #
 #   ./scripts/setup-env.sh                              # once: .venv, pinned yosys, PDK
 #   ./verification/rtl/crypto_rot_top/run.sh            # cocotb + Icarus, then klt synthesize
+#                                                       # (also refreshes the committed
+#                                                       # functional-verification report,
+#                                                       # issue #296: fv_report.py sync)
 #   ./verification/rtl/crypto_rot_top/run.sh --record   # same, then write a record under
 #                                                       # verification/records/crypto-rot-top-sim/records/
 #   ./verification/rtl/crypto_rot_top/run.sh --sim-only # simulation only: stop before synthesis
-#                                                       # (what scripts/ci-verify.sh runs)
+#                                                       # (what scripts/ci-verify.sh runs; the
+#                                                       # cheapest way to regenerate the
+#                                                       # committed fv report on drift)
 #   ./verification/rtl/crypto_rot_top/run.sh --negative-control
 #                                                       # four controls (top zeroize disconnected,
 #                                                       # class-1 fault unrecorded, ladder slot omitted
@@ -50,4 +55,11 @@ if [ "${NEG}" = 1 ]; then
 fi
 
 core_flow_sim
+# The committed fv report is evidence only while it is what the current
+# request, RTL and bench produce (issue #296): sync it after every passing
+# simulation. A no-change rerun leaves the committed bytes untouched; on
+# drift this rewrites report+envelope, and the verdict below (and every
+# record) refuses until the pair is committed -- the check-fresh.sh
+# discipline, adapted because the pinned klt 0.8.0 writes no input hashes.
+python3 "${HERE}/fv_report.py" sync "${OUT}/sim.json"
 core_flow_finish "${SIM_ONLY}" "${RECORD}"

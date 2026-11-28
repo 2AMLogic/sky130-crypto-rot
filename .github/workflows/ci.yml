@@ -12,6 +12,11 @@
 # `netlist-freshness`: the committed crypto_rot_top netlist re-synthesized and
 # byte-compared (verification/rtl/crypto_rot_top/netlist/check-fresh.sh). It
 # makes no security claim.
+# `fv-report-freshness` (issue #296): the committed crypto_rot_top
+# functional-verification report checked against its input-hash envelope
+# (verification/rtl/crypto_rot_top/fv_report.py check) -- tool-light, no
+# simulator and no PDK, because the pinned klt 0.8.0 writes no input hashes
+# and has no `functional-verification --check`.
 # What stays local: place-and-route, DRC, LVS, signoff (PDK-heavy beyond the
 # freshness synthesis), sha256 --million-a, verification/formal/keyladder and
 # verification/formal/crypto_rot_top.
@@ -23,7 +28,8 @@
 # `npm run test` and `npm run check:reuse` for the three tool-light jobs,
 # ./scripts/ci-verify.sh for `verify` (there is no `npm run verify`), and
 # verification/rtl/crypto_rot_top/netlist/check-fresh.sh for
-# `netlist-freshness`.
+# `netlist-freshness`, python3 verification/rtl/crypto_rot_top/fv_report.py
+# check for `fv-report-freshness`.
 name: CI
 
 on:
@@ -155,3 +161,35 @@ jobs:
         run: ./scripts/setup-env.sh
       - if: steps.changed.outputs.run == 'true'
         run: ./verification/rtl/crypto_rot_top/netlist/check-fresh.sh
+
+  # Freshness of the committed crypto_rot_top functional-verification report
+  # (issue #296): the report run.sh commits beside its request must be what
+  # the current request, RTL and bench produce. Tool-light -- python3 stdlib
+  # only, no simulator, no PDK, no .venv: the pinned klt 0.8.0 writes no
+  # input hashes and has no `functional-verification --check` (a 0.9.x
+  # feature), so the check is the repo's own hash envelope, on the
+  # check-fresh.sh pattern. Exit 3 on drift fails the job, so an RTL,
+  # testbench or request edit cannot merge without regenerating the report.
+  fv-report-freshness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: changed
+        # Same shared gate as `verify` (issue #283), with this job's filter.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+        run: |
+          out="$(./scripts/ci-changed.sh '^(rtl/|verification/|flow/|scripts/setup-env\.sh$|\.github/workflows/ci\.yml$)')"
+          echo "$out" >> "$GITHUB_OUTPUT"
+      - if: steps.changed.outputs.run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - if: steps.changed.outputs.run == 'true'
+        run: python3 verification/rtl/crypto_rot_top/fv_report.py check
